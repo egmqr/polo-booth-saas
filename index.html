@@ -155,7 +155,7 @@
       height: 100%;
       background-color: var(--bg-body);
       z-index: 10000;
-      display: flex;
+      display: none;
       flex-direction: column;
       justify-content: center;
       align-items: center;
@@ -683,7 +683,13 @@
 </head>
 
 <body class="dark-mode">
-
+  <div id="initialAuthLoader"
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+    <div
+      style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #0d9488; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;">
+    </div>
+    <h3 style="font-family: sans-serif; font-weight: 600;">Authenticating...</h3>
+  </div>
   <div id="loginOverlay">
     <div class="container" style="max-width:380px; text-align:center; padding:40px 30px;">
       <h2 style="margin-top:0; font-size:22px; margin-bottom:8px;">ProBooth</h2>
@@ -863,12 +869,12 @@
             <img id="boothLogoPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
           </div>
         </div>
-
+        <!--
         <div
           style="margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
           <label style="margin-bottom: 4px;">Or select existing logo:</label>
           <div id="existingLogoGallery" class="logo-gallery"></div>
-        </div>
+        </div> -->
 
         <div class="checkbox-wrapper">
           <input type="checkbox" id="logoOnMain">
@@ -996,8 +1002,12 @@
     }
 
     function checkLogin() {
+      // 1. Hide the initial authenticating spinner immediately
+      const authLoader = document.getElementById('initialAuthLoader');
+      if (authLoader) authLoader.style.display = 'none';
+
       if (!currentUser) {
-        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('loginOverlay').style.display = 'flex'; // Show login
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'none';
       } else {
@@ -1007,7 +1017,6 @@
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
         applyTierRestrictions();
         fetchBoothEvents(true);
-        fetchExistingLogos();
         renderTemplateList();
       }
     }
@@ -1415,28 +1424,6 @@
       document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
     }
 
-    async function fetchExistingLogos() {
-      if (existingLogosCache) { renderExistingLogos(existingLogosCache); return; }
-      const res = await callWorkerApi('/api/dashboard/existing-logos', {}, true);
-      if (res && res.success) { existingLogosCache = res.logos; renderExistingLogos(res.logos); }
-    }
-
-    function renderExistingLogos(logos) {
-      const container = document.getElementById('existingLogoGallery');
-      let html = '';
-      logos.filter(logo => logo.id && !logo.id.includes('egm_fav copy')).forEach(logo => {
-        html += `<img src="${logo.url}" class="logo-gallery-item" title="${logo.name}" onclick="selectExistingLogo('${logo.id}', '${logo.qrId}', this)">`;
-      });
-      container.innerHTML = html || '<span class="hint-text">No logos found.</span>';
-    }
-
-    function selectExistingLogo(id, qrId, el) {
-      selectedExistingLogoId = id; selectedExistingQrLogoId = qrId;
-      document.querySelectorAll('.logo-gallery-item').forEach(img => img.classList.remove('selected'));
-      el.classList.add('selected');
-      document.getElementById('logoFile').value = ""; document.getElementById('logoFileName').innerText = "Using existing";
-      croppedLogoPayload = null; croppedQrLogoPayload = null;
-    }
 
     // ==========================================
     // TEMPLATES & STICKERS
