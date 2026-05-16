@@ -1,4 +1,4 @@
-name = "probooth-api"
+name = "polo-booth-saas"
 main = "index.js"
 compatibility_date = "2024-01-01"
 
