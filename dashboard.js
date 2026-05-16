@@ -222,7 +222,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
             } else qrUrls.push('');
         } catch { qrUrls.push(''); }
 
-        appUrls.push(`${MASTER_APP_URL}?prefix=${encodeURIComponent(prefix)}&tab=${tabParam}${isCommunity ? '&isCommunity=true' : ''}`);
+        appUrls.push(`${MASTER_APP_URL}?prefix=${encodeURIComponent(prefix)}&tab=${tabParam}${isCommunity ? '&isCommunity=true' : ''}${userStickers === true ? '&userStickers=true' : ''}`);
     }
 
     await saveEventToFirestore(env, currentUser.uid, eventId, {
