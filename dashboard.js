@@ -235,16 +235,26 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     });
 
     // Push each booth config to the user's hotfolder so ProBooth picks it up on next sync
-    const userHotfolderPrefix = `users/${currentUser.uid}/hotfolder/`;
-    for (const configKey of configKeys) {
-        try {
-            const obj = await Storage.get(env, configKey);
-            if (obj) {
-                const filename = configKey.split('/').pop(); // e.g. Booth1.json
-                const hotKey = `${userHotfolderPrefix}${eventId}_${filename}`;
-                await Storage.put(env, hotKey, await obj.text(), { httpMetadata: { contentType: 'application/json' } });
+    // FIX: Skip pushing to hotfolder if this is a "Community Only" web event
+    if (!isOnlyCommunity) {
+        const userHotfolderPrefix = `users/${currentUser.uid}/hotfolder/`;
+        for (const configKey of configKeys) {
+
+            // FIX: If the event has normal booths PLUS a community booth, 
+            // skip pushing the community booth config (which is always the last one)
+            if (includeCommunity && configKey.endsWith(`Booth${totalBooths}.json`)) {
+                continue;
             }
-        } catch { }
+
+            try {
+                const obj = await Storage.get(env, configKey);
+                if (obj) {
+                    const filename = configKey.split('/').pop(); // e.g. Booth1.json
+                    const hotKey = `${userHotfolderPrefix}${eventId}_${filename}`;
+                    await Storage.put(env, hotKey, await obj.text(), { httpMetadata: { contentType: 'application/json' } });
+                }
+            } catch { }
+        }
     }
 
     return { success: true, message: 'Generated successfully!' };
