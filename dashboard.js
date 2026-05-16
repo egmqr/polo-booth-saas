@@ -113,8 +113,8 @@ export async function handleDashboardRoutes(request, env) {
 // User-namespaced paths: users/{uid}/events/{eventId}/...
 // All existing logic preserved — only the path prefix and tier check are new.
 
-const NETLIFY_BASE_URL = 'https://gallery.polo-booth.com/main.html';
-const MASTER_APP_URL = 'https://gallery.polo-booth.com/';
+const NETLIFY_BASE_URL = 'https://gallery.createdbyegm.com/main.html';
+const MASTER_APP_URL = 'https://gallery.createdbyegm.com/';
 
 async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
@@ -233,6 +233,19 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         enableCommunity: includeCommunity, communityOnly: isOnlyCommunity,
         userStickers: userStickers === true
     });
+
+    // Push each booth config to the user's hotfolder so ProBooth picks it up on next sync
+    const userHotfolderPrefix = `users/${currentUser.uid}/hotfolder/`;
+    for (const configKey of configKeys) {
+        try {
+            const obj = await Storage.get(env, configKey);
+            if (obj) {
+                const filename = configKey.split('/').pop(); // e.g. Booth1.json
+                const hotKey = `${userHotfolderPrefix}${eventId}_${filename}`;
+                await Storage.put(env, hotKey, await obj.text(), { httpMetadata: { contentType: 'application/json' } });
+            }
+        } catch { }
+    }
 
     return { success: true, message: 'Generated successfully!' };
 }
