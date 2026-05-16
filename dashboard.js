@@ -113,8 +113,8 @@ export async function handleDashboardRoutes(request, env) {
 // User-namespaced paths: users/{uid}/events/{eventId}/...
 // All existing logic preserved — only the path prefix and tier check are new.
 
-const NETLIFY_BASE_URL = 'https://gallery.createdbyegm.com/main.html';
-const MASTER_APP_URL = 'https://gallery.createdbyegm.com/';
+const NETLIFY_BASE_URL = 'https://gallery.polo-booth.com/main.html';
+const MASTER_APP_URL = 'https://gallery.polo-booth.com/';
 
 async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
