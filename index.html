@@ -1668,25 +1668,11 @@
           const qrUrl = qrUrlsArr[i] || "";
           const fileName = isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QR.png`;
 
-          let qrHtml = '';
-          if (qrUrl) {
-            currentViewBooths.push({ boothNum: bNum, url: qrUrl, filename: fileName });
-            qrHtml = `<button class="mini-btn" onclick="copyText('${qrUrl}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${qrUrl}', '${fileName}')">Download</button>`;
-          } else {
-            let qc = `https://quickchart.io/qr?size=1000&errorCorrectionLevel=H&text=${encodeURIComponent(mainUrl)}`;
-            let fbLogo = '';
-            if (details.qrLogoId) {
-              fbLogo = details.qrLogoId.startsWith('qrlogo_')
-                ? `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/assets/qr-logos/${details.qrLogoId}.png`
-                : `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/assets/logos/${details.qrLogoId}.png`;
-            } else if (details.logoId) {
-              fbLogo = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/assets/logos/${details.logoId}.png`;
-            }
-            if (fbLogo) qc += `&centerImageUrl=${encodeURIComponent(fbLogo)}&centerImageSizeRatio=0.22`;
+          // FIX: Calculate exact R2 path dynamically instead of falling back to QuickChart
+          const r2QrUrl = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/qr/${isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QRCode.png`}?v=${Date.now()}`;
 
-            currentViewBooths.push({ boothNum: bNum, url: qc, filename: fileName });
-            qrHtml = `<button class="mini-btn" onclick="copyText('${qc}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${qc}', '${fileName}')">Download</button>`;
-          }
+          currentViewBooths.push({ boothNum: bNum, url: r2QrUrl, filename: fileName });
+          let qrHtml = `<button class="mini-btn" onclick="copyText('${r2QrUrl}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${r2QrUrl}', '${fileName}')">Download</button>`;
 
           const card = document.createElement('div'); card.className = 'booth-card';
           card.innerHTML = `

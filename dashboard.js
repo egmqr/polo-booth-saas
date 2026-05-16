@@ -214,13 +214,25 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
             (logoUrlForQr ? `&centerImageUrl=${encodeURIComponent(logoUrlForQr + '?v=' + Date.now())}&centerImageSizeRatio=0.22` : '');
 
         try {
-            const qrResp = await fetch(qcUrl);
+            // FIX: Pass a longer timeout signal so Cloudflare waits for QuickChart to process your logo
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds max
+
+            const qrResp = await fetch(qcUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
             if (qrResp.ok) {
                 const qrKey = `${uPrefix}/${eventId}/qr/${isCommunity ? 'Community_QRCode.png' : `Booth_${i}_QRCode.png`}`;
                 await Storage.put(env, qrKey, await qrResp.arrayBuffer(), { httpMetadata: { contentType: 'image/png', cacheControl: 'no-cache' } });
                 qrUrls.push(`${cdn}/${qrKey}?v=${Date.now()}`);
-            } else qrUrls.push('');
-        } catch { qrUrls.push(''); }
+            } else {
+                console.error("QuickChart returned error:", qrResp.status);
+                qrUrls.push('');
+            }
+        } catch (err) {
+            console.error("QR Code Generation/Upload failed:", err);
+            qrUrls.push('');
+        }
 
         appUrls.push(`${MASTER_APP_URL}?prefix=${encodeURIComponent(prefix)}&tab=${tabParam}${isCommunity ? '&isCommunity=true' : ''}${userStickers === true ? '&userStickers=true' : ''}`);
     }
