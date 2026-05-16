@@ -1,0 +1,1641 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Standalone Booth Generator</title>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+  <style>
+    /* --- CSS VARIABLES FOR THEMING --- */
+    :root {
+      --bg-body: #f4f5f7;
+      --bg-container: #ffffff;
+      --text-main: #222222;
+      --text-muted: #777777;
+      --border: #cccccc;
+      --input-bg: #ffffff;
+      --btn-bg: #0d9488;
+      --btn-hover: #0f766e;
+      --btn-text: #ffffff;
+      --btn-outline-bg: #ffffff;
+      --btn-outline-text: #333333;
+      --overlay-bg: rgba(255, 255, 255, 0.85);
+      --shadow: rgba(0, 0, 0, 0.1);
+      --card-bg: #f8fafc;
+    }
+
+    body.dark-mode {
+      --bg-body: #111318;
+      --bg-container: #1c1f26;
+      --text-main: #eeeeee;
+      --text-muted: #94a3b8;
+      --border: #2e3340;
+      --input-bg: #161920;
+      --btn-bg: #0d9488;
+      --btn-hover: #0f766e;
+      --btn-text: #ffffff;
+      --btn-outline-bg: #252831;
+      --btn-outline-text: #cbd5e1;
+      --overlay-bg: rgba(10, 11, 15, 0.92);
+      --shadow: rgba(0, 0, 0, 0.3);
+      --card-bg: #252831;
+    }
+
+    /* Layout Reset & Mobile Base */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 60px 15px 15px 15px;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--bg-container);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px var(--shadow);
+      margin: 0 auto;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    /* Theme & Logout Controls */
+    .top-controls-wrapper {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .logout-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+      display: none;
+    }
+
+    .logout-btn:hover {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 46px;
+      height: 24px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .3s;
+      border-radius: 24px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: var(--btn-bg);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(22px);
+    }
+
+    /* Full Screen Login Overlay */
+    #loginOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-body);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+    /* Loading Overlay */
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--overlay-bg);
+      z-index: 10010;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .overlay-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top: 4px solid var(--btn-bg);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    .overlay-text {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text-main);
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Image Cropper Modal */
+    #cropModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      z-index: 10005;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .crop-container {
+      width: 100%;
+      max-width: 400px;
+      height: 60vh;
+      max-height: 400px;
+      background: #222;
+      border-radius: 8px;
+      overflow: hidden;
+      background-image: linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    #imageToCrop {
+      display: block;
+      max-width: 100%;
+    }
+
+    .crop-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .crop-btn-cancel {
+      background: #555 !important;
+      flex: 1;
+      color: white !important;
+    }
+
+    /* UI Elements */
+    .mode-toggle {
+      display: flex;
+      margin-bottom: 25px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px 5px;
+      background: var(--btn-outline-bg);
+      color: var(--btn-outline-text);
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      transition: 0.2s;
+      border-right: 1px solid var(--border);
+    }
+
+    .mode-btn:last-child {
+      border-right: none;
+    }
+
+    .mode-btn.active {
+      background: var(--btn-bg);
+      color: #fff;
+      border-color: var(--btn-bg);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .color-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 18px;
+    }
+
+    .color-group .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--input-bg);
+      font-weight: 600;
+      color: var(--text-main);
+      transition: 0.2s;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--btn-bg);
+    }
+
+    ::placeholder {
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    input:disabled,
+    select:disabled,
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Checkbox & Switch UI */
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .checkbox-wrapper label {
+      margin-bottom: 0;
+      text-transform: none;
+      font-size: 13px;
+      color: var(--text-main);
+      cursor: pointer;
+      flex-grow: 1;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--btn-bg);
+      margin: 0;
+    }
+
+    /* Custom Hex + Color Picker UI */
+    .color-input-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input[type="color"] {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      background: none;
+      flex-shrink: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 7px;
+    }
+
+    /* Custom File Upload UI */
+    .custom-file-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-btn {
+      background: var(--btn-outline-bg);
+      color: var(--btn-outline-text);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: 0.2s;
+    }
+
+    .file-btn:hover {
+      background: var(--border);
+    }
+
+    .file-name {
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Templates & Logos Grids */
+    .template-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .template-actions button {
+      flex: 1;
+      padding: 6px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .logo-gallery {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 10px 0;
+    }
+
+    .logo-gallery-item {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      object-fit: contain;
+      background: #fff;
+      padding: 2px;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo-gallery-item.selected {
+      border-color: var(--btn-bg);
+    }
+
+    .sticker-manager-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      margin-top: 10px;
+    }
+
+    .sticker-manager-item {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 4px;
+    }
+
+    .sticker-manager-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .sticker-manager-delete {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hint-text {
+      display: block;
+      font-size: 11px;
+      color: #ef4444;
+      margin-top: 6px;
+      font-weight: bold;
+    }
+
+    /* Action Buttons */
+    button.action-btn {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      width: 100%;
+      margin-top: 10px;
+      font-weight: bold;
+      transition: 0.2s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    button.action-btn:hover:not(:disabled) {
+      background-color: var(--btn-hover);
+      transform: translateY(-1px);
+    }
+
+    #deleteBtn {
+      background-color: transparent;
+      color: #ef4444;
+      border: 1px solid #ef4444;
+      margin-top: 10px;
+    }
+
+    #deleteBtn:hover:not(:disabled) {
+      background-color: #ef4444;
+      color: #fff;
+    }
+
+    /* --- VIEW MODE CSS --- */
+    .booth-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: var(--bg-container);
+    }
+
+    .booth-card h4 {
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .link-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .mini-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--btn-outline-bg);
+      color: var(--btn-outline-text);
+      border-radius: 6px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .mini-btn:hover {
+      background: var(--border);
+    }
+
+    .mini-btn.backup {
+      background: #475569;
+      color: #fff;
+      border: none;
+    }
+
+    .mini-btn.backup:hover {
+      background: #334155;
+    }
+
+    .badge-community {
+      background: rgba(13, 148, 136, 0.1);
+      color: #0d9488;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      border: 1px solid #0d9488;
+    }
+
+    /* Thumbnail Modals */
+    .booth-thumbnail-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 10px;
+    }
+
+    .booth-thumbnail {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .booth-lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10500;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .booth-lightbox img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+    }
+
+    .booth-lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      color: white;
+      font-size: 35px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body class="dark-mode" onload="checkLogin()">
+
+  <div id="loginOverlay">
+    <div class="container" style="max-width:380px; text-align:center; padding:40px 30px;">
+      <h2 style="margin-top:0; font-size:22px; margin-bottom:8px;">ProBooth</h2>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:28px;" id="authSubtitle">Sign in to your account
+      </p>
+      <input type="email" id="emailInput" placeholder="Email address" style="margin-bottom:12px; text-align:center;">
+      <input type="password" id="passwordInput" placeholder="Password" style="margin-bottom:20px; text-align:center;"
+        onkeypress="if(event.key==='Enter') submitAuth()">
+      <button class="action-btn" id="authBtn" onclick="submitAuth()" style="margin-top:0;">Sign In</button>
+      <button onclick="toggleAuthMode()"
+        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;"
+        id="authToggleBtn">Don't have an account? Sign up</button>
+      <p id="authError" style="color:#ef4444;font-size:12px;margin-top:12px;display:none;"></p>
+    </div>
+  </div>
+
+  <div id="cropModal">
+    <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px;">Crop Custom Logo</h3>
+    <div class="crop-container">
+      <img id="imageToCrop" src="">
+    </div>
+    <div class="crop-actions">
+      <button class="action-btn crop-btn-cancel" onclick="cancelCrop()">Cancel</button>
+      <button class="action-btn crop-btn-save" onclick="applyCrop()">Apply (250x250)</button>
+    </div>
+  </div>
+
+  <div id="boothLightbox" class="booth-lightbox" onclick="closeLightbox()">
+    <span class="booth-lightbox-close" onclick="closeLightbox()">×</span>
+    <img id="boothLightboxImg" src="" onclick="event.stopPropagation()">
+  </div>
+
+  <div class="top-controls-wrapper">
+    <button class="logout-btn" id="logoutBtn" onclick="logout()">Lock</button>
+    <span id="themeLabel">Dark Mode</span>
+    <label class="switch">
+      <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
+      <span class="slider round"></span>
+    </label>
+  </div>
+
+  <div id="overlay">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-text" id="overlay-text">Loading...</div>
+  </div>
+
+  <div class="container" id="mainApp" style="display:none;">
+    <div class="mode-toggle">
+      <button type="button" id="btnModeNew" class="mode-btn active" onclick="setMode('new')">New Setup</button>
+      <button type="button" id="btnModeEdit" class="mode-btn" onclick="setMode('edit')">Edit Setup</button>
+      <button type="button" id="btnModeView" class="mode-btn" onclick="setMode('view')">View QR</button>
+    </div>
+
+    <div class="form-group" id="editSelectContainer" style="display: none;">
+      <label for="eventSearch">Search Generated Event</label>
+      <input type="text" id="eventSearch" placeholder="Type name or ID..." onkeyup="filterBoothEvents()"
+        style="margin-bottom: 8px;">
+      <select id="eventSelect" onchange="loadBoothEventDetails()">
+        <option value="">-- Loading Booths... --</option>
+      </select>
+    </div>
+
+    <div id="editFormFields">
+      <div class="color-group">
+        <div class="form-group">
+          <label for="eventId">Event ID</label>
+          <input type="text" id="eventId" placeholder="egm0015" disabled>
+        </div>
+        <div class="form-group" style="flex: 2;">
+          <label for="eventName">Page Title</label>
+          <input type="text" id="eventName" placeholder="e.g., Jollibee Convention" required>
+        </div>
+      </div>
+
+      <input type="hidden" id="folderName">
+
+      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <label for="boothCount">Number of Booths</label>
+        <input type="number" id="boothCount" min="1" placeholder="e.g., 2" required>
+        <span class="hint-text" id="boothHint" style="display:none;">Booth count is locked during edits.</span>
+      </div>
+
+      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <label>Print Templates</label>
+        <select id="boothTemplateList" size="3" onchange="handleTemplateSelection()"></select>
+        <div class="template-actions">
+          <button type="button" class="file-btn" onclick="openNewTemplate()"><i class="bi bi-plus-lg"></i> New</button>
+          <button type="button" class="file-btn" id="btnEditTemplate" style="display:none;" onclick="editTemplate()"><i
+              class="bi bi-pencil"></i> Edit</button>
+          <button type="button" class="file-btn" id="btnRemoveTemplate" style="display:none;"
+            onclick="removeTemplate()"><i class="bi bi-trash"></i> Remove</button>
+
+          <button type="button" class="file-btn" id="btnExportTemplate" style="display:none;"
+            onclick="exportTemplate()"><i class="bi bi-box-arrow-up"></i> Export</button>
+
+          <button type="button" class="file-btn" onclick="document.getElementById('importTemplateFile').click()"><i
+              class="bi bi-box-arrow-in-down"></i> Import</button>
+          <input type="file" id="importTemplateFile" style="display:none;" accept=".json"
+            onchange="importTemplateFile(event)">
+        </div>
+      </div>
+
+      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
+          <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Community Booth</label>
+        </div>
+        <div class="checkbox-wrapper" style="margin-top: 5px;">
+          <input type="checkbox" id="boothCommunityOnly" disabled onchange="handleCommunityOnlyToggle()">
+          <label for="boothCommunityOnly" id="boothCommunityOnlyLabel" style="color: var(--text-muted);">Community Booth
+            Only (No Studio)</label>
+        </div>
+        <div class="checkbox-wrapper" style="margin-top: 5px;">
+          <input type="checkbox" id="boothUserStickers" onchange="handleUserStickersToggle()">
+          <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers</label>
+        </div>
+        <div id="userStickersManager"
+          style="display:none; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="margin:0;">Prop Stickers</label>
+            <input type="file" id="userStickerUploadInput" accept="image/png, image/jpeg" style="display:none;"
+              onchange="uploadUserSticker(event)">
+            <button type="button" class="file-btn" style="padding: 4px 8px; font-size: 10px;"
+              onclick="document.getElementById('userStickerUploadInput').click()">Upload</button>
+          </div>
+          <div id="userStickersGrid" class="sticker-manager-grid"></div>
+        </div>
+        <span class="hint-text" id="communityEditHint" style="display:none; margin-top:10px;">Community settings are
+          locked during edits.</span>
+      </div>
+
+      <div class="color-group">
+        <div class="form-group">
+          <label>Font Color</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="fontColorPicker" value="#ffffff"
+              oninput="syncColor('fontColorPicker', 'fontColor')">
+            <input type="text" id="fontColor" value="#ffffff" maxlength="7"
+              oninput="syncColor('fontColor', 'fontColorPicker')">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Background</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="bgColorPicker" value="#000000" oninput="syncColor('bgColorPicker', 'bgColor')">
+            <input type="text" id="bgColor" value="#000000" maxlength="7"
+              oninput="syncColor('bgColor', 'bgColorPicker')">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Background Image (1000x676)</label>
+        <div class="custom-file-row">
+          <input type="file" id="bgFile" accept="image/*" style="display: none;"
+            onchange="updateFileName('bgFile', 'bgFileName')">
+          <button type="button" class="file-btn" onclick="document.getElementById('bgFile').click()">Choose
+            Image</button>
+          <span class="file-name" id="bgFileName" style="flex-grow: 1;">No file</span>
+          <div class="booth-thumbnail-container" id="boothBgPreviewContainer" style="display:none;">
+            <img id="boothBgPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Custom Logo (250x250)</label>
+        <div class="custom-file-row">
+          <input type="file" id="logoFile" accept="image/*" style="display: none;" onchange="handleLogoSelect(event)">
+          <button type="button" class="file-btn" onclick="document.getElementById('logoFile').click()">Upload
+            New</button>
+          <span class="file-name" id="logoFileName" style="flex-grow: 1;">No file</span>
+          <div class="booth-thumbnail-container" id="boothLogoPreviewContainer" style="display:none;">
+            <img id="boothLogoPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
+          </div>
+        </div>
+
+        <div
+          style="margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+          <label style="margin-bottom: 4px;">Or select existing logo:</label>
+          <div id="existingLogoGallery" class="logo-gallery"></div>
+        </div>
+
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="logoOnMain">
+          <label for="logoOnMain">Show logo as custom branding</label>
+        </div>
+      </div>
+    </div>
+
+    <div id="viewContainer" style="display: none;">
+      <div
+        style="padding: 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
+        <h3 id="viewEventTitle" style="margin: 0 0 5px 0;">Select an event above</h3>
+        <p id="viewEventId" style="font-family: monospace; color: var(--text-muted); font-size: 12px; margin: 0;"></p>
+      </div>
+      <div id="boothList"></div>
+      <button id="downloadAllQRsBtn" class="action-btn" style="display:none;" onclick="downloadAllQRs()">Download All QR
+        Codes</button>
+    </div>
+
+    <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
+    <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;"
+      onclick="runUpdate()">Save Changes</button>
+    <button id="deleteBtn" class="action-btn" onclick="runDelete()">Delete Booth Setup</button>
+
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script>
+    // ==========================================
+    // CONFIGURATION & SECRETS
+    // ==========================================
+    const WORKER_URL = "https://api.polo-booth.com";
+    const NETLIFY_BASE_URL = "https://gallery.polo-booth.com/main.html";
+    const BACKUP_NETLIFY_BASE_URL = "https://gallery.polo-booth.com/main.html";
+
+    // INSERT YOUR FIREBASE CONFIG HERE to fetch the list of events
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPZ-xvICeT52ftMRiYJ_N89k6g8kVRE5Y",
+      authDomain: "probooth-production.firebaseapp.com",
+      projectId: "probooth-production",
+      storageBucket: "probooth-production.appspot.com",
+      messagingSenderId: "415004603008",
+      appId: "1:415004603008:web:2a4b7b033cd94cc388ac65"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const NETLIFY_BASE_URL = "https://gallery.createdbyegm.com/main.html";
+    const BACKUP_NETLIFY_BASE_URL = "https://egmqr.github.io/photo-viewer/main.html";
+
+    // ==========================================
+    // STATE VARIABLES
+    // ==========================================
+    let currentMode = 'new';
+    let allFetchedEvents = [];
+    let currentViewBooths = [];
+    let boothDetailsCache = {};
+    let adminPin = sessionStorage.getItem('adminPin') || null;
+
+    let cropper = null;
+    let croppedLogoPayload = null;
+    let croppedQrLogoPayload = null;
+    let originalLogoFilename = "";
+    let currentBoothBgId = null;
+    let selectedExistingLogoId = "";
+    let selectedExistingQrLogoId = "";
+    let existingLogosCache = null;
+
+    const defaultBoothTemplates = [
+      { "Name": "portrait", "CanvasWidth": 1200, "CanvasHeight": 1800, "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1200, "Height": 1800, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] },
+      { "Name": "landscape", "CanvasWidth": 1800, "CanvasHeight": 1200, "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1800, "Height": 1200, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] }
+    ];
+    let boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates));
+
+    // ==========================================
+    // UI & AUTH LOGIC
+    // ==========================================
+    let currentUser = null;
+    let userTier = 'free';
+    let isSignUpMode = false;
+    const auth = firebase.auth();
+
+    function toggleAuthMode() {
+      isSignUpMode = !isSignUpMode;
+      document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+      document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Create a new account' : 'Sign in to your account';
+      document.getElementById('authToggleBtn').textContent = isSignUpMode ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
+      document.getElementById('authError').style.display = 'none';
+    }
+
+    async function submitAuth() {
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
+      const errEl = document.getElementById('authError');
+      errEl.style.display = 'none';
+      if (!email || !password) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; return; }
+
+      document.getElementById('authBtn').disabled = true;
+      document.getElementById('authBtn').textContent = isSignUpMode ? 'Creating…' : 'Signing in…';
+
+      try {
+        let cred;
+        if (isSignUpMode) {
+          cred = await auth.createUserWithEmailAndPassword(email, password);
+          const tok = await cred.user.getIdToken();
+          await fetch(`${WORKER_URL}/api/auth/provision-user`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' }
+          });
+        } else {
+          cred = await auth.signInWithEmailAndPassword(email, password);
+        }
+        // onAuthStateChanged handles the rest
+      } catch (err) {
+        errEl.textContent = err.message || 'Authentication failed.';
+        errEl.style.display = 'block';
+        document.getElementById('authBtn').disabled = false;
+        document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+      }
+    }
+
+    async function loadUserProfile() {
+      try {
+        const tok = await currentUser.getIdToken();
+        const res = await fetch(`${WORKER_URL}/api/user/profile`, { headers: { 'Authorization': `Bearer ${tok}` } });
+        userTier = (await res.json()).tier || 'free';
+      } catch { userTier = 'free'; }
+    }
+
+    function checkLogin() {
+      if (!currentUser) {
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'none';
+      } else {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'block';
+        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Lock`;
+        applyTierRestrictions();
+        fetchBoothEvents(true);
+        fetchExistingLogos();
+        renderTemplateList();
+      }
+    }
+
+    function logout() { auth.signOut(); }
+
+    function applyTierRestrictions() {
+      if (userTier === 'paid') return;
+      const proTag = ' <span style="color:#ef4444;font-size:10px;font-weight:bold;vertical-align:middle;">PRO</span>';
+      document.getElementById('bgFile').disabled = true;
+      document.querySelector('.file-btn[onclick*="bgFile"]').disabled = true;
+      document.querySelector('label[for="bgFile"]').insertAdjacentHTML('beforeend', proTag);
+      document.getElementById('logoFile').disabled = true;
+      document.querySelector('label[for="logoFile"]').insertAdjacentHTML('beforeend', proTag);
+      document.getElementById('boothEnableCommunity').disabled = true;
+      document.querySelector('label[for="boothEnableCommunity"]').insertAdjacentHTML('beforeend', proTag);
+    }
+
+    auth.onAuthStateChanged(async user => {
+      if (user) { currentUser = user; await loadUserProfile(); }
+      else { currentUser = null; userTier = 'free'; }
+      checkLogin();
+    });
+
+    function toggleTheme() {
+      const isDark = document.getElementById('themeSwitch').checked;
+      if (isDark) { document.body.classList.add('dark-mode'); document.getElementById('themeLabel').innerText = "Dark Mode"; }
+      else { document.body.classList.remove('dark-mode'); document.getElementById('themeLabel').innerText = "Light Mode"; }
+    }
+
+    function syncColor(sourceId, targetId) {
+      let val = document.getElementById(sourceId).value;
+      if (sourceId.includes('Picker')) { document.getElementById(targetId).value = val; }
+      else {
+        if (!val.startsWith('#')) val = '#' + val;
+        document.getElementById(sourceId).value = val;
+        if (val.length === 7) document.getElementById(targetId).value = val;
+      }
+    }
+
+    function updateFileName(inputId, textId) {
+      const fileInput = document.getElementById(inputId);
+      const textSpan = document.getElementById(textId);
+      if (fileInput.files.length > 0) {
+        textSpan.innerText = fileInput.files[0].name;
+        textSpan.style.color = "var(--text-main)";
+      } else {
+        textSpan.innerText = "No file chosen";
+        textSpan.style.color = "var(--text-muted)";
+      }
+    }
+
+    let overlayTimer = null;
+    function showOverlay(message, isToast = false) {
+      clearTimeout(overlayTimer);
+      document.getElementById('overlay-text').innerText = message;
+      document.getElementById('overlay').style.display = 'flex';
+      const spinner = document.querySelector('.overlay-spinner');
+      if (spinner) spinner.style.display = isToast ? 'none' : 'block';
+      if (isToast) overlayTimer = setTimeout(() => { hideOverlay(); }, 2000);
+    }
+    function hideOverlay() {
+      document.getElementById('overlay').style.display = 'none';
+      const spinner = document.querySelector('.overlay-spinner');
+      if (spinner) spinner.style.display = 'block';
+    }
+    function showToast(msg) { showOverlay(msg, true); }
+
+    function openLightbox(src) {
+      let hiResSrc = src.replace('=w400', '=w1000').replace('=w150', '=w1000');
+      document.getElementById('boothLightboxImg').src = hiResSrc;
+      document.getElementById('boothLightbox').style.display = 'flex';
+    }
+    function closeLightbox() {
+      document.getElementById('boothLightbox').style.display = 'none';
+      document.getElementById('boothLightboxImg').src = "";
+    }
+
+    // ==========================================
+    // API WRAPPERS
+    // ==========================================
+    async function callWorkerApi(route, payload, isSilent = false) {
+      if (!isSilent) showOverlay("Processing...");
+      try {
+        const response = await fetch(`${WORKER_URL}${route}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Authorization': `Bearer ${await currentUser.getIdToken()}`
+        },
+          body: JSON.stringify(payload)
+        });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const result = await response.json();
+      if (!isSilent) hideOverlay();
+      if (result.success === false) { showToast('Error: ' + (result.error || 'Unknown error')); return null; }
+      return result;
+    } catch (error) {
+      if (!isSilent) hideOverlay();
+      showToast('Network Error: ' + error.message); return null;
+    }
+    }
+
+    async function uploadBgDirect(file) {
+      const blob = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const MAX_W = 1800, MAX_H = 1200;
+            let w = img.width, h = img.height;
+            if (w > MAX_W || h > MAX_H) {
+              const ratio = Math.min(MAX_W / w, MAX_H / h);
+              w = Math.round(w * ratio); h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', 0.8);
+          };
+          img.onerror = reject; img.src = e.target.result;
+        };
+        reader.onerror = reject; reader.readAsDataURL(file);
+      });
+
+      const bgId = 'bg_' + Date.now();
+      const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${BOOTH_AUTH_TOKEN}` },
+        body: JSON.stringify({ prefix: 'assets/backgrounds', filename: bgId + '.jpg' })
+      });
+      if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
+
+      const { uploadUrl } = await signRes.json();
+      const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+      if (!putRes.ok) throw new Error('R2 upload failed');
+      return bgId;
+    }
+
+    async function getNextEventId() {
+      const snapshot = await db.collection("events").orderBy("timestamp", "desc").limit(1).get();
+      if (snapshot.empty) return "egm0001";
+      const lastId = snapshot.docs[0].id;
+      const num = parseInt(lastId.replace('egm', ''), 10);
+      return 'egm' + ('0000' + (num + 1)).slice(-4);
+    }
+
+    // ==========================================
+    // MODES & TOGGLES
+    // ==========================================
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('boothEnableCommunity').checked = true;
+
+      document.getElementById('folderName').value = ""; document.getElementById('eventName').value = "";
+      document.getElementById('eventId').value = "";
+      if (mode !== 'new') document.getElementById('boothCount').value = "";
+
+      document.getElementById('fontColor').value = "#ffffff"; document.getElementById('fontColorPicker').value = "#ffffff";
+      document.getElementById('bgColor').value = "#000000"; document.getElementById('bgColorPicker').value = "#000000";
+      document.getElementById('bgFile').value = ""; document.getElementById('bgFileName').innerText = "No file";
+      currentBoothBgId = null;
+      document.getElementById('logoFile').value = ""; document.getElementById('logoFileName').innerText = "No file";
+
+      document.getElementById('boothBgPreviewContainer').style.display = "none";
+      document.getElementById('boothLogoPreviewContainer').style.display = "none";
+      selectedExistingLogoId = ""; selectedExistingQrLogoId = "";
+      document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
+
+      document.getElementById('logoOnMain').checked = false; document.getElementById('eventSearch').value = "";
+      document.getElementById('boothEnableCommunity').checked = false;
+      document.getElementById('boothCommunityOnly').checked = false;
+      document.getElementById('boothUserStickers').checked = false;
+
+      handleCommunityToggle(); handleUserStickersToggle();
+
+      const eventSelectDropdown = document.getElementById('eventSelect');
+      if (eventSelectDropdown) eventSelectDropdown.value = "";
+
+      document.getElementById('btnModeNew').classList.remove('active');
+      document.getElementById('btnModeEdit').classList.remove('active');
+      document.getElementById('btnModeView').classList.remove('active');
+
+      if (mode === 'new') {
+        document.getElementById('btnModeNew').classList.add('active');
+        document.getElementById('editSelectContainer').style.display = 'none';
+        document.getElementById('editFormFields').style.display = 'block';
+        document.getElementById('viewContainer').style.display = 'none';
+        document.getElementById('generateBtn').style.display = 'block';
+        document.getElementById('saveBtn').style.display = 'none';
+        document.getElementById('deleteBtn').style.display = 'none';
+
+        document.getElementById('boothCount').disabled = false;
+        document.getElementById('boothHint').style.display = 'none';
+        toggleEditFields(true);
+        boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates)); renderTemplateList();
+
+      } else if (mode === 'edit' || mode === 'view') {
+        document.getElementById('btnModeEdit').classList.toggle('active', mode === 'edit');
+        document.getElementById('btnModeView').classList.toggle('active', mode === 'view');
+
+        document.getElementById('editSelectContainer').style.display = 'block';
+        document.getElementById('editFormFields').style.display = mode === 'edit' ? 'block' : 'none';
+        document.getElementById('viewContainer').style.display = mode === 'view' ? 'block' : 'none';
+
+        document.getElementById('generateBtn').style.display = 'none';
+        document.getElementById('saveBtn').style.display = mode === 'edit' ? 'block' : 'none';
+        document.getElementById('deleteBtn').style.display = mode === 'edit' ? 'block' : 'none';
+
+        if (mode === 'edit') {
+          document.getElementById('boothCount').disabled = true;
+          document.getElementById('boothHint').style.display = 'block';
+          toggleEditFields(false);
+        }
+
+        if (mode === 'view') {
+          document.getElementById('viewEventTitle').innerText = "Select an event above";
+          document.getElementById('viewEventId').innerText = "";
+          document.getElementById('boothList').innerHTML = "";
+          document.getElementById('downloadAllQRsBtn').style.display = 'none';
+        }
+
+        if (allFetchedEvents.length > 0) renderDropdownOptions(allFetchedEvents);
+        else fetchBoothEvents();
+      }
+    }
+
+    function toggleEditFields(isEnabled) {
+      const isEditMode = (currentMode === 'edit');
+      document.getElementById('boothEnableCommunity').disabled = isEditMode;
+      document.getElementById('boothCommunityOnly').disabled = isEditMode || !document.getElementById('boothEnableCommunity').checked;
+      document.getElementById('boothUserStickers').disabled = !isEnabled || !document.getElementById('boothEnableCommunity').checked;
+      document.getElementById('communityEditHint').style.display = isEditMode ? 'inline' : 'none';
+
+      document.getElementById('eventName').disabled = !isEnabled;
+      document.getElementById('fontColorPicker').disabled = !isEnabled; document.getElementById('fontColor').disabled = !isEnabled;
+      document.getElementById('bgColorPicker').disabled = !isEnabled; document.getElementById('bgColor').disabled = !isEnabled;
+      document.getElementById('logoOnMain').disabled = !isEnabled;
+
+      document.getElementById('bgFile').disabled = !isEnabled; document.getElementById('logoFile').disabled = !isEnabled;
+      document.querySelectorAll('.file-btn').forEach(btn => btn.disabled = !isEnabled);
+
+      document.getElementById('saveBtn').disabled = !isEnabled;
+      document.getElementById('deleteBtn').disabled = !isEnabled;
+    }
+
+    function handleCommunityToggle() {
+      const isEnabled = document.getElementById('boothEnableCommunity').checked;
+      const onlyToggle = document.getElementById('boothCommunityOnly');
+      const stickersToggle = document.getElementById('boothUserStickers');
+
+      if (isEnabled) {
+        onlyToggle.disabled = false; stickersToggle.disabled = false;
+      } else {
+        onlyToggle.checked = false; onlyToggle.disabled = true;
+        stickersToggle.checked = false; stickersToggle.disabled = true;
+        if (currentMode === 'new') document.getElementById('boothCount').disabled = false;
+      }
+    }
+
+    function handleCommunityOnlyToggle() {
+      const isOnly = document.getElementById('boothCommunityOnly').checked;
+      const countInput = document.getElementById('boothCount');
+      if (isOnly) { countInput.value = ""; countInput.disabled = true; }
+      else { countInput.disabled = false; countInput.value = 1; }
+    }
+
+    // ==========================================
+    // CROPPER & LOGOS
+    // ==========================================
+    function handleLogoSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      originalLogoFilename = file.name;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const image = document.getElementById('imageToCrop');
+        if (cropper) cropper.destroy();
+        document.getElementById('cropModal').style.display = 'flex';
+        image.onload = () => { cropper = new Cropper(image, { aspectRatio: 1, viewMode: 1, autoCropArea: 0.9, background: false }); };
+        image.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function applyCrop() {
+      if (!cropper) return;
+      let baseName = originalLogoFilename.substring(0, originalLogoFilename.lastIndexOf('.')) || originalLogoFilename;
+      const canvasTrans = cropper.getCroppedCanvas({ width: 250, height: 250 });
+      const base64Trans = canvasTrans.toDataURL('image/png').split(',')[1];
+      croppedLogoPayload = { filename: baseName + '_transparent.png', mimeType: 'image/png', base64: base64Trans };
+
+      const canvasWhite = document.createElement('canvas');
+      canvasWhite.width = 250; canvasWhite.height = 250;
+      const ctx = canvasWhite.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 250, 250);
+      ctx.drawImage(canvasTrans, 0, 0);
+      const base64White = canvasWhite.toDataURL('image/jpeg', 0.95).split(',')[1];
+      croppedQrLogoPayload = { filename: baseName + '_qr_whitebg.png', mimeType: 'image/jpeg', base64: base64White };
+
+      document.getElementById('cropModal').style.display = 'none';
+      cropper.destroy(); cropper = null;
+      document.getElementById('logoFileName').innerText = baseName + "_cropped";
+      document.getElementById('logoFileName').style.color = "var(--btn-bg)";
+      selectedExistingLogoId = ""; selectedExistingQrLogoId = "";
+      document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
+    }
+
+    async function fetchExistingLogos() {
+      if (existingLogosCache) { renderExistingLogos(existingLogosCache); return; }
+      const res = await callWorkerApi('/api/dashboard/existing-logos', {}, true);
+      if (res && res.success) { existingLogosCache = res.logos; renderExistingLogos(res.logos); }
+    }
+
+    function renderExistingLogos(logos) {
+      const container = document.getElementById('existingLogoGallery');
+      let html = '';
+      logos.filter(logo => logo.id && !logo.id.includes('egm_fav copy')).forEach(logo => {
+        html += `<img src="${logo.url}" class="logo-gallery-item" title="${logo.name}" onclick="selectExistingLogo('${logo.id}', '${logo.qrId}', this)">`;
+      });
+      container.innerHTML = html || '<span class="hint-text">No logos found.</span>';
+    }
+
+    function selectExistingLogo(id, qrId, el) {
+      selectedExistingLogoId = id; selectedExistingQrLogoId = qrId;
+      document.querySelectorAll('.logo-gallery-item').forEach(img => img.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('logoFile').value = ""; document.getElementById('logoFileName').innerText = "Using existing";
+      croppedLogoPayload = null; croppedQrLogoPayload = null;
+    }
+
+    // ==========================================
+    // TEMPLATES & STICKERS
+    // ==========================================
+    function renderTemplateList() {
+      const list = document.getElementById('boothTemplateList');
+      list.innerHTML = '';
+      boothTemplates.forEach((t, i) => {
+        let opt = document.createElement('option');
+        opt.value = i; opt.innerText = t.Name || `Template ${i + 1}`;
+        list.appendChild(opt);
+      });
+      handleTemplateSelection();
+    }
+
+    function handleTemplateSelection() {
+      const hasSel = document.getElementById('boothTemplateList').selectedIndex !== -1;
+      document.getElementById('btnEditTemplate').style.display = hasSel ? 'block' : 'none';
+      document.getElementById('btnRemoveTemplate').style.display = hasSel ? 'block' : 'none';
+      document.getElementById('btnExportTemplate').style.display = hasSel ? 'block' : 'none';
+    }
+
+    function openNewTemplate() { window.templateToEdit = null; window.open('template-editor.html', '_blank', 'width=1200,height=800'); }
+    function editTemplate() { const idx = document.getElementById('boothTemplateList').value; if (idx === "") return; window.templateToEdit = boothTemplates[idx]; window.open('template-editor.html', '_blank', 'width=1200,height=800'); }
+    function removeTemplate() { const idx = document.getElementById('boothTemplateList').value; if (idx === "") return; boothTemplates.splice(idx, 1); renderTemplateList(); }
+    function exportTemplate() {
+      const idx = document.getElementById('boothTemplateList').value;
+      if (idx === "") return;
+      const t = boothTemplates[idx];
+      const blob = new Blob([JSON.stringify(t, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${t.Name.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+      a.click();
+    }
+    window.receiveTemplateFromEditor = function (newTemplate) {
+      if (newTemplate) {
+        const existingIdx = boothTemplates.findIndex(t => t.Name === newTemplate.Name);
+        if (existingIdx >= 0) boothTemplates[existingIdx] = newTemplate; else boothTemplates.push(newTemplate);
+        renderTemplateList(); showToast("Template loaded.");
+      }
+    };
+
+    function importTemplateFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.Templates && Array.isArray(data.Templates)) {
+            data.Templates.forEach(t => { if (t.Name) { const idx = boothTemplates.findIndex(x => x.Name === t.Name); if (idx >= 0) boothTemplates[idx] = t; else boothTemplates.push(t); } });
+          } else if (data.Name && Array.isArray(data.Layers)) {
+            const idx = boothTemplates.findIndex(x => x.Name === data.Name); if (idx >= 0) boothTemplates[idx] = data; else boothTemplates.push(data);
+          }
+          renderTemplateList(); showToast("Template(s) imported.");
+        } catch (err) { showToast("Invalid format."); }
+      };
+      reader.readAsText(file); event.target.value = '';
+    }
+
+    function handleUserStickersToggle() {
+      const isEnabled = document.getElementById('boothUserStickers').checked;
+      const manager = document.getElementById('userStickersManager');
+      if (isEnabled) { manager.style.display = 'block'; loadUserStickers(); } else { manager.style.display = 'none'; }
+    }
+
+    async function loadUserStickers() {
+      const grid = document.getElementById('userStickersGrid');
+      let eventId = document.getElementById('eventId').value;
+      if (!eventId && currentMode === 'new') { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
+      if (!eventId) return;
+
+      grid.innerHTML = '<span class="hint-text">Loading...</span>';
+      try {
+        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=events/${eventId}/user-stickers`);
+        const result = await res.json();
+        if (result.status === 'success' && result.data.length > 0) {
+          let html = '';
+          result.data.forEach(item => {
+            html += `<div class="sticker-manager-item"><img src="${item[2]}"><button type="button" class="sticker-manager-delete" onclick="deleteUserSticker('${item[0]}')">X</button></div>`;
+          });
+          grid.innerHTML = html;
+        } else { grid.innerHTML = '<span class="hint-text">No stickers uploaded.</span>'; }
+      } catch (e) { grid.innerHTML = '<span class="hint-text">Error loading.</span>'; }
+    }
+
+    async function uploadUserSticker(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      showOverlay("Uploading...");
+      try {
+        let eventId = document.getElementById('eventId').value;
+        const blob = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image(); img.onload = () => {
+              let w = img.width, h = img.height; if (w > 500 || h > 500) { const r = Math.min(500 / w, 500 / h); w *= r; h *= r; }
+              const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              canvas.toBlob(b => b ? res(b) : rej(), 'image/png');
+            }; img.src = e.target.result;
+          }; reader.readAsDataURL(file);
+        });
+
+        const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${BOOTH_AUTH_TOKEN}` },
+          body: JSON.stringify({ prefix: `events/${eventId}/user-stickers`, filename: `sticker_${Date.now()}.png` })
+        });
+        const { uploadUrl } = await signRes.json();
+        await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: blob });
+        await loadUserStickers(); hideOverlay(); showToast("Sticker added.");
+      } catch (e) { hideOverlay(); showToast("Error uploading."); }
+      event.target.value = '';
+    }
+
+    async function deleteUserSticker(key) {
+      if (!confirm("Delete sticker?")) return;
+      showOverlay("Deleting...");
+      await callWorkerApi('/api/dashboard/delete-file', { key: key });
+      await loadUserStickers(); hideOverlay();
+    }
+
+    // ==========================================
+    // DATABASE FETCHING & RENDERING
+    // ==========================================
+    async function fetchBoothEvents(forceRefresh = false) {
+      if (!forceRefresh && allFetchedEvents.length > 0) { renderDropdownOptions(allFetchedEvents); return; }
+      document.getElementById('eventSelect').innerHTML = '<option value="">Loading...</option>';
+      try {
+        const snapshot = await db.collection("users").doc(currentUser.uid)
+          .collection("events").orderBy("timestamp", "desc").limit(50).get();
+        let events = []; snapshot.forEach(doc => { events.push({ id: doc.id, name: doc.data().eventName || "Unnamed" }); });
+        allFetchedEvents = events; renderDropdownOptions(events);
+      } catch (err) { console.error(err); }
+    }
+
+    function renderDropdownOptions(eventsArray) {
+      const select = document.getElementById('eventSelect');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">-- Select a Booth Project --</option>';
+      eventsArray.forEach(e => {
+        let opt = document.createElement('option'); opt.value = e.id; opt.innerText = `${e.name} (${e.id})`;
+        if (e.id === currentVal) opt.selected = true; select.appendChild(opt);
+      });
+    }
+
+    function filterBoothEvents() {
+      const term = document.getElementById('eventSearch').value.toLowerCase();
+      renderDropdownOptions(allFetchedEvents.filter(e => e.name.toLowerCase().includes(term) || e.id.toLowerCase().includes(term)));
+    }
+
+    async function loadBoothEventDetails() {
+      const selectedId = document.getElementById('eventSelect').value;
+      if (!selectedId) { setMode(currentMode); return; }
+
+      let details = boothDetailsCache[selectedId];
+      if (!details) {
+        details = await callWorkerApi('/api/dashboard/booth-details', { eventId: selectedId });
+        if (details && details.success !== false) boothDetailsCache[selectedId] = details;
+      }
+      if (!details || details.success === false) return;
+
+      try { boothTemplates = JSON.parse(details.templatesStr || "[]"); } catch (e) { boothTemplates = []; }
+      renderTemplateList();
+
+      const isProBooth = !details.boothsStr.includes('prefix=') && !/folderId=[^&]{5,}/.test(details.boothsStr);
+      if (isProBooth && currentMode === 'edit') { currentMode = 'view'; showToast("ProBooth event — View Only"); }
+
+      if (currentMode === 'edit') {
+        document.getElementById('boothEnableCommunity').checked = details.enableCommunity === true;
+        document.getElementById('eventId').value = selectedId;
+        document.getElementById('folderName').value = details.folderName || "";
+        document.getElementById('eventName').value = details.eventName || "";
+        document.getElementById('boothCount').value = details.boothCount || "";
+        document.getElementById('logoOnMain').checked = details.logoOnMain === true;
+        document.getElementById('boothCommunityOnly').checked = details.communityOnly === true;
+        document.getElementById('boothUserStickers').checked = details.userStickers === true;
+
+        handleCommunityToggle(); handleUserStickersToggle();
+
+        document.getElementById('fontColor').value = details.fontColor || "#ffffff"; document.getElementById('fontColorPicker').value = details.fontColor || "#ffffff";
+        document.getElementById('bgColor').value = details.bgColor || "#000000"; document.getElementById('bgColorPicker').value = details.bgColor || "#000000";
+
+        currentBoothBgId = details.bgId || null;
+        selectedExistingLogoId = details.logoId || "";
+        selectedExistingQrLogoId = details.qrLogoId || details.logoId || "";
+
+        if (details.bgId) { document.getElementById('boothBgPreview').src = `https://cdn.createdbyegm.com/assets/backgrounds/${details.bgId}.jpg`; document.getElementById('boothBgPreviewContainer').style.display = "flex"; }
+        else { document.getElementById('boothBgPreviewContainer').style.display = "none"; }
+
+        if (details.logoId) { document.getElementById('boothLogoPreview').src = `https://cdn.createdbyegm.com/assets/logos/${details.logoId}.png`; document.getElementById('boothLogoPreviewContainer').style.display = "flex"; }
+        else { document.getElementById('boothLogoPreviewContainer').style.display = "none"; }
+
+        toggleEditFields(true);
+
+      } else if (currentMode === 'view') {
+        document.getElementById('viewEventTitle').innerText = details.eventName || "Unnamed Event";
+        document.getElementById('viewEventId').innerText = "ID: " + details.id;
+
+        const boothList = document.getElementById('boothList'); boothList.innerHTML = ''; currentViewBooths = [];
+        const boothsArr = details.boothsStr ? details.boothsStr.split('|') : [];
+        const qrUrlsArr = details.qrUrlsStr ? details.qrUrlsStr.split('|') : [];
+        const prefixesArr = details.boothPrefixesStr ? details.boothPrefixesStr.split('|') : [];
+        const dynFolder = details.folderName || 'Booth ';
+        const hadComm = (details.communityOnly || details.enableCommunity);
+
+        boothsArr.forEach((link, i) => {
+          const isComm = hadComm && (i === boothsArr.length - 1);
+          const bNum = isComm ? 'Community' : (i + 1);
+          const stickerParam = details.userStickers ? '&userStickers=true' : '';
+
+          const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
+          const backupUrl = `${BACKUP_NETLIFY_BASE_URL}?id=${details.id}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
+          const prefix = prefixesArr[i] || '';
+          const qrUrl = qrUrlsArr[i] || "";
+          const fileName = isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QR.png`;
+
+          let qrHtml = '';
+          if (qrUrl) {
+            currentViewBooths.push({ boothNum: bNum, url: qrUrl, filename: fileName });
+            qrHtml = `<button class="mini-btn" onclick="copyText('${qrUrl}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${qrUrl}', '${fileName}')">Download</button>`;
+          } else {
+            let qc = `https://quickchart.io/qr?size=1000&errorCorrectionLevel=H&text=${encodeURIComponent(mainUrl)}`;
+            let fbLogo = '';
+            if (details.qrLogoId) fbLogo = details.qrLogoId.startsWith('qrlogo_') ? `https://cdn.createdbyegm.com/assets/qr-logos/${details.qrLogoId}.png` : `https://cdn.createdbyegm.com/assets/logos/${details.qrLogoId}.png`;
+            else if (details.logoId) fbLogo = `https://cdn.createdbyegm.com/assets/logos/${details.logoId}.png`;
+            if (fbLogo) qc += `&centerImageUrl=${encodeURIComponent(fbLogo)}&centerImageSizeRatio=0.22`;
+
+            currentViewBooths.push({ boothNum: bNum, url: qc, filename: fileName });
+            qrHtml = `<button class="mini-btn" onclick="copyText('${qc}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${qc}', '${fileName}')">Download</button>`;
+          }
+
+          const card = document.createElement('div'); card.className = 'booth-card';
+          card.innerHTML = `
+                    <h4>${isComm ? `<span class="badge-community">Community Booth</span>` : `${dynFolder}${bNum}`}</h4>
+                    <div class="link-row"><span>Main Gallery</span><div class="link-actions"><button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button><button class="mini-btn backup" onclick="copyText('${backupUrl}')">Backup</button><button class="mini-btn" onclick="window.open('${mainUrl}', '_blank')">Go</button></div></div>
+                    <div class="link-row"><span>R2 Prefix</span><div class="link-actions"><button class="mini-btn" onclick="copyText('${prefix}')">Copy</button></div></div>
+                    <div class="link-row"><span>QR Code</span><div class="link-actions">${qrHtml}</div></div>
+                `;
+          boothList.appendChild(card);
+        });
+        document.getElementById('downloadAllQRsBtn').style.display = boothsArr.length > 1 ? 'block' : 'none';
+      }
+    }
+
+    function copyText(t) { navigator.clipboard.writeText(t).then(() => showToast("Copied!")); }
+    function downloadImage(url, f) {
+      showOverlay("Downloading..."); fetch(url).then(r => r.blob()).then(b => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f; a.click(); hideOverlay();
+      }).catch(() => { hideOverlay(); window.open(url, '_blank'); });
+    }
+    async function downloadAllQRs() {
+      showOverlay("Downloading...");
+      for (let i = 0; i < currentViewBooths.length; i++) { downloadImage(currentViewBooths[i].url, currentViewBooths[i].filename); await new Promise(r => setTimeout(r, 800)); }
+      hideOverlay();
+    }
+
+    // ==========================================
+    // EXECUTION ROUTERS
+    // ==========================================
+    async function executeAction(actionName) {
+      let eventId = actionName === 'generateBoothSetup' ? document.getElementById('eventId').value : document.getElementById('eventSelect').value;
+      if (actionName === 'generateBoothSetup' && !eventId) { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
+
+      const folderName = document.getElementById('folderName').value.trim() || document.getElementById('eventName').value.trim();
+      const eventName = document.getElementById('eventName').value.trim();
+      const communityOnly = document.getElementById('boothCommunityOnly').checked;
+      let boothCount = document.getElementById('boothCount').value || "1";
+
+      if (!eventName) return showToast("Title required!");
+
+      showOverlay("Processing...");
+      const bgFile = document.getElementById('bgFile').files[0];
+      let uploadedBgId = null;
+      if (bgFile) { try { uploadedBgId = await uploadBgDirect(bgFile); } catch (e) { hideOverlay(); return showToast('BG Upload Failed'); } }
+
+      const payload = {
+        action: actionName, eventId, folderName, eventName, boothCount,
+        existingBgId: uploadedBgId || currentBoothBgId || '',
+        logoData: croppedLogoPayload, qrLogoData: croppedQrLogoPayload, logoOnMain: document.getElementById('logoOnMain').checked,
+        fontColor: document.getElementById('fontColor').value, bgColor: document.getElementById('bgColor').value,
+        existingLogoId: selectedExistingLogoId, existingQrLogoId: selectedExistingQrLogoId,
+        templates: boothTemplates, enableCommunity: document.getElementById('boothEnableCommunity').checked,
+        communityOnly, userStickers: document.getElementById('boothUserStickers').checked
+      };
+
+      const res = await callWorkerApi(actionName === 'generateBoothSetup' ? '/api/dashboard/generate-booth' : '/api/dashboard/update-booth', payload);
+
+      if (res && res.success) {
+        if (uploadedBgId) currentBoothBgId = uploadedBgId;
+        delete boothDetailsCache[eventId]; fetchBoothEvents(true);
+        setMode('view'); setTimeout(() => { document.getElementById('eventSelect').value = eventId; loadBoothEventDetails(); }, 100);
+      }
+    }
+
+    function runGeneration() { executeAction("generateBoothSetup"); }
+    function runUpdate() { executeAction("updateBoothSetup"); }
+    async function runDelete() {
+      const id = document.getElementById('eventSelect').value; if (!id || !confirm("Delete setup forever?")) return;
+      const res = await callWorkerApi('/api/dashboard/delete-booth', { eventId: id });
+      if (res && res.success) { delete boothDetailsCache[id]; fetchBoothEvents(true); setMode('edit'); showToast("Deleted."); }
+    }
+  </script>
+</body>
+
+</html>

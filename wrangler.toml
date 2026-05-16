@@ -1,0 +1,11 @@
+name = "probooth-api"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "probooth-production"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "aff08eac47d143b7a8a01dae951e04cb"
