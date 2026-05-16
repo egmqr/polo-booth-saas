@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProBooth Admin</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0f0f0f;
+            color: #d0d0d0;
+            padding: 30px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        .sub {
+            color: #555;
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: #1a1a1a;
+            border: 1px solid #262626;
+            border-radius: 12px;
+            padding: 28px;
+            max-width: 420px;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 7px;
+            padding: 11px 14px;
+            color: #e0e0e0;
+            font-size: 14px;
+            margin-bottom: 12px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #444;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 7px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: opacity .15s;
+        }
+
+        button:hover {
+            opacity: .82;
+        }
+
+        .btn-primary {
+            background: #253355;
+            color: #fff;
+        }
+
+        .btn-upgrade {
+            background: #1a3c2e;
+            color: #6ee7b7;
+            padding: 5px 13px;
+            font-size: 12px;
+        }
+
+        .btn-downgrade {
+            background: #3d1010;
+            color: #fca5a5;
+            padding: 5px 13px;
+            font-size: 12px;
+        }
+
+        .btn-muted {
+            background: #1e1e1e;
+            color: #666;
+            border: 1px solid #2a2a2a;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+
+        .stat {
+            background: #1a1a1a;
+            border: 1px solid #222;
+            border-radius: 9px;
+            padding: 14px 22px;
+            min-width: 90px;
+        }
+
+        .stat-l {
+            font-size: 11px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 4px;
+        }
+
+        .stat-v {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .stat-v.g {
+            color: #34d399;
+        }
+
+        .stat-v.d {
+            color: #444;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .search-row input {
+            margin: 0;
+            flex: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead th {
+            text-align: left;
+            padding: 9px 12px;
+            border-bottom: 1px solid #1e1e1e;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #555;
+        }
+
+        tbody td {
+            padding: 12px 12px;
+            border-bottom: 1px solid #171717;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover td {
+            background: #141414;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .b-free {
+            background: #1c1c1c;
+            color: #555;
+            border: 1px solid #2a2a2a;
+        }
+
+        .b-paid {
+            background: rgba(52, 211, 153, .1);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, .3);
+        }
+
+        .note-input {
+            width: 160px;
+            background: #111;
+            border: 1px solid #1e1e1e;
+            border-radius: 5px;
+            padding: 5px 9px;
+            color: #888;
+            font-size: 12px;
+            display: inline-block;
+            margin: 0;
+        }
+
+        .mono {
+            font-family: monospace;
+            font-size: 11px;
+            color: #333;
+        }
+
+        .muted {
+            font-size: 12px;
+            color: #444;
+        }
+
+        .acts {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .err {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #253355;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 9px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, .5);
+            display: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loginSection">
+        <div class="card">
+            <h1>ProBooth Admin</h1>
+            <p class="sub">Enter credentials to manage user accounts.</p>
+            <input type="text" id="apiBase" placeholder="Worker URL  (e.g. https://api.polo-booth.com)">
+            <input type="password" id="adminSecret" placeholder="Admin Secret"
+                onkeypress="if(event.key==='Enter') loadUsers()">
+            <button class="btn-primary" onclick="loadUsers()" style="width:100%;">Login</button>
+            <p class="err" id="loginErr"></p>
+        </div>
+    </div>
+
+    <div id="mainSection" style="display:none;">
+        <div class="topbar">
+            <div class="stat">
+                <div class="stat-l">Total</div>
+                <div class="stat-v" id="sTotal">—</div>
+            </div>
+            <div class="stat">
+                <div class="stat-l">Free</div>
+                <div class="stat-v d" id="sFree">—</div>
+            </div>
+            <div class="stat">
+                <div class="stat-l">Paid</div>
+                <div class="stat-v g" id="sPaid">—</div>
+            </div>
+            <button class="btn-muted" onclick="loadUsers()" style="margin-left:auto;">↻ Refresh</button>
+            <button class="btn-muted" onclick="doLogout()">Logout</button>
+        </div>
+        <div class="search-row">
+            <input type="text" id="searchInput" placeholder="Filter by email…" oninput="filterTable()">
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>UID</th>
+                    <th>Tier</th>
+                    <th>Joined</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTable"></tbody>
+        </table>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let API = '', SECRET = '', allUsers = [];
+
+        async function loadUsers() {
+            API = (document.getElementById('apiBase').value || '').trim().replace(/\/$/, '');
+            SECRET = (document.getElementById('adminSecret').value || '').trim();
+            const errEl = document.getElementById('loginErr');
+            errEl.style.display = 'none';
+
+            try {
+                const resp = await fetch(`${API}/api/admin/users`, { headers: { 'x-admin-secret': SECRET } });
+                if (resp.status === 403) { errEl.textContent = 'Wrong admin secret.'; errEl.style.display = 'block'; return; }
+                const data = await resp.json();
+                if (!data.success) { errEl.textContent = 'Error: ' + data.error; errEl.style.display = 'block'; return; }
+                allUsers = data.users.sort((a, b) => a.email.localeCompare(b.email));
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('mainSection').style.display = 'block';
+                renderTable(allUsers);
+            } catch (e) { errEl.textContent = 'Connection error: ' + e.message; errEl.style.display = 'block'; }
+        }
+
+        function renderTable(users) {
+            document.getElementById('sTotal').textContent = allUsers.length;
+            document.getElementById('sFree').textContent = allUsers.filter(u => u.tier !== 'paid').length;
+            document.getElementById('sPaid').textContent = allUsers.filter(u => u.tier === 'paid').length;
+            const tbody = document.getElementById('userTable');
+            tbody.innerHTML = '';
+            users.forEach(u => {
+                const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+                const isPaid = u.tier === 'paid';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+        <td>${esc(u.email)}</td>
+        <td class="mono">${u.uid.substring(0, 14)}…</td>
+        <td><span class="badge ${isPaid ? 'b-paid' : 'b-free'}" id="badge-${u.uid}">${u.tier}</span></td>
+        <td class="muted">${joined}</td>
+        <td><input class="note-input" id="note-${u.uid}" value="${esc(u.note || '')}" placeholder="e.g. GCash Jan 2025"></td>
+        <td class="acts">
+          <button class="btn-upgrade"   onclick="setTier('${u.uid}','paid')">▲ Upgrade</button>
+          <button class="btn-downgrade" onclick="setTier('${u.uid}','free')">▼ Downgrade</button>
+        </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterTable() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            renderTable(allUsers.filter(u => u.email.toLowerCase().includes(q)));
+        }
+
+        async function setTier(uid, tier) {
+            const note = document.getElementById(`note-${uid}`)?.value || '';
+            try {
+                const resp = await fetch(`${API}/api/admin/set-tier`, {
+                    method: 'POST',
+                    headers: { 'x-admin-secret': SECRET, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid, tier, note })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    const badge = document.getElementById(`badge-${uid}`);
+                    if (badge) { badge.className = `badge ${tier === 'paid' ? 'b-paid' : 'b-free'}`; badge.textContent = tier; }
+                    const u = allUsers.find(x => x.uid === uid);
+                    if (u) { u.tier = tier; u.note = note; }
+                    document.getElementById('sFree').textContent = allUsers.filter(u => u.tier !== 'paid').length;
+                    document.getElementById('sPaid').textContent = allUsers.filter(u => u.tier === 'paid').length;
+                    showToast(tier === 'paid' ? '✅ Upgraded to Paid' : '🔒 Downgraded to Free');
+                } else showToast('Error: ' + data.error);
+            } catch (e) { showToast('Error: ' + e.message); }
+        }
+
+        function doLogout() {
+            API = ''; SECRET = ''; allUsers = [];
+            document.getElementById('mainSection').style.display = 'none';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminSecret').value = '';
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.style.display = 'block';
+            setTimeout(() => t.style.display = 'none', 2800);
+        }
+        function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    </script>
+</body>
+
+</html>
