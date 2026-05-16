@@ -174,8 +174,13 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     }
 
     let logoUrlForQr = '';
-    if (qrLogoId) logoUrlForQr = `${cdn}/${uPrefix}/${eventId}/assets/logos/${qrLogoId}.png`;
-    else if (logoId) logoUrlForQr = `${cdn}/${uPrefix}/${eventId}/assets/logos/${logoId}.png`;
+    if (qrLogoId) {
+        // FIX: Look in 'qr-logos' if it's a white-background QR logo, otherwise look in 'logos'
+        const folder = qrLogoId.startsWith('qrlogo_') ? 'qr-logos' : 'logos';
+        logoUrlForQr = `${cdn}/${uPrefix}/${eventId}/assets/${folder}/${qrLogoId}.png`;
+    } else if (logoId) {
+        logoUrlForQr = `${cdn}/${uPrefix}/${eventId}/assets/logos/${logoId}.png`;
+    }
 
     const totalBooths = includeCommunity ? actualNumBooths + 1 : actualNumBooths;
     let cWidth = templates?.[0]?.CanvasWidth || 1800;
