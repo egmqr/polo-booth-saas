@@ -789,12 +789,12 @@
           <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
           <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Community Booth</label>
         </div>
-        <div class="checkbox-wrapper" style="margin-top: 5px;">
+        <div class="checkbox-wrapper" id="communityOnlyRow" style="margin-top: 5px; display:none;">
           <input type="checkbox" id="boothCommunityOnly" disabled onchange="handleCommunityOnlyToggle()">
           <label for="boothCommunityOnly" id="boothCommunityOnlyLabel" style="color: var(--text-muted);">Community Booth
             Only (No Studio)</label>
         </div>
-        <div class="checkbox-wrapper" style="margin-top: 5px;">
+        <div class="checkbox-wrapper" id="userStickersRow" style="margin-top: 5px; display:none;">
           <input type="checkbox" id="boothUserStickers" onchange="handleUserStickersToggle()">
           <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers</label>
         </div>
@@ -1306,15 +1306,21 @@
       const isEnabled = document.getElementById('boothEnableCommunity').checked;
       const onlyToggle = document.getElementById('boothCommunityOnly');
       const stickersToggle = document.getElementById('boothUserStickers');
+      const onlyRow = document.getElementById('communityOnlyRow');
+      const stickersRow = document.getElementById('userStickersRow');
 
       if (isEnabled) {
+        onlyRow.style.display = '';
+        stickersRow.style.display = '';
         onlyToggle.disabled = false; stickersToggle.disabled = false;
       } else {
         onlyToggle.checked = false; onlyToggle.disabled = true;
         stickersToggle.checked = false; stickersToggle.disabled = true;
+        onlyRow.style.display = 'none';
+        stickersRow.style.display = 'none';
         if (currentMode === 'new') document.getElementById('boothCount').disabled = false;
       }
-      applyTierRestrictions(); // ← ADD THIS
+      applyTierRestrictions();
     }
 
     function handleCommunityOnlyToggle() {
