@@ -714,7 +714,7 @@
   </div>
 
   <div class="top-controls-wrapper">
-    <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+    <button class="logout-btn" id="logoutBtn" onclick="logout()">Lock</button>
     <span id="themeLabel">Dark Mode</span>
     <label class="switch">
       <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
@@ -747,7 +747,7 @@
       <div class="color-group">
         <div class="form-group">
           <label for="eventId">Event ID</label>
-          <input type="text" id="eventId" placeholder="evt0001" disabled>
+          <input type="text" id="eventId" placeholder="egm0015" disabled>
         </div>
         <div class="form-group" style="flex: 2;">
           <label for="eventName">Page Title</label>
@@ -997,7 +997,7 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
-        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
+        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Lock`;
         applyTierRestrictions();
         fetchBoothEvents(true);
         fetchExistingLogos();
@@ -1010,48 +1010,65 @@
     function applyTierRestrictions() {
       if (userTier === 'paid') return; // paid users see everything unlocked
 
-      const proTag = ' <span style="color:#ef4444;font-size:10px;font-weight:bold;vertical-align:middle;">PRO</span>';
+      const proTag = '<span class="pro-tag" style="color:#ef4444;font-size:10px;font-weight:bold;vertical-align:middle;margin-left:4px;">PRO</span>';
+
+      function lockField(fieldId, labelFor) {
+        const el = document.getElementById(fieldId);
+        if (el) el.disabled = true;
+        if (labelFor) {
+          const lbl = document.querySelector(`label[for="${labelFor}"]`);
+          if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
+        }
+      }
+
+      function lockBtn(selector) {
+        const el = document.querySelector(selector);
+        if (el) el.disabled = true;
+      }
 
       // 1. Custom background
-      document.getElementById('bgFile').disabled = true;
-      document.querySelector('.file-btn[onclick*="bgFile"]').disabled = true;
-      document.querySelector('label[for="bgFile"]').insertAdjacentHTML('beforeend', proTag);
+      lockField('bgFile', 'bgFile');
+      lockBtn('.file-btn[onclick*="bgFile"]');
 
       // 2. Custom logo
-      document.getElementById('logoFile').disabled = true;
-      document.querySelector('.file-btn[onclick*="logoFile"]') && (document.querySelector('.file-btn[onclick*="logoFile"]').disabled = true);
-      document.querySelector('label[for="logoFile"]').insertAdjacentHTML('beforeend', proTag);
+      lockField('logoFile', 'logoFile');
+      lockBtn('.file-btn[onclick*="logoFile"]');
 
       // 3. Community booth
-      document.getElementById('boothEnableCommunity').disabled = true;
-      document.querySelector('label[for="boothEnableCommunity"]').insertAdjacentHTML('beforeend', proTag);
+      lockField('boothEnableCommunity', 'boothEnableCommunity');
 
       // 4. Font color
-      document.getElementById('fontColor').disabled = true;
-      document.getElementById('fontColorPicker').disabled = true;
-      document.querySelector('label[for="fontColor"]') && document.querySelector('label[for="fontColor"]').insertAdjacentHTML('beforeend', proTag);
+      lockField('fontColor');
+      lockField('fontColorPicker', 'fontColor');
 
       // 5. Background color
-      document.getElementById('bgColor').disabled = true;
-      document.getElementById('bgColorPicker').disabled = true;
-      document.querySelector('label[for="bgColor"]') && document.querySelector('label[for="bgColor"]').insertAdjacentHTML('beforeend', proTag);
+      lockField('bgColor');
+      lockField('bgColorPicker', 'bgColor');
 
       // 6. Page title — fixed to "Your Gallery"
       const eventNameEl = document.getElementById('eventName');
-      eventNameEl.disabled = true;
-      eventNameEl.value = 'Your Gallery';
-      eventNameEl.placeholder = 'Your Gallery';
-      document.querySelector('label[for="eventName"]') && document.querySelector('label[for="eventName"]').insertAdjacentHTML('beforeend', proTag);
+      if (eventNameEl) {
+        eventNameEl.disabled = true;
+        if (!eventNameEl.dataset.freeSet) {
+          eventNameEl.value = 'Your Gallery';
+          eventNameEl.placeholder = 'Your Gallery';
+          eventNameEl.dataset.freeSet = '1';
+        }
+        const lbl = document.querySelector('label[for="eventName"]');
+        if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
+      }
 
       // 7. Number of booths — fixed to 1
       const boothCountEl = document.getElementById('boothCount');
-      boothCountEl.disabled = true;
-      boothCountEl.value = '1';
-      document.querySelector('label[for="boothCount"]') && document.querySelector('label[for="boothCount"]').insertAdjacentHTML('beforeend', proTag);
+      if (boothCountEl) {
+        boothCountEl.disabled = true;
+        if (!boothCountEl.value) boothCountEl.value = '1';
+        const lbl = document.querySelector('label[for="boothCount"]');
+        if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
+      }
 
       // 8. Show logo as custom branding
-      document.getElementById('logoOnMain').disabled = true;
-      document.querySelector('label[for="logoOnMain"]') && document.querySelector('label[for="logoOnMain"]').insertAdjacentHTML('beforeend', proTag);
+      lockField('logoOnMain', 'logoOnMain');
     }
 
     auth.onAuthStateChanged(async user => {
@@ -1174,12 +1191,11 @@
     }
 
     async function getNextEventId() {
-      const prefix = (userTier === 'paid') ? 'egm' : 'evt';
       const snapshot = await db.collection("users").doc(currentUser.uid).collection("events").orderBy("timestamp", "desc").limit(1).get();
-      if (snapshot.empty) return prefix + '0001';
+      if (snapshot.empty) return "egm0001";
       const lastId = snapshot.docs[0].id;
-      const num = parseInt(lastId.replace(/^(egm|evt)/, ''), 10);
-      return prefix + ('0000' + (num + 1)).slice(-4);
+      const num = parseInt(lastId.replace('egm', ''), 10);
+      return 'egm' + ('0000' + (num + 1)).slice(-4);
     }
 
     // ==========================================
@@ -1279,6 +1295,9 @@
 
       document.getElementById('saveBtn').disabled = !isEnabled;
       document.getElementById('deleteBtn').disabled = !isEnabled;
+
+      // Always reapply free-tier locks after any field toggle
+      applyTierRestrictions();
     }
 
     function handleCommunityToggle() {
