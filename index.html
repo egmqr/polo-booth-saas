@@ -1036,6 +1036,8 @@
 
       // 3. Community booth
       lockField('boothEnableCommunity', 'boothEnableCommunity');
+      lockField('boothCommunityOnly', 'boothCommunityOnly');  // ← ADD
+      lockField('boothUserStickers', 'boothUserStickers');    // ← ADD
 
       // 4. Font color
       lockField('fontColor');
@@ -1312,6 +1314,7 @@
         stickersToggle.checked = false; stickersToggle.disabled = true;
         if (currentMode === 'new') document.getElementById('boothCount').disabled = false;
       }
+      applyTierRestrictions(); // ← ADD THIS
     }
 
     function handleCommunityOnlyToggle() {
