@@ -7,6 +7,18 @@ export async function handleAdminRoutes(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, x-admin-secret'
+            }
+        });
+    }
+
     if (request.headers.get('x-admin-secret') !== env.ADMIN_SECRET) {
         return json({ success: false, error: 'Forbidden' }, 403);
     }
