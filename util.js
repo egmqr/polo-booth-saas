@@ -9,7 +9,7 @@ export function cors(res) {
     const r = new Response(res.body, res);
     r.headers.set('access-control-allow-origin', '*');
     r.headers.set('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    r.headers.set('access-control-allow-headers', 'content-type, authorization');
+    r.headers.set('access-control-allow-headers', 'content-type, authorization, x-admin-secret');
     return r;
 }
 
