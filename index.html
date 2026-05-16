@@ -937,9 +937,6 @@
     let croppedQrLogoPayload = null;
     let originalLogoFilename = "";
     let currentBoothBgId = null;
-    let selectedExistingLogoId = "";
-    let selectedExistingQrLogoId = "";
-    let existingLogosCache = null;
 
     const defaultBoothTemplates = [
       { "Name": "portrait", "CanvasWidth": 1200, "CanvasHeight": 1800, "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1200, "Height": 1800, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] },
@@ -1761,9 +1758,6 @@
       const res = await callWorkerApi('/api/dashboard/delete-booth', { eventId: id });
       if (res && res.success) { delete boothDetailsCache[id]; fetchBoothEvents(true); setMode('edit'); showToast("Deleted."); }
     }
-  </script>
-  <script>
-    window.addEventListener('load', checkLogin);
   </script>
 </body>
 
