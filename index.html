@@ -1087,7 +1087,7 @@
       try {
         const response = await fetch(`${WORKER_URL}${route}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Authorization': `Bearer ${await currentUser.getIdToken()}`
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}`
         },
           body: JSON.stringify(payload)
         });
