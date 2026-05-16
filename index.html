@@ -1188,7 +1188,7 @@
       const bgId = 'bg_' + Date.now();
 
       // 1. FIX: Define the correct prefix containing the user's UID
-      const r2Prefix = `users/${currentUser.uid}/assets/backgrounds`;
+      const r2Prefix = `users/${currentUser.uid}/events/${eventId}/assets/backgrounds`;
 
       const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
         method: 'POST',
