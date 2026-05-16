@@ -1162,8 +1162,10 @@
       }
     }
 
-    async function uploadBgDirect(file) {
+    // Add eventId as the second parameter
+    async function uploadBgDirect(file, eventId) {
       const blob = await new Promise((resolve, reject) => {
+        /* ... keep your existing canvas resize logic here ... */
         const reader = new FileReader();
         reader.onload = (e) => {
           const img = new Image();
@@ -1186,30 +1188,73 @@
 
       const bgId = 'bg_' + Date.now();
 
-      // 1. FIX: Define the correct prefix containing the user's UID
-      const r2Prefix = `users/${currentUser.uid}/assets/backgrounds`;
+      // Inject the eventId into the R2 destination path
+      const r2Prefix = `users/${currentUser.uid}/events/${eventId}/assets/backgrounds`;
 
       const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
-        // 2. FIX: Pass the corrected prefix here
         body: JSON.stringify({ prefix: r2Prefix, filename: bgId + '.jpg' })
       });
 
       if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
 
       const responseData = await signRes.json();
-
-      // 3. FIX: Throw an error immediately if the Worker rejects the request
-      if (responseData.error) {
-        throw new Error(responseData.error);
-      }
+      if (responseData.error) throw new Error(responseData.error);
 
       const { uploadUrl } = responseData;
       const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
       if (!putRes.ok) throw new Error('R2 upload failed');
 
       return bgId;
+    }
+    const blob = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_W = 1800, MAX_H = 1200;
+          let w = img.width, h = img.height;
+          if (w > MAX_W || h > MAX_H) {
+            const ratio = Math.min(MAX_W / w, MAX_H / h);
+            w = Math.round(w * ratio); h = Math.round(h * ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', 0.8);
+        };
+        img.onerror = reject; img.src = e.target.result;
+      };
+      reader.onerror = reject; reader.readAsDataURL(file);
+    });
+
+    const bgId = 'bg_' + Date.now();
+
+    // 1. FIX: Define the correct prefix containing the user's UID
+    const r2Prefix = `users/${currentUser.uid}/assets/backgrounds`;
+
+    const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
+      // 2. FIX: Pass the corrected prefix here
+      body: JSON.stringify({ prefix: r2Prefix, filename: bgId + '.jpg' })
+    });
+
+    if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
+
+    const responseData = await signRes.json();
+
+    // 3. FIX: Throw an error immediately if the Worker rejects the request
+    if (responseData.error) {
+      throw new Error(responseData.error);
+    }
+
+    const { uploadUrl } = responseData;
+    const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+    if (!putRes.ok) throw new Error('R2 upload failed');
+
+    return bgId;
     }
 
     async function getNextEventId() {
@@ -1645,11 +1690,19 @@
         selectedExistingLogoId = details.logoId || "";
         selectedExistingQrLogoId = details.qrLogoId || details.logoId || "";
 
-        if (details.bgId) { document.getElementById('boothBgPreview').src = `https://cdn.createdbyegm.com/assets/backgrounds/${details.bgId}.jpg`; document.getElementById('boothBgPreviewContainer').style.display = "flex"; }
-        else { document.getElementById('boothBgPreviewContainer').style.display = "none"; }
+        if (details.bgId) {
+          document.getElementById('boothBgPreview').src = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${selectedId}/assets/backgrounds/${details.bgId}.jpg`;
+          document.getElementById('boothBgPreviewContainer').style.display = "flex";
+        } else {
+          document.getElementById('boothBgPreviewContainer').style.display = "none";
+        }
 
-        if (details.logoId) { document.getElementById('boothLogoPreview').src = `https://cdn.createdbyegm.com/assets/logos/${details.logoId}.png`; document.getElementById('boothLogoPreviewContainer').style.display = "flex"; }
-        else { document.getElementById('boothLogoPreviewContainer').style.display = "none"; }
+        if (details.logoId) {
+          document.getElementById('boothLogoPreview').src = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${selectedId}/assets/logos/${details.logoId}.png`;
+          document.getElementById('boothLogoPreviewContainer').style.display = "flex";
+        } else {
+          document.getElementById('boothLogoPreviewContainer').style.display = "none";
+        }
 
         toggleEditFields(true);
 
@@ -1682,8 +1735,13 @@
           } else {
             let qc = `https://quickchart.io/qr?size=1000&errorCorrectionLevel=H&text=${encodeURIComponent(mainUrl)}`;
             let fbLogo = '';
-            if (details.qrLogoId) fbLogo = details.qrLogoId.startsWith('qrlogo_') ? `https://cdn.createdbyegm.com/assets/qr-logos/${details.qrLogoId}.png` : `https://cdn.createdbyegm.com/assets/logos/${details.qrLogoId}.png`;
-            else if (details.logoId) fbLogo = `https://cdn.createdbyegm.com/assets/logos/${details.logoId}.png`;
+            if (details.qrLogoId) {
+              fbLogo = details.qrLogoId.startsWith('qrlogo_')
+                ? `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/assets/qr-logos/${details.qrLogoId}.png`
+                : `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/assets/logos/${details.qrLogoId}.png`;
+            } else if (details.logoId) {
+              fbLogo = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/assets/logos/${details.logoId}.png`;
+            }
             if (fbLogo) qc += `&centerImageUrl=${encodeURIComponent(fbLogo)}&centerImageSizeRatio=0.22`;
 
             currentViewBooths.push({ boothNum: bNum, url: qc, filename: fileName });
@@ -1732,7 +1790,7 @@
       showOverlay("Processing...");
       const bgFile = document.getElementById('bgFile').files[0];
       let uploadedBgId = null;
-      if (bgFile) { try { uploadedBgId = await uploadBgDirect(bgFile); } catch (e) { hideOverlay(); return showToast('BG Upload Failed'); } }
+      if (bgFile) { try { uploadedBgId = await uploadBgDirect(bgFile, eventId); } catch (e) { hideOverlay(); console.error(e); return showToast('BG Upload Failed: ' + e.message); } }
 
       const payload = {
         action: actionName, eventId, folderName, eventName, boothCount,
