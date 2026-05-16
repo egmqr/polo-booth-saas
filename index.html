@@ -69,16 +69,17 @@
 
     /* Theme & Logout Controls */
     .top-controls-wrapper {
-      position: absolute;
-      top: 15px;
-      right: 20px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  z-index: 9999;  /* ← ADD THIS — keeps it below loginOverlay (z-index: 10000) */
+}
 
     .logout-btn {
       background: none;
