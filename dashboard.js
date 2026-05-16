@@ -153,7 +153,7 @@ async function generateBoothSetup(env, p, currentUser) {
     const isOnlyCommunity = communityOnly === true;
     const actualNumBooths = isOnlyCommunity ? 0 : (parseInt(boothCount, 10) || 0);
 
-    const cdn = env.PUBLIC_CDN_BASE.replace(/\/$/, '');
+    const cdn = (env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
     let bgId = existingBgId || '';
     let logoId = existingLogoId || '';
     let qrLogoId = existingQrLogoId || '';
@@ -334,7 +334,7 @@ async function handleSignedUpload(env, body, currentUser) {
 async function listExistingLogos(env, currentUser) {
     const prefix = `users/${currentUser.uid}/assets/logos/`;
     const list = await Storage.list(env, { prefix, limit: 1000 });
-    const cdn = env.PUBLIC_CDN_BASE.replace(/\/$/, '');
+    const cdn = (env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
     const logos = list.objects
         .filter(o => !o.key.split('/').pop().startsWith('.'))
         .map(o => {
