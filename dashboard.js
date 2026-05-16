@@ -1,6 +1,6 @@
 // dashboard.js
 
-import { Firebase, Storage } from './cloud.js';
+import { Storage } from './cloud.js';
 import { json, decodeBase64, safePrefix } from './util.js';
 import { verifyFirebaseToken, getServiceToken } from './auth.js';
 
@@ -260,7 +260,9 @@ async function updateBoothSetup(env, p, currentUser) {
 }
 
 async function getBoothDetails(env, eventId, currentUser) {
-    const res = await Firebase.fetch(env, `/users/${currentUser.uid}/events/${eventId}`);
+    const serviceToken = await getServiceToken(env);
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${serviceToken}` } });
     if (!res.ok) return { success: false, error: 'Firebase fetch error' };
     const doc = await res.json();
     const f = doc.fields || {};
@@ -308,7 +310,9 @@ async function deleteBoothEvent(env, eventId, currentUser) {
         cursor = page.truncated ? page.cursor : null;
     } while (cursor);
 
-    await Firebase.fetch(env, `/users/${currentUser.uid}/events/${eventId}`, { method: 'DELETE' });
+    const serviceToken = await getServiceToken(env);
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}`;
+    await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${serviceToken}` } });
     return { success: true, message: 'Booth resources deleted.' };
 }
 
@@ -361,18 +365,24 @@ async function uploadAsset(env, body, currentUser) {
 
 async function mintNextEventId(env) {
     try {
+        const serviceToken = await getServiceToken(env);
         const baseUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)`;
-        const commitUrl = `${baseUrl}/documents:commit`;
-        const token = await Firebase.getToken(env);
-
-        const commitRes = await fetch(commitUrl, {
+        const commitRes = await fetch(`${baseUrl}/documents:commit`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ writes: [{ transform: { document: `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/counters/eventIdCounter`, fieldTransforms: [{ fieldPath: 'currentId', increment: { integerValue: '1' } }] } }] })
+            headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                writes: [{
+                    transform: {
+                        document: `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/counters/eventIdCounter`,
+                        fieldTransforms: [{ fieldPath: 'currentId', increment: { integerValue: '1' } }]
+                    }
+                }]
+            })
         });
         if (!commitRes.ok) throw new Error('Firestore commit failed');
-
-        const getRes = await fetch(`${baseUrl}/documents/counters/eventIdCounter`, { headers: { 'Authorization': `Bearer ${token}` } });
+        const getRes = await fetch(`${baseUrl}/documents/counters/eventIdCounter`, {
+            headers: { Authorization: `Bearer ${serviceToken}` }
+        });
         const doc = await getRes.json();
         return { success: true, eventId: 'egm' + String(parseInt(doc.fields?.currentId?.integerValue || '1', 10)).padStart(4, '0') };
     } catch (err) {
@@ -381,6 +391,7 @@ async function mintNextEventId(env) {
 }
 
 async function saveEventToFirestore(env, uid, eventId, data) {
+    const serviceToken = await getServiceToken(env);
     const payload = {
         fields: {
             folderName: { stringValue: data.folderName || '' },
@@ -402,16 +413,25 @@ async function saveEventToFirestore(env, uid, eventId, data) {
             timestamp: { timestampValue: new Date().toISOString() }
         }
     };
-    const updateMaskPaths = Object.keys(payload.fields).map(k => `updateMask.fieldPaths=${k}`).join('&');
-    // Note: Firestore path is now users/{uid}/events/{eventId}
-    await Firebase.fetch(env, `/users/${uid}/events/${eventId}?${updateMaskPaths}`, {
-        method: 'PATCH', body: JSON.stringify(payload)
+    const updateMaskPaths = Object.keys(payload.fields)
+        .map(k => `updateMask.fieldPaths=${k}`).join('&');
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${uid}/events/${eventId}?${updateMaskPaths}`;
+    await fetch(url, {
+        method: 'PATCH',
+        headers: {
+            Authorization: `Bearer ${serviceToken}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
     });
 }
 
 async function saveSystemPinToFirestore(env, pin) {
-    const res = await Firebase.fetch(env, `/booth_settings/system`, {
+    const serviceToken = await getServiceToken(env);
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/booth_settings/system`;
+    const res = await fetch(url, {
         method: 'PATCH',
+        headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { pin: { stringValue: pin }, timestamp: { timestampValue: new Date().toISOString() } } })
     });
     if (!res.ok) return { success: false, error: `Firestore Error ${res.status}: ${await res.text()}` };
