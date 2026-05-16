@@ -678,7 +678,7 @@
   </style>
 </head>
 
-<body class="dark-mode" onload="checkLogin()">
+<body class="dark-mode">
 
   <div id="loginOverlay">
     <div class="container" style="max-width:380px; text-align:center; padding:40px 30px;">
@@ -890,6 +890,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script>
     // ==========================================
     // CONFIGURATION & SECRETS
@@ -920,7 +921,6 @@
     let allFetchedEvents = [];
     let currentViewBooths = [];
     let boothDetailsCache = {};
-    let adminPin = sessionStorage.getItem('adminPin') || null;
 
     let cropper = null;
     let croppedLogoPayload = null;
@@ -1130,7 +1130,7 @@
       const bgId = 'bg_' + Date.now();
       const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${BOOTH_AUTH_TOKEN}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
         body: JSON.stringify({ prefix: 'assets/backgrounds', filename: bgId + '.jpg' })
       });
       if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
@@ -1142,7 +1142,7 @@
     }
 
     async function getNextEventId() {
-      const snapshot = await db.collection("events").orderBy("timestamp", "desc").limit(1).get();
+      const snapshot = await db.collection("users").doc(currentUser.uid).collection("events").orderBy("timestamp", "desc").limit(1).get();
       if (snapshot.empty) return "egm0001";
       const lastId = snapshot.docs[0].id;
       const num = parseInt(lastId.replace('egm', ''), 10);
@@ -1438,7 +1438,7 @@
         });
 
         const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${BOOTH_AUTH_TOKEN}` },
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
           body: JSON.stringify({ prefix: `events/${eventId}/user-stickers`, filename: `sticker_${Date.now()}.png` })
         });
         const { uploadUrl } = await signRes.json();
@@ -1635,6 +1635,9 @@
       const res = await callWorkerApi('/api/dashboard/delete-booth', { eventId: id });
       if (res && res.success) { delete boothDetailsCache[id]; fetchBoothEvents(true); setMode('edit'); showToast("Deleted."); }
     }
+  </script>
+  <script>
+    window.addEventListener('load', checkLogin);
   </script>
 </body>
 
