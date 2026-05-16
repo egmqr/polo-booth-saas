@@ -1006,7 +1006,17 @@
       }
     }
 
-    function logout() { auth.signOut(); }
+    function logout() {
+      document.getElementById('authBtn').disabled = false;
+      document.getElementById('authBtn').textContent = 'Sign In';
+      document.getElementById('emailInput').value = '';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('authError').style.display = 'none';
+      isSignUpMode = false;
+      document.getElementById('authToggleBtn').textContent = "Don't have an account? Sign up";
+      document.getElementById('authSubtitle').textContent = 'Sign in to your account';
+      auth.signOut();
+    }
 
     function applyTierRestrictions() {
       if (userTier === 'paid') return; // paid users see everything unlocked
