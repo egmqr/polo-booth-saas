@@ -1185,16 +1185,30 @@
       });
 
       const bgId = 'bg_' + Date.now();
+
+      // 1. FIX: Define the correct prefix containing the user's UID
+      const r2Prefix = `users/${currentUser.uid}/assets/backgrounds`;
+
       const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
-        body: JSON.stringify({ prefix: 'assets/backgrounds', filename: bgId + '.jpg' })
+        // 2. FIX: Pass the corrected prefix here
+        body: JSON.stringify({ prefix: r2Prefix, filename: bgId + '.jpg' })
       });
+
       if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
 
-      const { uploadUrl } = await signRes.json();
+      const responseData = await signRes.json();
+
+      // 3. FIX: Throw an error immediately if the Worker rejects the request
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+
+      const { uploadUrl } = responseData;
       const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
       if (!putRes.ok) throw new Error('R2 upload failed');
+
       return bgId;
     }
 
