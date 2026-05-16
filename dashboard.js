@@ -328,7 +328,7 @@ async function handleSignedUpload(env, body, currentUser) {
     const key = `${prefix}/${filename}`;
     const uploadUrl = await Storage.presignPut(env, key, 900);
 
-    return { uploadUrl, key, publicUrl: `${env.PUBLIC_CDN_BASE.replace(/\/$/, '')}/${key}`, expiresIn: 900 };
+    return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
 }
 
 async function listExistingLogos(env, currentUser) {
@@ -354,7 +354,7 @@ async function uploadAsset(env, body, currentUser) {
     const key = `users/${currentUser.uid}/assets/${folder}/${id}${ext}`;
     await Storage.put(env, key, decodeBase64(body.base64Data), { httpMetadata: { contentType: body.mimeType || 'image/png' } });
 
-    return { success: true, id, key, url: `${env.PUBLIC_CDN_BASE.replace(/\/$/, '')}/${key}` };
+    return { success: true, id, key, url: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}` };
 }
 
 // ── FIRESTORE OPS ─────────────────────────────────────────────────────
