@@ -1231,6 +1231,9 @@
     // MODES & TOGGLES
     // ==========================================
     function setMode(mode) {
+      // 1. FIX: Cache the active event selection before clearing any fields
+      const savedSelectedId = document.getElementById('eventSelect')?.value || "";
+
       currentMode = mode;
       document.getElementById('boothEnableCommunity').checked = true;
 
@@ -1257,7 +1260,13 @@
       handleCommunityToggle(); handleUserStickersToggle();
 
       const eventSelectDropdown = document.getElementById('eventSelect');
-      if (eventSelectDropdown) eventSelectDropdown.value = "";
+
+      // 2. FIX: Only blank out the dropdown if we are moving to the 'New Setup' tab
+      if (mode === 'new') {
+        if (eventSelectDropdown) eventSelectDropdown.value = "";
+      } else {
+        if (eventSelectDropdown) eventSelectDropdown.value = savedSelectedId;
+      }
 
       document.getElementById('btnModeNew').classList.remove('active');
       document.getElementById('btnModeEdit').classList.remove('active');
@@ -1304,9 +1313,14 @@
 
         if (allFetchedEvents.length > 0) renderDropdownOptions(allFetchedEvents);
         else fetchBoothEvents();
+
+        // 3. FIX: If an event was selected, re-apply it and trigger the layout build
+        if (savedSelectedId && mode !== 'new') {
+          eventSelectDropdown.value = savedSelectedId;
+          loadBoothEventDetails();
+        }
       }
     }
-
     function toggleEditFields(isEnabled) {
       const isEditMode = (currentMode === 'edit');
       document.getElementById('boothEnableCommunity').disabled = isEditMode;
