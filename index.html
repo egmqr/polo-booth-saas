@@ -313,6 +313,7 @@
 
     input[type="text"],
     input[type="number"],
+    input[type="email"],
     input[type="password"],
     select {
       width: 100%;
@@ -798,17 +799,6 @@
           <input type="checkbox" id="boothUserStickers" onchange="handleUserStickersToggle()">
           <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers</label>
         </div>
-        <div id="userStickersManager"
-          style="display:none; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-top: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label style="margin:0;">Prop Stickers</label>
-            <input type="file" id="userStickerUploadInput" accept="image/png, image/jpeg" style="display:none;"
-              onchange="uploadUserSticker(event)">
-            <button type="button" class="file-btn" style="padding: 4px 8px; font-size: 10px;"
-              onclick="document.getElementById('userStickerUploadInput').click()">Upload</button>
-          </div>
-          <div id="userStickersGrid" class="sticker-manager-grid"></div>
-        </div>
         <span class="hint-text" id="communityEditHint" style="display:none; margin-top:10px;">Community settings are
           locked during edits.</span>
       </div>
@@ -869,6 +859,19 @@
           <input type="checkbox" id="logoOnMain">
           <label for="logoOnMain">Show logo as custom branding</label>
         </div>
+      </div>
+
+      <!-- Prop Stickers — Edit Setup only (needs eventId for R2 path) -->
+      <div id="userStickersManager"
+        style="display:none; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-top: 8px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="margin:0;"><i class="bi bi-stars"></i> Prop Stickers</label>
+          <input type="file" id="userStickerUploadInput" accept="image/png, image/jpeg" style="display:none;"
+            onchange="uploadUserSticker(event)">
+          <button type="button" class="file-btn" style="padding: 4px 8px; font-size: 10px;"
+            onclick="document.getElementById('userStickerUploadInput').click()">Upload Sticker</button>
+        </div>
+        <div id="userStickersGrid" class="sticker-manager-grid"></div>
       </div>
     </div>
 
@@ -1457,23 +1460,32 @@
     function handleUserStickersToggle() {
       const isEnabled = document.getElementById('boothUserStickers').checked;
       const manager = document.getElementById('userStickersManager');
-      if (isEnabled) { manager.style.display = 'block'; loadUserStickers(); } else { manager.style.display = 'none'; }
+      // Sticker manager only available in Edit mode (needs existing eventId)
+      if (isEnabled && currentMode === 'edit') {
+        manager.style.display = 'block';
+        loadUserStickers();
+      } else {
+        manager.style.display = 'none';
+      }
     }
 
     async function loadUserStickers() {
       const grid = document.getElementById('userStickersGrid');
-      let eventId = document.getElementById('eventId').value;
-      if (!eventId && currentMode === 'new') { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
-      if (!eventId) return;
+      const eventId = document.getElementById('eventSelect').value; // Edit mode only
+      if (!eventId) { grid.innerHTML = '<span class="hint-text">Select an event first.</span>'; return; }
 
+      const r2Prefix = `users/${currentUser.uid}/events/${eventId}/user-stickers`;
       grid.innerHTML = '<span class="hint-text">Loading...</span>';
       try {
-        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=events/${eventId}/user-stickers`);
+        const tok = await currentUser.getIdToken();
+        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=${encodeURIComponent(r2Prefix)}`, {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
         const result = await res.json();
         if (result.status === 'success' && result.data.length > 0) {
           let html = '';
           result.data.forEach(item => {
-            html += `<div class="sticker-manager-item"><img src="${item[2]}"><button type="button" class="sticker-manager-delete" onclick="deleteUserSticker('${item[0]}')">X</button></div>`;
+            html += `<div class="sticker-manager-item"><img src="${item[2]}"><button type="button" class="sticker-manager-delete" onclick="deleteUserSticker('${item[0]}')">✕</button></div>`;
           });
           grid.innerHTML = html;
         } else { grid.innerHTML = '<span class="hint-text">No stickers uploaded.</span>'; }
@@ -1483,9 +1495,11 @@
     async function uploadUserSticker(event) {
       const file = event.target.files[0];
       if (!file) return;
+      const eventId = document.getElementById('eventSelect').value;
+      if (!eventId) { showToast("Select an event first."); event.target.value = ''; return; }
+
       showOverlay("Uploading...");
       try {
-        let eventId = document.getElementById('eventId').value;
         const blob = await new Promise((res, rej) => {
           const reader = new FileReader();
           reader.onload = (e) => {
@@ -1498,9 +1512,11 @@
           }; reader.readAsDataURL(file);
         });
 
+        const r2Prefix = `users/${currentUser.uid}/events/${eventId}/user-stickers`;
         const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
-          body: JSON.stringify({ prefix: `events/${eventId}/user-stickers`, filename: `sticker_${Date.now()}.png` })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
+          body: JSON.stringify({ prefix: r2Prefix, filename: `sticker_${Date.now()}.png` })
         });
         const { uploadUrl } = await signRes.json();
         await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: blob });
