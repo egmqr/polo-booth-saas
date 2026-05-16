@@ -1290,7 +1290,15 @@
       const isEditMode = (currentMode === 'edit');
       document.getElementById('boothEnableCommunity').disabled = isEditMode;
       document.getElementById('boothCommunityOnly').disabled = isEditMode || !document.getElementById('boothEnableCommunity').checked;
-      document.getElementById('boothUserStickers').disabled = !isEnabled || !document.getElementById('boothEnableCommunity').checked;
+
+      // FIX: Keep the User Stickers checkbox disabled if it's already checked in Edit mode
+      const stickersEl = document.getElementById('boothUserStickers');
+      if (isEditMode && stickersEl.checked) {
+        stickersEl.disabled = true;
+      } else {
+        stickersEl.disabled = !isEnabled || !document.getElementById('boothEnableCommunity').checked;
+      }
+
       document.getElementById('communityEditHint').style.display = isEditMode ? 'inline' : 'none';
 
       document.getElementById('eventName').disabled = !isEnabled;
@@ -1318,7 +1326,14 @@
       if (isEnabled) {
         onlyRow.style.display = '';
         stickersRow.style.display = '';
-        onlyToggle.disabled = false; stickersToggle.disabled = false;
+        onlyToggle.disabled = false;
+
+        // FIX: Don't unlock the stickers toggle if we are in Edit mode and it is already checked
+        if (currentMode === 'edit' && stickersToggle.checked) {
+          stickersToggle.disabled = true;
+        } else {
+          stickersToggle.disabled = false;
+        }
       } else {
         onlyToggle.checked = false; onlyToggle.disabled = true;
         stickersToggle.checked = false; stickersToggle.disabled = true;
@@ -1353,7 +1368,15 @@
       };
       reader.readAsDataURL(file);
     }
-
+    function cancelCrop() {
+      document.getElementById('cropModal').style.display = 'none';
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+      // Reset the file input so the user can select the same file again if they want
+      document.getElementById('logoFile').value = "";
+    }
     function applyCrop() {
       if (!cropper) return;
       let baseName = originalLogoFilename.substring(0, originalLogoFilename.lastIndexOf('.')) || originalLogoFilename;
