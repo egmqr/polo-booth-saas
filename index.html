@@ -715,7 +715,7 @@
   </div>
 
   <div class="top-controls-wrapper">
-    <button class="logout-btn" id="logoutBtn" onclick="logout()">Lock</button>
+    <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
     <span id="themeLabel">Dark Mode</span>
     <label class="switch">
       <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
@@ -886,7 +886,7 @@
     <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
     <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;"
       onclick="runUpdate()">Save Changes</button>
-    <button id="deleteBtn" class="action-btn" onclick="runDelete()">Delete Booth Setup</button>
+    <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
 
   </div>
 
@@ -998,7 +998,7 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
-        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Lock`;
+        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
         applyTierRestrictions();
         fetchBoothEvents(true);
         fetchExistingLogos();
