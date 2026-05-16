@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Layout Editor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* === Main App Color Tokens === */
+            --teal:        #0d9488;
+            --teal-hover:  #0f766e;
+            --teal-light:  #ccfbf1;
+            --teal-border: #99f6e4;
+
+            /* Light mode surfaces */
+            --bg-main:     #f8fafc;
+            --bg-panel:    #ffffff;
+            --bg-canvas:   #e2e8f0;
+            --border:      #e8edf3;
+            --border-mid:  #cbd5e1;
+            --text-main:   #334155;
+            --text-muted:  #64748b;
+            --text-faint:  #94a3b8;
+
+            /* Dark mode surfaces */
+            --dm-bg:       #111318;
+            --dm-panel:    #1c1f26;
+            --dm-canvas:   #0d0f13;
+            --dm-border:   #2e3340;
+            --dm-text:     #cbd5e1;
+            --dm-muted:    #94a3b8;
+
+            /* Muted action colours (matching main app) */
+            --danger:      #e57373;
+            --danger-h:    #ef5350;
+            --success:     #5a9e78;
+            --success-h:   #4a8866;
+            --amber:       #f4a946;
+            --amber-h:     #e09633;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            background: var(--bg-main);
+            color: var(--text-main);
+            overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        /* ── Dark mode ── */
+        body.dark-mode { background: var(--dm-bg); color: var(--dm-text); }
+
+        /* ── Layout ── */
+        .app-container { display: flex; height: 100vh; width: 100vw; }
+
+        /* ── Canvas area ── */
+        .canvas-area {
+            flex: 1;
+            background: var(--bg-canvas);
+            border-right: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.3s, border-color 0.3s;
+        }
+        body.dark-mode .canvas-area { background: var(--dm-canvas); border-color: var(--dm-border); }
+
+        /* ── Toolbar strip ── */
+        .canvas-toolbar {
+            position: absolute;
+            top: 16px; left: 16px;
+            display: flex; gap: 8px;
+            z-index: 10;
+        }
+        .toolbar-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px;
+            font-size: 0.8rem; font-weight: 600;
+            border: 1px solid var(--border-mid);
+            border-radius: 10px;
+            background: var(--bg-panel);
+            color: var(--text-main);
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            transition: all 0.2s;
+        }
+        .toolbar-btn:hover { background: #f1f5f9; border-color: var(--teal); color: var(--teal); }
+        .toolbar-btn.close { color: var(--danger); border-color: #fca5a5; }
+        .toolbar-btn.close:hover { background: #fee2e2; }
+        body.dark-mode .toolbar-btn { background: var(--dm-panel); border-color: var(--dm-border); color: var(--dm-text); }
+        body.dark-mode .toolbar-btn:hover { background: #252831; border-color: var(--teal); color: var(--teal); }
+        body.dark-mode .toolbar-btn.close { color: #f08080; border-color: #6b2828; }
+        body.dark-mode .toolbar-btn.close:hover { background: #2e1212; }
+
+        /* ── Canvas ── */
+        #designCanvas {
+            background: white;
+            position: absolute;
+            top: 50%; left: 50%;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            transform-origin: center;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 340px;
+            background: var(--bg-panel);
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--border);
+            transition: background 0.3s, border-color 0.3s;
+        }
+        body.dark-mode .sidebar { background: var(--dm-panel); border-color: var(--dm-border); }
+
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
+        .sidebar-content::-webkit-scrollbar { width: 4px; }
+        .sidebar-content::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-content::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 4px; }
+
+        /* ── Section headings ── */
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--teal);
+            margin-bottom: 12px;
+            margin-top: 4px;
+            display: flex; align-items: center; gap-6px;
+        }
+        .section-title i { margin-right: 5px; }
+
+        .divider { height: 1px; background: var(--border); margin: 18px 0; }
+        body.dark-mode .divider { background: var(--dm-border); }
+
+        /* ── Labels ── */
+        label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 5px;
+        }
+        body.dark-mode label { color: var(--dm-muted); }
+
+        /* ── Inputs ── */
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            background: var(--bg-main);
+            color: var(--text-main);
+            border: 1px solid var(--border-mid);
+            padding: 8px 10px;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 14px;
+            border-radius: 10px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            appearance: auto;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.12);
+        }
+        body.dark-mode select,
+        body.dark-mode input[type="text"],
+        body.dark-mode input[type="number"] {
+            background: #161920;
+            color: var(--dm-text);
+            border-color: var(--dm-border);
+        }
+        body.dark-mode select:focus,
+        body.dark-mode input:focus {
+            border-color: var(--teal);
+            box-shadow: 0 0 0 3px rgba(13,148,136,0.18);
+        }
+
+        /* ── Range slider ── */
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 16px;
+            accent-color: var(--teal);
+            cursor: pointer;
+        }
+
+        /* ── Checkbox ── */
+        input[type="checkbox"] { accent-color: var(--teal); width: 15px; height: 15px; cursor: pointer; }
+        .check-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .check-row label {
+            display: flex; align-items: center; gap: 7px;
+            margin: 0; cursor: pointer;
+            font-size: 0.8rem; text-transform: none; letter-spacing: 0;
+            color: var(--text-main); font-weight: 600;
+        }
+        body.dark-mode .check-row label { color: var(--dm-text); }
+
+        /* ── Buttons ── */
+        .btn {
+            width: 100%;
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s;
+            letter-spacing: 0.01em;
+        }
+        .btn-secondary {
+            background: var(--bg-main);
+            color: var(--text-main);
+            border-color: var(--border-mid);
+        }
+        .btn-secondary:hover { background: #f1f5f9; border-color: var(--teal); color: var(--teal); }
+        body.dark-mode .btn-secondary { background: #252831; color: var(--dm-text); border-color: var(--dm-border); }
+        body.dark-mode .btn-secondary:hover { background: #2e3340; border-color: var(--teal); color: var(--teal); }
+
+        .btn-primary { background: var(--teal); color: white; border-color: var(--teal); }
+        .btn-primary:hover { background: var(--teal-hover); border-color: var(--teal-hover); }
+
+        .btn-danger-soft { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+        .btn-danger-soft:hover { background: #fecaca; border-color: var(--danger); }
+        body.dark-mode .btn-danger-soft { background: #2e0f0f; color: #fca5a5; border-color: #4a1a1a; }
+        body.dark-mode .btn-danger-soft:hover { background: #3d1515; border-color: #6b2828; }
+
+        /* ── Save button (full-width sticky footer) ── */
+        .save-btn {
+            margin: 0;
+            border-radius: 0;
+            padding: 16px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 -2px 12px rgba(13,148,136,0.15);
+        }
+
+        /* ── Grid ── */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        /* ── Layers panel ── */
+        .layer-list {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-main);
+            max-height: 220px;
+            overflow-y: auto;
+            margin-bottom: 14px;
+        }
+        body.dark-mode .layer-list { background: #161920; border-color: var(--dm-border); }
+
+        .layer-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.83rem;
+            font-weight: 500;
+            color: var(--text-main);
+            transition: background 0.15s;
+        }
+        .layer-item:last-child { border-bottom: none; }
+        .layer-item:hover { background: #f1f5f9; }
+        .layer-item.active { background: var(--teal-light); color: var(--teal-hover); font-weight: 700; }
+        body.dark-mode .layer-item { border-color: var(--dm-border); color: var(--dm-text); }
+        body.dark-mode .layer-item:hover { background: #252831; }
+        body.dark-mode .layer-item.active { background: #0d2e2b; color: #5eead4; }
+
+        .layer-arrows span {
+            cursor: pointer;
+            color: var(--text-faint);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            transition: color 0.15s;
+        }
+        .layer-arrows span:hover { color: var(--teal); }
+
+        /* ── Action panel ── */
+        .action-panel { display: flex; gap: 8px; margin-bottom: 14px; }
+        .action-panel .btn { margin-bottom: 0; padding: 9px 10px; }
+        .btn-icon { flex: 0 0 42px; padding: 9px 6px !important; }
+
+        /* ── Selection overlay & handles ── */
+        #selectionOverlay {
+            position: absolute;
+            pointer-events: none;
+            border: 2px dashed var(--teal);
+            z-index: 9999;
+            display: none;
+            box-sizing: border-box;
+            border-radius: 2px;
+        }
+        .resize-handle {
+            position: absolute;
+            width: 13px; height: 13px;
+            background: white;
+            border: 2px solid var(--teal);
+            border-radius: 50%;
+            pointer-events: auto;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
+        .handle-nw { top: -7px; left: -7px; cursor: nwse-resize; }
+        .handle-ne { top: -7px; right: -7px; cursor: nesw-resize; }
+        .handle-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+        .handle-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+        /* ── Canvas element ── */
+        .canvas-element { position: absolute; transform-origin: center center; cursor: move; user-select: none; }
+        .canvas-element img { width: 100%; height: 100%; pointer-events: none; }
+        .photo-slot {
+            width: 100%; height: 100%;
+            border: 4px solid;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; font-weight: 700; font-size: 20px;
+            color: white; box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.03em;
+        }
+
+        /* ── Dark mode toggle ── */
+        .dm-toggle {
+            font-size: 0.75rem;
+            gap: 5px;
+            padding: 7px 11px;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+
+<div class="app-container">
+    <div class="canvas-area" id="canvasWrapper">
+        <div class="canvas-toolbar">
+            <button class="toolbar-btn close" onclick="window.close()">✕ Close</button>
+            <button class="toolbar-btn dm-toggle" onclick="document.body.classList.toggle('dark-mode')" title="Toggle dark mode">🌙 Theme</button>
+        </div>
+
+        <div id="designCanvas">
+            <div id="selectionOverlay">
+                <div class="resize-handle handle-nw" data-pos="nw"></div>
+                <div class="resize-handle handle-ne" data-pos="ne"></div>
+                <div class="resize-handle handle-sw" data-pos="sw"></div>
+                <div class="resize-handle handle-se" data-pos="se"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-content">
+
+            <div class="section-title">🖼 Canvas Setup</div>
+
+            <label>Canvas Size</label>
+            <select id="cmbCanvasPreset" onchange="handlePresetChange()">
+                <option value="1800x1200">4×6 Landscape (1800 × 1200)</option>
+                <option value="1200x1800">4×6 Portrait (1200 × 1800)</option>
+                <option value="2100x1500">5×7 Landscape (2100 × 1500)</option>
+                <option value="1500x2100">5×7 Portrait (1500 × 2100)</option>
+                <option value="Custom">Custom…</option>
+            </select>
+
+            <div id="panelCustomSize" class="grid-2" style="display:none;">
+                <div>
+                    <label>Width (px)</label>
+                    <input type="number" id="txtCanvasWidth" value="1800" onchange="updateCanvasSize()">
+                </div>
+                <div>
+                    <label>Height (px)</label>
+                    <input type="number" id="txtCanvasHeight" value="1200" onchange="updateCanvasSize()">
+                </div>
+            </div>
+
+            <button class="btn btn-secondary" onclick="addPhotoSlot()">📷 Add Photo Slot</button>
+            <button class="btn btn-secondary" onclick="document.getElementById('fileUpload').click()">🖼️ Add Image Overlay</button>
+            <input type="file" id="fileUpload" style="display:none;" accept="image/png, image/jpeg" onchange="addImageLayer(event)">
+
+            <div class="divider"></div>
+
+            <div class="section-title">⊞ Layers</div>
+
+            <div class="check-row">
+                <label for="chkLockAspectRatio">
+                    <input type="checkbox" id="chkLockAspectRatio" checked> 🔒 Lock Aspect Ratio
+                </label>
+                <button id="btnToggleOrientation" class="btn btn-secondary" style="width:auto; padding:5px 10px; margin:0; display:none; font-size:0.75rem;" onclick="togglePhotoSlotOrientation()" title="Toggle Landscape/Portrait">
+                    🔄 Flip
+                </button>
+            </div>
+
+            <div class="layer-list" id="layersList"></div>
+
+            <div id="layerActionsPanel" style="display: none;">
+                <div class="action-panel">
+                    <button class="btn btn-secondary btn-icon" id="btnToggleLock" onclick="toggleLock()" title="Toggle lock">🔓</button>
+                    <button class="btn btn-primary" style="flex:1;" onclick="scaleToCanvas()">📐 Scale to Canvas</button>
+                    <button class="btn btn-danger-soft btn-icon" onclick="deleteLayer()" title="Delete layer">🗑️</button>
+                </div>
+
+                <label>Rotation (degrees)</label>
+                <input type="range" id="sldRotation" min="-180" max="180" value="0" oninput="updateLayerProperty('rotation', this.value)">
+
+                <label>Element Size (px)</label>
+                <div class="grid-2">
+                    <input type="number" id="txtLayerWidth" placeholder="Width" onchange="updateLayerProperty('width', this.value)">
+                    <input type="number" id="txtLayerHeight" placeholder="Height" onchange="updateLayerProperty('height', this.value)">
+                </div>
+            </div>
+
+        </div>
+
+        <button class="btn btn-primary save-btn" onclick="saveTemplate()">💾 Save Template</button>
+    </div>
+</div>
+
+<script>
+    // --- STATE MANAGEMENT ---
+    let templateState = {
+        CanvasWidth: 1800,
+        CanvasHeight: 1200,
+        Layers: []
+    };
+    
+    let selectedLayerId = null;
+    let dragState = null;
+
+    const designCanvas = document.getElementById('designCanvas');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+
+    function wireHandles() {
+        document.querySelectorAll('.resize-handle').forEach(handle => {
+            const newHandle = handle.cloneNode(true);
+            handle.parentNode.replaceChild(newHandle, handle);
+            
+            const startDrag = (e) => {
+                if (!selectedLayerId) return;
+                const layer = templateState.Layers.find(ly => ly.id === selectedLayerId);
+                if (layer && !layer.isLocked) handleMouseDown(e, layer, true, newHandle.dataset.pos);
+            };
+            
+            newHandle.addEventListener('mousedown', startDrag);
+            newHandle.addEventListener('touchstart', startDrag, { passive: false });
+        });
+    }
+
+    function onCanvasClick(e) {
+        if (e.target === canvasWrapper || e.target === designCanvas) {
+            selectLayer(null);
+        }
+    }
+
+    async function init() {
+        if (window.opener && window.opener.templateToEdit) {
+            const source = window.opener.templateToEdit;
+            const loadedTemplate = {
+                Name: source.Name,
+                CanvasWidth: source.CanvasWidth,
+                CanvasHeight: source.CanvasHeight,
+                Layers: source.Layers.map(l => Object.assign({}, l))
+            };
+            await loadTemplateData(loadedTemplate);
+            window.opener.templateToEdit = null; 
+        } else {
+            updateCanvasSize();
+            wireHandles();
+        }
+        
+        canvasWrapper.removeEventListener('mousedown', onCanvasClick);
+        canvasWrapper.removeEventListener('touchstart', onCanvasClick);
+        canvasWrapper.addEventListener('mousedown', onCanvasClick);
+        canvasWrapper.addEventListener('touchstart', onCanvasClick, { passive: false });
+
+        setTimeout(() => { updateCanvasSize(); }, 50);
+    }
+
+    async function loadTemplateData(data) {
+        templateState.Name = data.Name;
+        templateState.CanvasWidth = data.CanvasWidth;
+        templateState.CanvasHeight = data.CanvasHeight;
+        
+        const presetVal = `${data.CanvasWidth}x${data.CanvasHeight}`;
+        const presetDropdown = document.getElementById('cmbCanvasPreset');
+        const optionExists = Array.from(presetDropdown.options).some(opt => opt.value === presetVal);
+        
+        if (optionExists) {
+            presetDropdown.value = presetVal;
+            document.getElementById('panelCustomSize').style.display = 'none';
+        } else {
+            presetDropdown.value = "Custom";
+            document.getElementById('panelCustomSize').style.display = 'grid';
+        }
+        
+        document.getElementById('txtCanvasWidth').value = data.CanvasWidth;
+        document.getElementById('txtCanvasHeight').value = data.CanvasHeight;
+
+        designCanvas.innerHTML = '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div></div>';
+        templateState.Layers = [];
+
+        const layersToLoad = [...data.Layers].reverse();
+
+        for (let i = 0; i < layersToLoad.length; i++) {
+            const l = layersToLoad[i];
+            const layerData = {
+                id: generateId(),
+                LayerType: l.LayerType,
+                DisplayName: l.DisplayName,
+                Width: l.Width, Height: l.Height, X: l.X, Y: l.Y, Rotation: l.Rotation,
+                isLocked: false, ImagePath: l.ImagePath
+            };
+            
+            if (l.LayerType === 'PhotoSlot') {
+                const theme = getSlotTheme(i);
+                layerData.themeBg = theme.bg; layerData.themeBorder = theme.border;
+            }
+            await createDOMElement(layerData);
+            templateState.Layers.push(layerData);
+        }
+
+        refreshLayers();
+        if (templateState.Layers.length > 0) selectLayer(templateState.Layers[0].id);
+        
+        wireHandles();
+        updateCanvasSize();
+    }
+
+    function getPointerPos(e) {
+        if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        else if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        return { x: e.clientX, y: e.clientY };
+    }
+
+    function handlePresetChange() {
+        const val = document.getElementById('cmbCanvasPreset').value;
+        if (val === 'Custom') {
+            document.getElementById('panelCustomSize').style.display = 'grid';
+        } else {
+            document.getElementById('panelCustomSize').style.display = 'none';
+            const [w, h] = val.split('x');
+            document.getElementById('txtCanvasWidth').value = w;
+            document.getElementById('txtCanvasHeight').value = h;
+            updateCanvasSize();
+        }
+    }
+
+    function updateCanvasSize() {
+        templateState.CanvasWidth = parseInt(document.getElementById('txtCanvasWidth').value) || 1800;
+        templateState.CanvasHeight = parseInt(document.getElementById('txtCanvasHeight').value) || 1200;
+        
+        designCanvas.style.width = templateState.CanvasWidth + 'px';
+        designCanvas.style.height = templateState.CanvasHeight + 'px';
+        
+        const wrapperRect = canvasWrapper.getBoundingClientRect();
+        const availableWidth = Math.max(wrapperRect.width - 60, 100);
+        const availableHeight = Math.max(wrapperRect.height - 60, 100);
+        
+        const scaleX = availableWidth / templateState.CanvasWidth;
+        const scaleY = availableHeight / templateState.CanvasHeight;
+        const scale = Math.max(Math.min(scaleX, scaleY, 1), 0.01); 
+        
+        designCanvas.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function generateId() { return 'layer_' + Math.random().toString(36).substr(2, 9); }
+
+    function getSlotTheme(index) {
+        const themes = [
+            { bg: 'rgba(13, 148, 136, 0.65)',  border: '#0f766e' },
+            { bg: 'rgba(90, 158, 120, 0.65)',   border: '#3a7858' },
+            { bg: 'rgba(126, 168, 196, 0.65)',  border: '#5580a0' },
+            { bg: 'rgba(244, 169, 70, 0.65)',   border: '#c97a10' },
+            { bg: 'rgba(229, 115, 115, 0.65)',  border: '#b05252' },
+            { bg: 'rgba(155, 89, 182, 0.65)',   border: '#7b3fa0' },
+        ];
+        return themes[index % themes.length];
+    }
+
+    async function addPhotoSlot() {
+        let slotCount = templateState.Layers.filter(l => l.LayerType === 'PhotoSlot').length;
+        const theme = getSlotTheme(slotCount);
+        
+        const layerData = {
+            id: generateId(),
+            LayerType: 'PhotoSlot',
+            DisplayName: `Photo Slot ${slotCount + 1}`,
+            Width: 600, Height: 400,
+            X: 50, Y: 50, Rotation: 0, isLocked: false,
+            themeBg: theme.bg, themeBorder: theme.border
+        };
+
+        await createDOMElement(layerData);
+        templateState.Layers.unshift(layerData);
+        refreshLayers();
+        selectLayer(layerData.id);
+    }
+
+    function addImageLayer(event) {
+        const fileInput = event.target;
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const objectUrl = URL.createObjectURL(file);
+        
+        const img = new Image();
+        img.onload = function() { 
+            let startW = img.width;
+            let startH = img.height;
+            
+            if (startW > 1000) {
+                const ratio = 1000 / startW;
+                startW = 1000;
+                startH = startH * ratio;
+            }
+
+            const layerData = {
+                id: generateId(),
+                LayerType: 'ImageLayer',
+                DisplayName: file.name,
+                ImagePath: objectUrl,
+                FileObj: file,
+                Width: Math.round(startW), 
+                Height: Math.round(startH),
+                X: 100, Y: 100, Rotation: 0, isLocked: false
+            };
+
+            createDOMElement(layerData); 
+            templateState.Layers.unshift(layerData);
+            refreshLayers();
+            selectLayer(layerData.id);
+            fileInput.value = ''; 
+        };
+        
+        img.onerror = function() { alert("Failed to read the image file."); fileInput.value = ''; };
+        img.src = objectUrl;
+    }
+
+    function createDOMElement(layer) {
+        const container = document.createElement('div');
+        container.className = 'canvas-element';
+        container.id = layer.id;
+        
+        applyTransform(container, layer);
+        container.style.pointerEvents = layer.isLocked ? 'none' : 'auto';
+
+        const startDrag = (e) => handleMouseDown(e, layer, false, null);
+        layer.domElement = container;
+        designCanvas.appendChild(container);
+
+        if (layer.LayerType === 'PhotoSlot') {
+            const inner = document.createElement('div');
+            inner.className = 'photo-slot';
+            inner.style.backgroundColor = layer.themeBg || 'rgba(13,148,136,0.5)';
+            inner.style.borderColor = layer.themeBorder || '#0d9488';
+            inner.innerHTML = `${layer.DisplayName.toUpperCase()}<br><span style="font-size:13px;opacity:0.8;font-weight:500;">(Drag & Resize)</span>`;
+            container.appendChild(inner);
+            container.addEventListener('mousedown', startDrag);
+            container.addEventListener('touchstart', startDrag, { passive: false }); 
+        } else {
+            const img = document.createElement('img');
+            img.style.width = '100%'; img.style.height = '100%';
+            img.style.pointerEvents = 'none'; 
+            img.src = layer.ImagePath; 
+            container.appendChild(img);
+            container.addEventListener('mousedown', startDrag);
+            container.addEventListener('touchstart', startDrag, { passive: false }); 
+        }
+    }
+
+    function applyTransform(element, layer) {
+        element.style.left = layer.X + 'px';
+        element.style.top = layer.Y + 'px';
+        element.style.width = layer.Width + 'px';
+        element.style.height = layer.Height + 'px';
+        element.style.transform = `rotate(${layer.Rotation}deg)`;
+
+        if (selectedLayerId === layer.id) {
+            const overlay = document.getElementById('selectionOverlay');
+            overlay.style.left = layer.X + 'px';
+            overlay.style.top = layer.Y + 'px';
+            overlay.style.width = layer.Width + 'px';
+            overlay.style.height = layer.Height + 'px';
+            overlay.style.transform = `rotate(${layer.Rotation}deg)`;
+        }
+    }
+
+    function handleMouseDown(e, layer, isGlobalResize = false, handlePos = null) {
+        if (layer.isLocked) return;
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault(); 
+        selectLayer(layer.id);
+
+        let isPinch = false;
+        let pinchDist = 0;
+        if (e.touches && e.touches.length === 2) {
+            isPinch = true;
+            pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        }
+
+        const pos = getPointerPos(e);
+        dragState = {
+            layer, isResize: isGlobalResize, handle: handlePos,
+            startX: pos.x, startY: pos.y,
+            startW: layer.Width, startH: layer.Height,
+            startLeft: layer.X, startTop: layer.Y,
+            ratio: layer.Width / layer.Height,
+            isPinch, initialPinchDist: pinchDist
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('touchmove', handleMouseMove, { passive: false });
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchend', handleMouseUp);
+    }
+
+    function handleMouseMove(e) {
+        if (!dragState) return;
+        if (e.cancelable) e.preventDefault(); 
+
+        const l = dragState.layer;
+        const lockRatio = (l.LayerType === 'PhotoSlot') ? true : document.getElementById('chkLockAspectRatio').checked;
+
+        if (e.touches && e.touches.length === 2) {
+            const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            if (!dragState.isPinch) {
+                dragState.isPinch = true; dragState.initialPinchDist = currentDist;
+                dragState.startW = l.Width; dragState.startH = l.Height;
+                dragState.startLeft = l.X; dragState.startTop = l.Y;
+                return;
+            }
+            const pinchScale = currentDist / dragState.initialPinchDist;
+            let newW = dragState.startW * pinchScale;
+            let newH = dragState.startH * pinchScale;
+            if (newW > 20 && newH > 20) {
+                l.Width = Math.round(newW); l.Height = Math.round(newH);
+                l.X = Math.round(dragState.startLeft - (newW - dragState.startW) / 2);
+                l.Y = Math.round(dragState.startTop - (newH - dragState.startH) / 2);
+            }
+            applyTransform(l.domElement, l); syncPropertyPanel(l);
+            return;
+        } else if (dragState.isPinch && (!e.touches || e.touches.length < 2)) {
+            dragState.isPinch = false;
+            const pos = getPointerPos(e);
+            dragState.startX = pos.x; dragState.startY = pos.y;
+            dragState.startLeft = l.X; dragState.startTop = l.Y;
+            dragState.startW = l.Width; dragState.startH = l.Height;
+            return;
+        }
+
+        const pos = getPointerPos(e);
+        const scale = designCanvas.getBoundingClientRect().width / templateState.CanvasWidth;
+        const dx = (pos.x - dragState.startX) / scale;
+        const dy = (pos.y - dragState.startY) / scale;
+
+        if (dragState.isResize) {
+            let newW = dragState.startW, newH = dragState.startH;
+            let newX = dragState.startLeft, newY = dragState.startTop;
+            if (dragState.handle.includes('e')) newW += dx;
+            if (dragState.handle.includes('w')) { newW -= dx; newX += dx; }
+            if (dragState.handle.includes('s')) newH += dy;
+            if (dragState.handle.includes('n')) { newH -= dy; newY += dy; }
+            if (lockRatio) {
+                const targetRatio = (l.LayerType === 'PhotoSlot') ? l.Width / l.Height : dragState.ratio;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    let oldH = newH; newH = newW / targetRatio;
+                    if (dragState.handle.includes('n')) newY -= (newH - oldH);
+                } else {
+                    let oldW = newW; newW = newH * targetRatio;
+                    if (dragState.handle.includes('w')) newX -= (newW - oldW);
+                }
+            }
+            if (newW > 20 && newH > 20) {
+                l.Width = Math.round(newW); l.Height = Math.round(newH);
+                l.X = Math.round(newX); l.Y = Math.round(newY);
+            }
+        } else {
+            let newX = Math.round(dragState.startLeft + dx);
+            let newY = Math.round(dragState.startTop + dy);
+            const snapThreshold = 20.0;
+            if (Math.abs(newX) < snapThreshold) newX = 0;
+            else if (Math.abs((newX + l.Width) - templateState.CanvasWidth) < snapThreshold) newX = Math.round(templateState.CanvasWidth - l.Width);
+            if (Math.abs(newY) < snapThreshold) newY = 0;
+            else if (Math.abs((newY + l.Height) - templateState.CanvasHeight) < snapThreshold) newY = Math.round(templateState.CanvasHeight - l.Height);
+            l.X = newX; l.Y = newY;
+        }
+        applyTransform(l.domElement, l);
+        syncPropertyPanel(l);
+    }
+
+    function handleMouseUp(e) {
+        if (e && e.touches && e.touches.length > 0) return;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('touchmove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchend', handleMouseUp);
+        dragState = null;
+    }
+
+    function refreshLayers() {
+        const list = document.getElementById('layersList');
+        list.innerHTML = '';
+        templateState.Layers.forEach((layer, index) => {
+            const div = document.createElement('div');
+            div.className = `layer-item ${layer.id === selectedLayerId ? 'active' : ''}`;
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.innerText = (layer.isLocked ? '🔒 ' : '') + layer.DisplayName;
+            div.appendChild(nameSpan);
+
+            const controls = document.createElement('div');
+            controls.className = 'layer-arrows';
+            if (index > 0) controls.innerHTML += `<span onclick="moveLayer('${layer.id}', -1, event)" title="Move up">▲</span>`;
+            if (index < templateState.Layers.length - 1) controls.innerHTML += `<span onclick="moveLayer('${layer.id}', 1, event)" title="Move down">▼</span>`;
+            div.appendChild(controls);
+            div.onclick = () => selectLayer(layer.id);
+            list.appendChild(div);
+            layer.domElement.style.zIndex = templateState.Layers.length - index;
+        });
+    }
+
+    function moveLayer(id, direction, e) {
+        e.stopPropagation();
+        const index = templateState.Layers.findIndex(l => l.id === id);
+        if (index < 0) return;
+        const targetIndex = index + direction;
+        if (targetIndex >= 0 && targetIndex < templateState.Layers.length) {
+            const temp = templateState.Layers[index];
+            templateState.Layers[index] = templateState.Layers[targetIndex];
+            templateState.Layers[targetIndex] = temp;
+            refreshLayers();
+        }
+    }
+
+    function selectLayer(id) {
+        selectedLayerId = id;
+        templateState.Layers.forEach(l => l.domElement.classList.remove('active'));
+        
+        const layer = templateState.Layers.find(l => l.id === id);
+        const chkLock = document.getElementById('chkLockAspectRatio');
+        const btnRotate = document.getElementById('btnToggleOrientation');
+        const overlay = document.getElementById('selectionOverlay');
+
+        if (layer) {
+            if (!layer.isLocked) {
+                layer.domElement.classList.add('active');
+                overlay.style.display = 'block';
+                applyTransform(layer.domElement, layer);
+            } else {
+                overlay.style.display = 'none';
+            }
+            document.getElementById('layerActionsPanel').style.display = 'block';
+            syncPropertyPanel(layer);
+            
+            if (layer.LayerType === 'PhotoSlot') {
+                chkLock.checked = true; chkLock.disabled = true;
+                btnRotate.style.display = 'block';
+            } else {
+                chkLock.disabled = false;
+                btnRotate.style.display = 'none';
+            }
+
+            const btnLock = document.getElementById('btnToggleLock');
+            btnLock.innerText = layer.isLocked ? "🔒" : "🔓";
+            btnLock.className = layer.isLocked ? 'btn btn-danger-soft btn-icon' : 'btn btn-secondary btn-icon';
+        } else {
+            document.getElementById('layerActionsPanel').style.display = 'none';
+            chkLock.disabled = false;
+            btnRotate.style.display = 'none';
+            overlay.style.display = 'none';
+        }
+        refreshLayers();
+    }
+
+    function togglePhotoSlotOrientation() {
+        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+        if (!layer || layer.LayerType !== 'PhotoSlot' || layer.isLocked) return;
+        const oldW = layer.Width;
+        layer.Width = layer.Height;
+        layer.Height = oldW;
+        applyTransform(layer.domElement, layer);
+        syncPropertyPanel(layer);
+    }
+
+    function syncPropertyPanel(layer) {
+        document.getElementById('txtLayerWidth').value = layer.Width;
+        document.getElementById('txtLayerHeight').value = layer.Height;
+        document.getElementById('sldRotation').value = layer.Rotation;
+    }
+
+    function updateLayerProperty(prop, value) {
+        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+        if (!layer || layer.isLocked) return;
+        let newValue = parseFloat(value);
+        if (isNaN(newValue)) return;
+        const lockRatio = (layer.LayerType === 'PhotoSlot') || document.getElementById('chkLockAspectRatio').checked;
+        const currentRatio = layer.Width / layer.Height;
+        if (prop === 'width') {
+            layer.Width = Math.max(newValue, 20);
+            if (lockRatio) layer.Height = Math.round(layer.Width / currentRatio);
+        } else if (prop === 'height') {
+            layer.Height = Math.max(newValue, 20);
+            if (lockRatio) layer.Width = Math.round(layer.Height * currentRatio);
+        } else if (prop === 'rotation') {
+            layer.Rotation = newValue;
+        }
+        applyTransform(layer.domElement, layer);
+        syncPropertyPanel(layer);
+    }
+
+    function scaleToCanvas() {
+        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+        if (!layer || layer.isLocked) return;
+        const lockRatio = (layer.LayerType === 'PhotoSlot') || document.getElementById('chkLockAspectRatio').checked;
+        const currentRatio = layer.Width / layer.Height;
+        layer.X = 0; layer.Y = 0; layer.Rotation = 0;
+        if (lockRatio) {
+            layer.Width = templateState.CanvasWidth;
+            layer.Height = Math.round(templateState.CanvasWidth / currentRatio);
+        } else {
+            layer.Width = templateState.CanvasWidth;
+            layer.Height = templateState.CanvasHeight;
+        }
+        applyTransform(layer.domElement, layer);
+        syncPropertyPanel(layer);
+    }
+
+    function toggleLock() {
+        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+        if (!layer) return;
+        layer.isLocked = !layer.isLocked;
+        layer.domElement.style.pointerEvents = layer.isLocked ? 'none' : 'auto';
+        selectLayer(layer.id);
+    }
+
+    function deleteLayer() {
+        const index = templateState.Layers.findIndex(l => l.id === selectedLayerId);
+        if (index < 0) return;
+        const layer = templateState.Layers[index];
+        layer.domElement.remove();
+        templateState.Layers.splice(index, 1);
+        selectLayer(templateState.Layers.length > 0 ? templateState.Layers[0].id : null);
+    }
+
+    async function saveTemplate() {
+        let templateName = prompt("Enter template name:", templateState.Name || "multi-port");
+        if (!templateName) return; 
+        templateState.Name = templateName;
+        for (let l of templateState.Layers) {
+            if (l.LayerType === 'ImageLayer' && l.FileObj) {
+                l.ImagePath = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.readAsDataURL(l.FileObj);
+                });
+                delete l.FileObj;
+            }
+        }
+        const exportData = {
+            Name: templateName,
+            CanvasWidth: Math.round(templateState.CanvasWidth),
+            CanvasHeight: Math.round(templateState.CanvasHeight),
+            Layers: templateState.Layers.map(l => ({
+                LayerType: l.LayerType,
+                X: Math.round(l.X), Y: Math.round(l.Y),
+                Width: Math.round(l.Width), Height: Math.round(l.Height),
+                ImagePath: l.LayerType === 'ImageLayer' ? l.ImagePath : null,
+                Rotation: Math.round(l.Rotation),
+                DisplayName: l.DisplayName.replace('🔒 ', '')
+            })).reverse()
+        };
+        if (window.opener && window.opener.receiveTemplateFromEditor) {
+            window.opener.receiveTemplateFromEditor(exportData);
+        }
+        window.close();
+    }
+
+    window.onload = init;
+    const resizeObserver = new ResizeObserver(() => { updateCanvasSize(); });
+    resizeObserver.observe(document.getElementById('canvasWrapper'));
+</script>
+</body>
+</html>
