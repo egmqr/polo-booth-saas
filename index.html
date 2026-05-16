@@ -1542,7 +1542,6 @@
           const stickerParam = details.userStickers ? '&userStickers=true' : '';
 
           const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
-          const backupUrl = `${BACKUP_NETLIFY_BASE_URL}?id=${details.id}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
           const prefix = prefixesArr[i] || '';
           const qrUrl = qrUrlsArr[i] || "";
           const fileName = isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QR.png`;
