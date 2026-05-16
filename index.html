@@ -1006,17 +1006,7 @@
       }
     }
 
-    function logout() {
-      document.getElementById('authBtn').disabled = false;
-      document.getElementById('authBtn').textContent = 'Sign In';
-      document.getElementById('emailInput').value = '';
-      document.getElementById('passwordInput').value = '';
-      document.getElementById('authError').style.display = 'none';
-      isSignUpMode = false;
-      document.getElementById('authToggleBtn').textContent = "Don't have an account? Sign up";
-      document.getElementById('authSubtitle').textContent = 'Sign in to your account';
-      auth.signOut();
-    }
+    function logout() { auth.signOut(); }
 
     function applyTierRestrictions() {
       if (userTier === 'paid') return; // paid users see everything unlocked
@@ -1062,11 +1052,9 @@
       const eventNameEl = document.getElementById('eventName');
       if (eventNameEl) {
         eventNameEl.disabled = true;
-        if (!eventNameEl.dataset.freeSet) {
-          eventNameEl.value = 'Your Gallery';
-          eventNameEl.placeholder = 'Your Gallery';
-          eventNameEl.dataset.freeSet = '1';
-        }
+        eventNameEl.value = 'Your Gallery';
+        eventNameEl.placeholder = 'Your Gallery';
+        eventNameEl.dataset.freeSet = '1';
         const lbl = document.querySelector('label[for="eventName"]');
         if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
       }
@@ -1665,7 +1653,7 @@
       if (actionName === 'generateBoothSetup' && !eventId) { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
 
       const folderName = document.getElementById('folderName').value.trim() || document.getElementById('eventName').value.trim();
-      const eventName = document.getElementById('eventName').value.trim();
+      const eventName = document.getElementById('eventName').value.trim() || (userTier !== 'paid' ? 'Your Gallery' : '');
       const communityOnly = document.getElementById('boothCommunityOnly').checked;
       let boothCount = document.getElementById('boothCount').value || "1";
 
