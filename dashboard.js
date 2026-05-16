@@ -113,25 +113,27 @@ export async function handleDashboardRoutes(request, env) {
 // User-namespaced paths: users/{uid}/events/{eventId}/...
 // All existing logic preserved — only the path prefix and tier check are new.
 
-const NETLIFY_BASE_URL = 'https://gallery.polo-booth.com/main.html'; // update to your new gallery URL
-const MASTER_APP_URL = 'https://gallery.polo-booth.com/';
+const NETLIFY_BASE_URL = 'https://gallery.createdbyegm.com/main.html';
+const MASTER_APP_URL = 'https://gallery.createdbyegm.com/';
 
-async function generateBoothSetup(env, p, currentUser) {
+async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
     // ── Tier enforcement ──────────────────────────────────────────────
     const tier = await getUserTier(env, currentUser.uid);
     const isPaid = tier === 'paid';
 
     if (!isPaid) {
-        // Count existing published events for this user
-        const serviceToken = await getServiceToken(env);
-        const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=2`;
-        const listRes = await fetch(listUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
-        const listData = await listRes.json();
-        const existingCount = (listData.documents || []).length;
+        // Only check event count for NEW events, not updates
+        if (!isUpdate) {
+            const serviceToken = await getServiceToken(env);
+            const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=2`;
+            const listRes = await fetch(listUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
+            const listData = await listRes.json();
+            const existingCount = (listData.documents || []).length;
 
-        if (existingCount >= 1) {
-            return { success: false, error: 'Free accounts can publish 1 event. Contact us to upgrade your account.' };
+            if (existingCount >= 1) {
+                return { success: false, error: 'Free accounts can publish 1 event. Contact us to upgrade your account.' };
+            }
         }
 
         // Strip paid-only features
@@ -256,7 +258,7 @@ async function updateBoothSetup(env, p, currentUser) {
         } catch { }
     }
     p._existingBoothSettings = existingSettings;
-    return generateBoothSetup(env, p, currentUser);
+    return generateBoothSetup(env, p, currentUser, true);
 }
 
 async function getBoothDetails(env, eventId, currentUser) {
