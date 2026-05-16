@@ -9,7 +9,16 @@ import { json, cors } from './util.js';
 
 export default {
     async fetch(request, env) {
-        if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+        if (request.method === 'OPTIONS') {
+    return new Response(null, {
+        status: 204,
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'content-type, authorization, x-admin-secret'
+        }
+    });
+}
 
         const url = new URL(request.url);
         const path = url.pathname;
