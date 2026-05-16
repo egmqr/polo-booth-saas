@@ -113,8 +113,8 @@ export async function handleDashboardRoutes(request, env) {
 // User-namespaced paths: users/{uid}/events/{eventId}/...
 // All existing logic preserved — only the path prefix and tier check are new.
 
-const NETLIFY_BASE_URL = 'https://gallery.polo-booth.com/main.html';
-const MASTER_APP_URL = 'https://gallery.polo-booth.com/';
+const NETLIFY_BASE_URL = 'https://gallery.createdbyegm.com/main.html';
+const MASTER_APP_URL = 'https://gallery.createdbyegm.com/';
 
 async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
@@ -196,7 +196,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
             Settings: {
                 EventName: `${eventName}-Booth${i}`, CanvasWidth: cWidth, CanvasHeight: cHeight,
                 PrinterName: preserved.PrinterName ?? null,
-                CloudLink: `https://api.polo-booth.com/api/gallery?prefix=${encodeURIComponent(prefix)}`,
+                CloudLink: `https://webqr.polo-booth.com/gallery?prefix=${encodeURIComponent(prefix)}`,
                 MainGalleryLink: mainGalleryUrl,
                 R2KeyPrefix: prefix,
                 StaticBoothPreviewSeconds: preserved.StaticBoothPreviewSeconds ?? 30,
