@@ -69,17 +69,18 @@
 
     /* Theme & Logout Controls */
     .top-controls-wrapper {
-  position: absolute;
-  top: 15px;
-  right: 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
-  z-index: 9999;  /* ← ADD THIS — keeps it below loginOverlay (z-index: 10000) */
-}
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      z-index: 9999;
+      /* ← ADD THIS — keeps it below loginOverlay (z-index: 10000) */
+    }
 
     .logout-btn {
       background: none;
@@ -714,7 +715,7 @@
   </div>
 
   <div class="top-controls-wrapper">
-    <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+    <button class="logout-btn" id="logoutBtn" onclick="logout()">Lock</button>
     <span id="themeLabel">Dark Mode</span>
     <label class="switch">
       <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
@@ -885,7 +886,7 @@
     <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
     <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;"
       onclick="runUpdate()">Save Changes</button>
-    <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
+    <button id="deleteBtn" class="action-btn" onclick="runDelete()">Delete Booth Setup</button>
 
   </div>
 
@@ -897,7 +898,7 @@
     // CONFIGURATION & SECRETS
     // ==========================================
     const WORKER_URL = "https://api.polo-booth.com";
-    const NETLIFY_BASE_URL = "https://gallery.polo-booth.com/main.html";
+    const NETLIFY_BASE_URL = "https://gallery.createdbyegm.com/main.html";
 
     // INSERT YOUR FIREBASE CONFIG HERE to fetch the list of events
     const firebaseConfig = {
@@ -997,7 +998,7 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
-        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
+        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Lock`;
         applyTierRestrictions();
         fetchBoothEvents(true);
         fetchExistingLogos();
@@ -1005,14 +1006,7 @@
       }
     }
 
-    function logout() {
-    document.getElementById('authBtn').disabled = false;
-    document.getElementById('authBtn').textContent = 'Sign In';
-    document.getElementById('emailInput').value = '';
-    document.getElementById('passwordInput').value = '';
-    document.getElementById('authError').style.display = 'none';
-    auth.signOut();
-}
+    function logout() { auth.signOut(); }
 
     function applyTierRestrictions() {
       if (userTier === 'paid') return; // paid users see everything unlocked
@@ -1148,19 +1142,20 @@
       try {
         const response = await fetch(`${WORKER_URL}${route}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}`
-        },
+          headers: {
+            'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}`
+          },
           body: JSON.stringify(payload)
         });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
-      if (!isSilent) hideOverlay();
-      if (result.success === false) { showToast('Error: ' + (result.error || 'Unknown error')); return null; }
-      return result;
-    } catch (error) {
-      if (!isSilent) hideOverlay();
-      showToast('Network Error: ' + error.message); return null;
-    }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (!isSilent) hideOverlay();
+        if (result.success === false) { showToast('Error: ' + (result.error || 'Unknown error')); return null; }
+        return result;
+      } catch (error) {
+        if (!isSilent) hideOverlay();
+        showToast('Network Error: ' + error.message); return null;
+      }
     }
 
     async function uploadBgDirect(file) {
@@ -1606,7 +1601,8 @@
           const bNum = isComm ? 'Community' : (i + 1);
           const stickerParam = details.userStickers ? '&userStickers=true' : '';
 
-          const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
+          const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&uid=${currentUser.uid}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
+          const backupUrl = mainUrl;
           const prefix = prefixesArr[i] || '';
           const qrUrl = qrUrlsArr[i] || "";
           const fileName = isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QR.png`;
@@ -1659,13 +1655,11 @@
       if (actionName === 'generateBoothSetup' && !eventId) { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
 
       const folderName = document.getElementById('folderName').value.trim() || document.getElementById('eventName').value.trim();
-      const eventNameEl = document.getElementById('eventName');
-const eventName = eventNameEl.value.trim() || (userTier !== 'paid' ? 'Your Gallery' : '');
+      const eventName = document.getElementById('eventName').value.trim();
       const communityOnly = document.getElementById('boothCommunityOnly').checked;
       let boothCount = document.getElementById('boothCount').value || "1";
 
-      const effectiveEventName = eventName || (userTier !== 'paid' ? 'Your Gallery' : '');
-if (!effectiveEventName) return showToast("Title required!");
+      if (!eventName) return showToast("Title required!");
 
       showOverlay("Processing...");
       const bgFile = document.getElementById('bgFile').files[0];
