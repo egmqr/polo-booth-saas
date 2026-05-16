@@ -1659,11 +1659,13 @@
       if (actionName === 'generateBoothSetup' && !eventId) { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
 
       const folderName = document.getElementById('folderName').value.trim() || document.getElementById('eventName').value.trim();
-      const eventName = document.getElementById('eventName').value.trim();
+      const eventNameEl = document.getElementById('eventName');
+const eventName = eventNameEl.value.trim() || (userTier !== 'paid' ? 'Your Gallery' : '');
       const communityOnly = document.getElementById('boothCommunityOnly').checked;
       let boothCount = document.getElementById('boothCount').value || "1";
 
-      if (!eventName) return showToast("Title required!");
+      const effectiveEventName = eventName || (userTier !== 'paid' ? 'Your Gallery' : '');
+if (!effectiveEventName) return showToast("Title required!");
 
       showOverlay("Processing...");
       const bgFile = document.getElementById('bgFile').files[0];
