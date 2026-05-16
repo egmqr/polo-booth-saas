@@ -50,6 +50,7 @@ export async function getServiceToken(env) {
     const signingInput = `${enc(header)}.${enc(payload)}`;
 
     const pemBody = env.FIREBASE_PRIVATE_KEY
+        .replace(/\\n/g, '\n')  // ← ADD THIS LINE FIRST
         .replace(/-----BEGIN RSA PRIVATE KEY-----|-----BEGIN PRIVATE KEY-----/g, '')
         .replace(/-----END RSA PRIVATE KEY-----|-----END PRIVATE KEY-----/g, '')
         .replace(/\s/g, '');
