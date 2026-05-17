@@ -254,8 +254,8 @@
         <div class="card">
             <h1>ProBooth Admin</h1>
             <p class="sub">Enter credentials to manage user accounts.</p>
-            <input type="text" id="apiBase" placeholder="Worker URL  (e.g. https://api.polo-booth.com)">
-            <input type="password" id="adminSecret" placeholder="Admin Secret"
+            <input type="text" id="apiBase" placeholder="username">
+            <input type="password" id="adminSecret" placeholder="password"
                 onkeypress="if(event.key==='Enter') loadUsers()">
             <button class="btn-primary" onclick="loadUsers()" style="width:100%;">Login</button>
             <p class="err" id="loginErr"></p>
