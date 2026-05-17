@@ -163,13 +163,15 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         // Only check event count for NEW events, not updates
         if (!isUpdate) {
             const serviceToken = await getServiceToken(env);
-            const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=2`;
+            // FIX: Increased pageSize to 3 so we can accurately count if they already have 2
+            const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=3`;
             const listRes = await fetch(listUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
             const listData = await listRes.json();
             const existingCount = (listData.documents || []).length;
 
-            if (existingCount >= 1) {
-                return { success: false, error: 'Free accounts can publish 1 event. Contact us to upgrade your account.' };
+            // FIX: Allow up to 2 events for free users
+            if (existingCount >= 2) {
+                return { success: false, error: 'Free accounts can publish 2 events. Contact us to upgrade your account.' };
             }
         }
 
