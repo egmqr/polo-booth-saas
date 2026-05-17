@@ -98,6 +98,28 @@
             border: 1px solid #2a2a2a;
         }
 
+        /* Tabs styling */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 15px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid transparent;
+            padding: 8px 16px;
+        }
+
+        .tab-btn.active {
+            background: #1a1a1a;
+            color: #fff;
+            border-color: #333;
+        }
+
         .topbar {
             display: flex;
             align-items: center;
@@ -133,7 +155,7 @@
         }
 
         .stat-v.d {
-            color: #444;
+            color: #ef4444;
         }
 
         .search-row {
@@ -210,12 +232,17 @@
         .mono {
             font-family: monospace;
             font-size: 11px;
-            color: #333;
+            color: #888;
+        }
+
+        .fw-bold {
+            font-weight: bold;
+            color: #d0d0d0;
         }
 
         .muted {
             font-size: 12px;
-            color: #444;
+            color: #555;
         }
 
         .acts {
@@ -253,11 +280,11 @@
     <div id="loginSection">
         <div class="card">
             <h1>ProBooth Admin</h1>
-            <p class="sub">Enter credentials to manage user accounts.</p>
-            <input type="text" id="apiBase" placeholder="username">
-            <input type="password" id="adminSecret" placeholder="password"
-                onkeypress="if(event.key==='Enter') loadUsers()">
-            <button class="btn-primary" onclick="loadUsers()" style="width:100%;">Login</button>
+            <p class="sub">Enter credentials to manage the system.</p>
+            <input type="text" id="apiBase" placeholder="API Base URL (e.g. https://api.polo-booth.com)">
+            <input type="password" id="adminSecret" placeholder="Admin Secret"
+                onkeypress="if(event.key==='Enter') doLogin()">
+            <button class="btn-primary" onclick="doLogin()" style="width:100%;">Login</button>
             <p class="err" id="loginErr"></p>
         </div>
     </div>
@@ -265,65 +292,172 @@
     <div id="mainSection" style="display:none;">
         <div class="topbar">
             <div class="stat">
-                <div class="stat-l">Total</div>
-                <div class="stat-v" id="sTotal">—</div>
+                <div class="stat-l" id="stat1L">Total</div>
+                <div class="stat-v" id="stat1V">—</div>
             </div>
             <div class="stat">
-                <div class="stat-l">Free</div>
-                <div class="stat-v d" id="sFree">—</div>
+                <div class="stat-l" id="stat2L">Free</div>
+                <div class="stat-v d" id="stat2V">—</div>
             </div>
             <div class="stat">
-                <div class="stat-l">Paid</div>
-                <div class="stat-v g" id="sPaid">—</div>
+                <div class="stat-l" id="stat3L">Paid</div>
+                <div class="stat-v g" id="stat3V">—</div>
             </div>
-            <button class="btn-muted" onclick="loadUsers()" style="margin-left:auto;">↻ Refresh</button>
+            <button class="btn-muted" onclick="refreshData()" style="margin-left:auto;">↻ Refresh Data</button>
             <button class="btn-muted" onclick="doLogout()">Logout</button>
         </div>
-        <div class="search-row">
-            <input type="text" id="searchInput" placeholder="Filter by email…" oninput="filterTable()">
+
+        <div class="tabs">
+            <button class="tab-btn active" id="btnTabUsers" onclick="switchTab('users')">Users</button>
+            <button class="tab-btn" id="btnTabInvites" onclick="switchTab('invites')">Invite Codes</button>
         </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Email</th>
-                    <th>UID</th>
-                    <th>Tier</th>
-                    <th>Joined</th>
-                    <th>Note</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="userTable"></tbody>
-        </table>
+
+        <div id="viewUsers">
+            <div class="search-row">
+                <input type="text" id="searchInput" placeholder="Filter by email…" oninput="filterTable()">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>UID</th>
+                        <th>Tier</th>
+                        <th>Joined</th>
+                        <th>Note</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTable"></tbody>
+            </table>
+        </div>
+
+        <div id="viewInvites" style="display:none;">
+            <div class="search-row">
+                <input type="text" id="searchInvites" placeholder="Filter codes or UID…" oninput="filterInvites()">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Invite Code</th>
+                        <th>Status</th>
+                        <th>Used By UID</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="inviteTable"></tbody>
+            </table>
+        </div>
+
     </div>
 
     <div class="toast" id="toast"></div>
 
     <script>
-        let API = '', SECRET = '', allUsers = [];
+        let API = '', SECRET = '';
+        let allUsers = [];
+        let allInvites = [];
+        let currentTab = 'users';
 
-        async function loadUsers() {
+        async function doLogin() {
             API = (document.getElementById('apiBase').value || '').trim().replace(/\/$/, '');
             SECRET = (document.getElementById('adminSecret').value || '').trim();
             const errEl = document.getElementById('loginErr');
             errEl.style.display = 'none';
 
             try {
-                const resp = await fetch(`${API}/api/admin/users`, { headers: { 'x-admin-secret': SECRET } });
-                if (resp.status === 403) { errEl.textContent = 'Wrong admin secret.'; errEl.style.display = 'block'; return; }
-                const data = await resp.json();
-                if (!data.success) { errEl.textContent = 'Error: ' + data.error; errEl.style.display = 'block'; return; }
-                allUsers = data.users.sort((a, b) => a.email.localeCompare(b.email));
-                document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('mainSection').style.display = 'block';
-                renderTable(allUsers);
-            } catch (e) { errEl.textContent = 'Connection error: ' + e.message; errEl.style.display = 'block'; }
+                // Fetch users first to validate secret
+                const uOk = await fetchUsers();
+                if (uOk) {
+                    await fetchInvites();
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('mainSection').style.display = 'block';
+                    updateStats();
+                } else {
+                    errEl.textContent = 'Authentication failed or no access.';
+                    errEl.style.display = 'block';
+                }
+            } catch (e) {
+                errEl.textContent = 'Connection error: ' + e.message;
+                errEl.style.display = 'block';
+            }
         }
 
+        async function refreshData() {
+            await fetchUsers();
+            await fetchInvites();
+            updateStats();
+            showToast('✅ Data refreshed');
+        }
+
+        async function fetchUsers() {
+            const resp = await fetch(`${API}/api/admin/users`, { headers: { 'x-admin-secret': SECRET } });
+            if (!resp.ok) return false;
+            const data = await resp.json();
+            if (data.success) {
+                allUsers = data.users.sort((a, b) => a.email.localeCompare(b.email));
+                renderTable(allUsers);
+                return true;
+            }
+            return false;
+        }
+
+        async function fetchInvites() {
+            const resp = await fetch(`${API}/api/admin/invites`, { headers: { 'x-admin-secret': SECRET } });
+            if (!resp.ok) return false;
+            const data = await resp.json();
+            if (data.success) {
+                allInvites = data.invites.sort((a, b) => {
+                    // Sort available first, then by date created
+                    if (a.used !== b.used) return a.used ? 1 : -1;
+                    return b.createdAt.localeCompare(a.createdAt);
+                });
+                renderInvites(allInvites);
+                return true;
+            }
+            return false;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            if (tab === 'users') {
+                document.getElementById('viewUsers').style.display = 'block';
+                document.getElementById('viewInvites').style.display = 'none';
+                document.getElementById('btnTabUsers').classList.add('active');
+                document.getElementById('btnTabInvites').classList.remove('active');
+            } else {
+                document.getElementById('viewUsers').style.display = 'none';
+                document.getElementById('viewInvites').style.display = 'block';
+                document.getElementById('btnTabUsers').classList.remove('active');
+                document.getElementById('btnTabInvites').classList.add('active');
+            }
+            updateStats();
+        }
+
+        function updateStats() {
+            if (currentTab === 'users') {
+                document.getElementById('stat1L').textContent = 'Total Users';
+                document.getElementById('stat1V').textContent = allUsers.length;
+                document.getElementById('stat2L').textContent = 'Free';
+                document.getElementById('stat2V').textContent = allUsers.filter(u => u.tier !== 'paid').length;
+                document.getElementById('stat2V').className = 'stat-v d'; // red
+                document.getElementById('stat3L').textContent = 'Paid';
+                document.getElementById('stat3V').textContent = allUsers.filter(u => u.tier === 'paid').length;
+                document.getElementById('stat3V').className = 'stat-v g'; // green
+            } else {
+                document.getElementById('stat1L').textContent = 'Total Codes';
+                document.getElementById('stat1V').textContent = allInvites.length;
+                document.getElementById('stat2L').textContent = 'Used';
+                document.getElementById('stat2V').textContent = allInvites.filter(i => i.used).length;
+                document.getElementById('stat2V').className = 'stat-v d'; // red
+                document.getElementById('stat3L').textContent = 'Available';
+                document.getElementById('stat3V').textContent = allInvites.filter(i => !i.used).length;
+                document.getElementById('stat3V').className = 'stat-v g'; // green
+            }
+        }
+
+        /* --- USERS LOGIC --- */
         function renderTable(users) {
-            document.getElementById('sTotal').textContent = allUsers.length;
-            document.getElementById('sFree').textContent = allUsers.filter(u => u.tier !== 'paid').length;
-            document.getElementById('sPaid').textContent = allUsers.filter(u => u.tier === 'paid').length;
             const tbody = document.getElementById('userTable');
             tbody.innerHTML = '';
             users.forEach(u => {
@@ -331,15 +465,15 @@
                 const isPaid = u.tier === 'paid';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-        <td>${esc(u.email)}</td>
-        <td class="mono">${u.uid.substring(0, 14)}…</td>
-        <td><span class="badge ${isPaid ? 'b-paid' : 'b-free'}" id="badge-${u.uid}">${u.tier}</span></td>
-        <td class="muted">${joined}</td>
-        <td><input class="note-input" id="note-${u.uid}" value="${esc(u.note || '')}" placeholder="e.g. GCash Jan 2025"></td>
-        <td class="acts">
-          <button class="btn-upgrade"   onclick="setTier('${u.uid}','paid')">▲ Upgrade</button>
-          <button class="btn-downgrade" onclick="setTier('${u.uid}','free')">▼ Downgrade</button>
-        </td>`;
+                    <td>${esc(u.email)}</td>
+                    <td class="mono">${u.uid.substring(0, 14)}…</td>
+                    <td><span class="badge ${isPaid ? 'b-paid' : 'b-free'}" id="badge-${u.uid}">${u.tier}</span></td>
+                    <td class="muted">${joined}</td>
+                    <td><input class="note-input" id="note-${u.uid}" value="${esc(u.note || '')}" placeholder="e.g. GCash Jan 2025"></td>
+                    <td class="acts">
+                        <button class="btn-upgrade"   onclick="setTier('${u.uid}','paid')">▲ Upgrade</button>
+                        <button class="btn-downgrade" onclick="setTier('${u.uid}','free')">▼ Downgrade</button>
+                    </td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -363,15 +497,47 @@
                     if (badge) { badge.className = `badge ${tier === 'paid' ? 'b-paid' : 'b-free'}`; badge.textContent = tier; }
                     const u = allUsers.find(x => x.uid === uid);
                     if (u) { u.tier = tier; u.note = note; }
-                    document.getElementById('sFree').textContent = allUsers.filter(u => u.tier !== 'paid').length;
-                    document.getElementById('sPaid').textContent = allUsers.filter(u => u.tier === 'paid').length;
+                    updateStats();
                     showToast(tier === 'paid' ? '✅ Upgraded to Paid' : '🔒 Downgraded to Free');
                 } else showToast('Error: ' + data.error);
             } catch (e) { showToast('Error: ' + e.message); }
         }
 
+        /* --- INVITES LOGIC --- */
+        function renderInvites(list) {
+            const tbody = document.getElementById('inviteTable');
+            tbody.innerHTML = '';
+            list.forEach(i => {
+                const created = i.createdAt ? new Date(i.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="mono fw-bold" style="${i.used ? 'text-decoration: line-through; color: #555;' : ''}">${i.code}</td>
+                    <td><span class="badge ${i.used ? 'b-free' : 'b-paid'}">${i.used ? 'Used' : 'Available'}</span></td>
+                    <td class="mono muted">${i.usedBy || '—'}</td>
+                    <td class="muted">${created}</td>
+                    <td class="acts">
+                        <button class="${i.used ? 'btn-muted' : 'btn-upgrade'}" ${i.used ? 'disabled' : ''} onclick="copyCode('${i.code}')">
+                            ${i.used ? 'N/A' : 'Copy'}
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterInvites() {
+            const q = document.getElementById('searchInvites').value.toLowerCase();
+            renderInvites(allInvites.filter(i => i.code.toLowerCase().includes(q) || i.usedBy.toLowerCase().includes(q)));
+        }
+
+        function copyCode(code) {
+            navigator.clipboard.writeText(code);
+            showToast('📋 Copied: ' + code);
+        }
+
+        /* --- GLOBAL LOGIC --- */
         function doLogout() {
-            API = ''; SECRET = ''; allUsers = [];
+            API = ''; SECRET = ''; allUsers = []; allInvites = [];
             document.getElementById('mainSection').style.display = 'none';
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminSecret').value = '';
@@ -382,6 +548,7 @@
             t.textContent = msg; t.style.display = 'block';
             setTimeout(() => t.style.display = 'none', 2800);
         }
+
         function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
     </script>
 </body>

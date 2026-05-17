@@ -48,6 +48,27 @@ export async function handleAdminRoutes(request, env) {
         return json({ success: true, users });
     }
 
+    // NEW: GET /api/admin/invites — list all invite codes
+    if (path === '/api/admin/invites' && request.method === 'GET') {
+        const res = await fetch(`${fsBase}/invite_codes?pageSize=500`, {
+            headers: { Authorization: `Bearer ${serviceToken}` }
+        });
+        const data = await res.json();
+
+        const invites = (data.documents || []).map(doc => {
+            const f = doc.fields || {};
+            const code = doc.name.split('/').pop();
+            return {
+                code,
+                used: f.used?.booleanValue || false,
+                usedBy: f.usedBy?.stringValue || '',
+                createdAt: f.createdAt?.timestampValue || ''
+            };
+        });
+
+        return json({ success: true, invites });
+    }
+
     // POST /api/admin/set-tier — upgrade or downgrade a user
     // Body: { uid, tier: "free"|"paid", note }
     if (path === '/api/admin/set-tier' && request.method === 'POST') {
