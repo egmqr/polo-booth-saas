@@ -68,11 +68,11 @@
       transition: background-color 0.3s, box-shadow 0.3s;
     }
 
-    /* Theme & Logout Controls */
-    .top-controls-wrapper {
+    /* Theme, PIN & Logout Controls */
+    .top-controls-left {
       position: absolute;
       top: 15px;
-      right: 20px;
+      left: 20px;
       display: flex;
       align-items: center;
       gap: 15px;
@@ -80,7 +80,74 @@
       font-weight: 600;
       color: var(--text-muted);
       z-index: 9999;
-      /* ← ADD THIS — keeps it below loginOverlay (z-index: 10000) */
+    }
+
+    .top-controls-right {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      display: flex;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    .pin-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      padding: 4px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-left: 10px;
+    }
+
+    .pin-wrapper button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .pin-wrapper button:hover {
+      color: var(--btn-bg);
+    }
+
+    /* PIN Modal */
+    #pinModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      z-index: 10005;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .pin-modal-content {
+      background: var(--bg-container);
+      padding: 30px;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .pin-modal-content input {
+      text-align: center;
+      font-size: 24px;
+      letter-spacing: 6px;
+      font-weight: bold;
+      margin-bottom: 20px;
     }
 
     .logout-btn {
@@ -722,13 +789,36 @@
     <img id="boothLightboxImg" src="" onclick="event.stopPropagation()">
   </div>
 
-  <div class="top-controls-wrapper">
-    <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+  <div class="top-controls-left">
     <span id="themeLabel">Dark Mode</span>
     <label class="switch">
       <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
       <span class="slider round"></span>
     </label>
+
+    <div class="pin-wrapper" id="pinWrapper" style="display: none;">
+      <span>Booth PIN: <strong id="displayPin" style="color:var(--text-main); letter-spacing: 2px;">••••</strong></span>
+      <button onclick="togglePinVisibility()" title="Show/Hide PIN"><i class="bi bi-eye" id="pinEyeIcon"></i></button>
+      <button onclick="openPinModal()" title="Edit PIN"><i class="bi bi-pencil-square"></i></button>
+    </div>
+  </div>
+
+  <div class="top-controls-right">
+    <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+  </div>
+
+  <div id="pinModal">
+    <div class="pin-modal-content">
+      <h3 style="margin-top:0; color: var(--text-main);">Update System PIN</h3>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom: 20px;">This PIN secures all your offline desktop
+        booths.</p>
+      <input type="text" id="newPinInput" maxlength="8" placeholder="1234"
+        onkeypress="if(event.key==='Enter') submitNewPin()">
+      <div style="display:flex; gap:10px;">
+        <button class="action-btn crop-btn-cancel" onclick="closePinModal()">Cancel</button>
+        <button class="action-btn" onclick="submitNewPin()">Save PIN</button>
+      </div>
+    </div>
   </div>
 
   <div id="overlay">
@@ -911,7 +1001,8 @@
     // ==========================================
     const WORKER_URL = "https://api.polo-booth.com";
     const NETLIFY_BASE_URL = "https://gallery.polo-booth.com/main.html";
-
+    let systemPin = "••••";
+    let pinVisible = false;
     // INSERT YOUR FIREBASE CONFIG HERE to fetch the list of events
     const firebaseConfig = {
       apiKey: "AIzaSyBPZ-xvICeT52ftMRiYJ_N89k6g8kVRE5Y",
@@ -994,30 +1085,66 @@
       try {
         const tok = await currentUser.getIdToken();
         const res = await fetch(`${WORKER_URL}/api/user/profile`, { headers: { 'Authorization': `Bearer ${tok}` } });
-        userTier = (await res.json()).tier || 'free';
-      } catch { userTier = 'free'; }
+        const data = await res.json();
+        userTier = data.tier || 'free';
+        systemPin = data.pin || "1234"; // Loads the PIN from your worker
+        updatePinDisplay();
+      } catch { userTier = 'free'; systemPin = "1234"; }
     }
 
     function checkLogin() {
-      // 1. Hide the initial authenticating spinner immediately
       const authLoader = document.getElementById('initialAuthLoader');
       if (authLoader) authLoader.style.display = 'none';
 
       if (!currentUser) {
-        document.getElementById('loginOverlay').style.display = 'flex'; // Show login
+        document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('pinWrapper').style.display = 'none';
       } else {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
+        document.getElementById('pinWrapper').style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
         applyTierRestrictions();
         fetchBoothEvents(true);
         renderTemplateList();
       }
     }
+    // --- PIN Management ---
+    function updatePinDisplay() {
+      document.getElementById('displayPin').innerText = pinVisible ? systemPin : "••••";
+      document.getElementById('pinEyeIcon').className = pinVisible ? "bi bi-eye-slash" : "bi bi-eye";
+    }
 
+    function togglePinVisibility() {
+      pinVisible = !pinVisible;
+      updatePinDisplay();
+    }
+
+    function openPinModal() {
+      document.getElementById('newPinInput').value = systemPin;
+      document.getElementById('pinModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('newPinInput').focus(), 100);
+    }
+
+    function closePinModal() {
+      document.getElementById('pinModal').style.display = 'none';
+    }
+
+    async function submitNewPin() {
+      const newPin = document.getElementById('newPinInput').value.trim();
+      if (!newPin) return showToast("PIN cannot be empty");
+
+      const res = await callWorkerApi('/api/dashboard/update-pin', { pin: newPin });
+      if (res && res.success) {
+        systemPin = newPin;
+        updatePinDisplay();
+        closePinModal();
+        showToast("PIN updated successfully!");
+      }
+    }
     function logout() { auth.signOut(); }
 
     function applyTierRestrictions() {

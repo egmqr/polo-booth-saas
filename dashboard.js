@@ -66,7 +66,8 @@ export async function handleUserRoutes(request, env) {
             uid: user.uid,
             email: user.email,
             tier: f.tier?.stringValue || 'free',
-            note: f.note?.stringValue || ''
+            note: f.note?.stringValue || '',
+            pin: f.pin?.stringValue || '1234' // <--- Add this line!
         });
     }
 
