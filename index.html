@@ -1046,6 +1046,7 @@
     let currentUser = null;
     let userTier = 'free';
     let isSignUpMode = false;
+    let isProvisioning = false; // NEW: Prevents UI flashing during sign up
     const auth = firebase.auth();
 
     function toggleAuthMode() {
@@ -1062,7 +1063,7 @@
     async function submitAuth() {
       const email = document.getElementById('emailInput').value.trim();
       const password = document.getElementById('passwordInput').value;
-      const inviteCode = document.getElementById('inviteCodeInput').value.trim(); // NEW
+      const inviteCode = document.getElementById('inviteCodeInput').value.trim();
       const errEl = document.getElementById('authError');
       errEl.style.display = 'none';
 
@@ -1075,10 +1076,10 @@
       try {
         let cred;
         if (isSignUpMode) {
+          isProvisioning = true; // LOCK UI: Stop Firebase from showing the dashboard yet
           cred = await auth.createUserWithEmailAndPassword(email, password);
           const tok = await cred.user.getIdToken();
 
-          // NEW: Send the invite code to the backend for verification during provisioning
           const provisionRes = await fetch(`${WORKER_URL}/api/auth/provision-user`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
@@ -1087,16 +1088,24 @@
 
           const result = await provisionRes.json();
 
-          // If the worker rejects the invite code, throw an error to stop the login process
           if (!provisionRes.ok || result.success === false) {
-            // Optional but recommended: Delete the unverified Firebase Auth account here
+            // Destroy the account if the code is invalid
             await cred.user.delete();
+            await auth.signOut(); // Ensure local session is completely wiped
             throw new Error(result.error || "Invalid or expired invite code.");
           }
+
+          // SUCCESS! Unlock the UI and manually load them in
+          isProvisioning = false;
+          await loadUserProfile();
+          checkLogin();
+
         } else {
           cred = await auth.signInWithEmailAndPassword(email, password);
+          // Normal sign-in lets onAuthStateChanged handle the UI naturally
         }
       } catch (err) {
+        isProvisioning = false; // UNLOCK UI on error
         errEl.textContent = err.message || 'Authentication failed.';
         errEl.style.display = 'block';
         document.getElementById('authBtn').disabled = false;
@@ -1235,9 +1244,20 @@
     }
 
     auth.onAuthStateChanged(async user => {
-      if (user) { currentUser = user; await loadUserProfile(); }
-      else { currentUser = null; userTier = 'free'; }
-      checkLogin();
+      if (user) {
+        currentUser = user;
+        // Only auto-load the UI if we aren't in the middle of verifying an invite code
+        if (!isProvisioning) {
+          await loadUserProfile();
+          checkLogin();
+        }
+      } else {
+        currentUser = null;
+        userTier = 'free';
+        if (!isProvisioning) {
+          checkLogin();
+        }
+      }
     });
 
     function toggleTheme() {
