@@ -33,6 +33,41 @@ export async function handleUserRoutes(request, env) {
 
     // POST /api/auth/provision-user — called once on signup
     if (path === '/api/auth/provision-user') {
+        // Parse the body to get the invite code
+        let body = {};
+        try { body = await request.json(); } catch (e) { }
+        const inviteCode = body.inviteCode;
+
+        if (!inviteCode) return json({ success: false, error: 'Invite code is required.' }, 400);
+
+        // 1. Verify the invite code in Firestore
+        const codeUrl = `${fsBase}/invite_codes/${inviteCode}`;
+        const codeRes = await fetch(codeUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
+
+        if (!codeRes.ok) {
+            return json({ success: false, error: 'Invalid invite code.' }, 400);
+        }
+
+        const codeDoc = await codeRes.json();
+        const isUsed = codeDoc.fields?.used?.booleanValue;
+
+        if (isUsed) {
+            return json({ success: false, error: 'This invite code has already been used.' }, 400);
+        }
+
+        // 2. Mark the code as used
+        await fetch(`${codeUrl}?updateMask.fieldPaths=used&updateMask.fieldPaths=usedBy`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fields: {
+                    used: { booleanValue: true },
+                    usedBy: { stringValue: user.uid }
+                }
+            })
+        });
+
+        // 3. Provision the user
         const docUrl = `${fsBase}/users/${user.uid}`;
         const existing = await fetch(docUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
         if (existing.ok) {
@@ -67,7 +102,7 @@ export async function handleUserRoutes(request, env) {
             email: user.email,
             tier: f.tier?.stringValue || 'free',
             note: f.note?.stringValue || '',
-            pin: f.pin?.stringValue || '1234' // <--- Add this line!
+            pin: f.pin?.stringValue || '1234'
         });
     }
 

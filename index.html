@@ -762,9 +762,14 @@
       <h2 style="margin-top:0; font-size:22px; margin-bottom:8px;">ProBooth</h2>
       <p style="color:var(--text-muted); font-size:13px; margin-bottom:28px;" id="authSubtitle">Sign in to your account
       </p>
+
+      <input type="text" id="inviteCodeInput" placeholder="Invite Code"
+        style="margin-bottom:12px; text-align:center; display:none; text-transform:uppercase;">
+
       <input type="email" id="emailInput" placeholder="Email address" style="margin-bottom:12px; text-align:center;">
       <input type="password" id="passwordInput" placeholder="Password" style="margin-bottom:20px; text-align:center;"
         onkeypress="if(event.key==='Enter') submitAuth()">
+
       <button class="action-btn" id="authBtn" onclick="submitAuth()" style="margin-top:0;">Sign In</button>
       <button onclick="toggleAuthMode()"
         style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;"
@@ -1049,14 +1054,20 @@
       document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Create a new account' : 'Sign in to your account';
       document.getElementById('authToggleBtn').textContent = isSignUpMode ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
       document.getElementById('authError').style.display = 'none';
+
+      // NEW: Show/Hide the Invite Code field
+      document.getElementById('inviteCodeInput').style.display = isSignUpMode ? 'block' : 'none';
     }
 
     async function submitAuth() {
       const email = document.getElementById('emailInput').value.trim();
       const password = document.getElementById('passwordInput').value;
+      const inviteCode = document.getElementById('inviteCodeInput').value.trim(); // NEW
       const errEl = document.getElementById('authError');
       errEl.style.display = 'none';
+
       if (!email || !password) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; return; }
+      if (isSignUpMode && !inviteCode) { errEl.textContent = 'An invite code is required to sign up.'; errEl.style.display = 'block'; return; }
 
       document.getElementById('authBtn').disabled = true;
       document.getElementById('authBtn').textContent = isSignUpMode ? 'Creating…' : 'Signing in…';
@@ -1066,13 +1077,25 @@
         if (isSignUpMode) {
           cred = await auth.createUserWithEmailAndPassword(email, password);
           const tok = await cred.user.getIdToken();
-          await fetch(`${WORKER_URL}/api/auth/provision-user`, {
-            method: 'POST', headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' }
+
+          // NEW: Send the invite code to the backend for verification during provisioning
+          const provisionRes = await fetch(`${WORKER_URL}/api/auth/provision-user`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inviteCode: inviteCode })
           });
+
+          const result = await provisionRes.json();
+
+          // If the worker rejects the invite code, throw an error to stop the login process
+          if (!provisionRes.ok || result.success === false) {
+            // Optional but recommended: Delete the unverified Firebase Auth account here
+            await cred.user.delete();
+            throw new Error(result.error || "Invalid or expired invite code.");
+          }
         } else {
           cred = await auth.signInWithEmailAndPassword(email, password);
         }
-        // onAuthStateChanged handles the rest
       } catch (err) {
         errEl.textContent = err.message || 'Authentication failed.';
         errEl.style.display = 'block';
@@ -1885,6 +1908,18 @@
       const res = await callWorkerApi('/api/dashboard/delete-booth', { eventId: id });
       if (res && res.success) { delete boothDetailsCache[id]; fetchBoothEvents(true); setMode('edit'); showToast("Deleted."); }
     }
+    // ==========================================
+    // URL ROUTING
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('signup') === 'true') {
+        // Automatically switch to Sign Up mode if ?signup=true is in the URL
+        if (!isSignUpMode) {
+          toggleAuthMode();
+        }
+      }
+    });
   </script>
 </body>
 
