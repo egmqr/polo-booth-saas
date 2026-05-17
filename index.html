@@ -1129,16 +1129,29 @@
       if (authLoader) authLoader.style.display = 'none';
 
       if (!currentUser) {
+        // Show login screen, hide app
         document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('pinWrapper').style.display = 'none';
+
+        // 🟢 THE FIX: Reset the button and clear the password field when logging out!
+        const authBtn = document.getElementById('authBtn');
+        if (authBtn) {
+          authBtn.disabled = false;
+          authBtn.textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+        }
+        const passInput = document.getElementById('passwordInput');
+        if (passInput) passInput.value = '';
+
       } else {
+        // Show app, hide login screen
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
         document.getElementById('pinWrapper').style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
+
         applyTierRestrictions();
         fetchBoothEvents(true);
         renderTemplateList();
