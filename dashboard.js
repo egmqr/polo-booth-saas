@@ -98,7 +98,8 @@ export async function handleDashboardRoutes(request, env) {
 
     if (path === '/api/dashboard/update-pin') {
         if (!body.pin) return json({ success: false, error: 'No pin provided' }, 400);
-        return json(await saveSystemPinToFirestore(env, body.pin));
+        // FIX: Pass currentUser into the function so it knows whose profile to update
+        return json(await saveSystemPinToFirestore(env, body.pin, currentUser));
     }
     if (path === '/api/dashboard/delete-file') {
         if (!body.key) return json({ success: false, error: 'No key provided' }, 400);
@@ -468,14 +469,18 @@ async function saveEventToFirestore(env, uid, eventId, data) {
     });
 }
 
-async function saveSystemPinToFirestore(env, pin) {
+async function saveSystemPinToFirestore(env, pin, currentUser) {
     const serviceToken = await getServiceToken(env);
-    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/booth_settings/system`;
+
+    // Point to the user's document and apply an updateMask so we don't accidentally overwrite their account tier!
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}?updateMask.fieldPaths=pin`;
+
     const res = await fetch(url, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { pin: { stringValue: pin }, timestamp: { timestampValue: new Date().toISOString() } } })
+        body: JSON.stringify({ fields: { pin: { stringValue: pin } } })
     });
+
     if (!res.ok) return { success: false, error: `Firestore Error ${res.status}: ${await res.text()}` };
-    return { success: true, message: 'System pin updated' };
+    return { success: true, message: 'System pin updated for user profile.' };
 }
