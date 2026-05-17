@@ -825,7 +825,33 @@
       </div>
     </div>
   </div>
-
+  <div id="manageModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 10005; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+    <div
+      style="background: var(--bg-container); border-radius: 12px; width: 100%; max-width: 700px; max-height: 90vh; display: flex; flex-direction: column; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+      <div
+        style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; color: var(--text-main); font-size: 18px;">Manage Photos</h3>
+        <button onclick="closeManageModal()"
+          style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+      <div
+        style="padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; background: var(--card-bg); flex-wrap: wrap;">
+        <button class="action-btn"
+          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: var(--btn-outline-bg); color: var(--btn-outline-text); border: 1px solid var(--border);"
+          onclick="selectAllManagePhotos()">Select All</button>
+        <button class="action-btn"
+          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #ef4444; color: #fff;"
+          onclick="deleteSelectedManagePhotos()">Delete Selected</button>
+        <button class="action-btn"
+          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #0d9488; color: #fff; margin-left: auto;"
+          onclick="downloadAllManagePhotos()">Download All</button>
+      </div>
+      <div id="manageGrid"
+        style="flex-grow: 1; overflow-y: auto; padding: 15px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;">
+      </div>
+    </div>
+  </div>
   <div id="overlay">
     <div class="overlay-spinner"></div>
     <div class="overlay-text" id="overlay-text">Loading...</div>
@@ -1871,11 +1897,17 @@
           currentViewBooths.push({ boothNum: bNum, url: r2QrUrl, filename: fileName });
           let qrHtml = `<button class="mini-btn" onclick="copyText('${r2QrUrl}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${r2QrUrl}', '${fileName}')">Download</button>`;
 
+          // Calculate the correct R2 prefix for this specific booth
+          const finalPrefix = prefix || (isComm ? `users/${currentUser.uid}/events/${details.id}/community` : `users/${currentUser.uid}/events/${details.id}/booth-${bNum}/prints`);
+
           const card = document.createElement('div'); card.className = 'booth-card';
           card.innerHTML = `
                     <h4>${isComm ? `<span class="badge-community">Community Booth</span>` : `${dynFolder}${bNum}`}</h4>
-                    <div class="link-row"><span>Main Gallery</span><div class="link-actions"><button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button><button class="mini-btn backup" onclick="copyText('${backupUrl}')">Backup</button><button class="mini-btn" onclick="window.open('${mainUrl}', '_blank')">Go</button></div></div>
-                    <div class="link-row"><span>R2 Prefix</span><div class="link-actions"><button class="mini-btn" onclick="copyText('${prefix}')">Copy</button></div></div>
+                    <div class="link-row"><span>Main Gallery</span><div class="link-actions">
+                        <button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button>
+                        <button class="mini-btn backup" onclick="openManageModal('${finalPrefix}')">Manage</button>
+                        <button class="mini-btn" onclick="window.open('${mainUrl}', '_blank')">Go</button>
+                    </div></div>
                     <div class="link-row"><span>QR Code</span><div class="link-actions">${qrHtml}</div></div>
                 `;
           boothList.appendChild(card);
@@ -1953,6 +1985,129 @@
         }
       }
     });
+
+    // ==========================================
+    // PHOTO MANAGER (VIEW QR TAB)
+    // ==========================================
+    let managePhotosData = [];
+
+    async function openManageModal(prefix) {
+      document.getElementById('manageModal').style.display = 'flex';
+      document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;"><div class="overlay-spinner" style="margin: 0 auto 15px auto; border-color: var(--border); border-top-color: var(--btn-bg);"></div>Loading photos...</div>';
+      managePhotosData = [];
+
+      try {
+        const tok = await currentUser.getIdToken();
+        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=${encodeURIComponent(prefix)}`, {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
+        const result = await res.json();
+
+        if (result.status === 'success') {
+          managePhotosData = result.data;
+          renderManageGrid();
+        } else {
+          document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
+        }
+      } catch (e) {
+        document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to Cloudflare R2.</div>';
+      }
+    }
+
+    function renderManageGrid() {
+      const grid = document.getElementById('manageGrid');
+      if (!managePhotosData || managePhotosData.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;">No photos found in this booth.</div>';
+        return;
+      }
+
+      let html = '';
+      managePhotosData.forEach((item, index) => {
+        const key = item[0];
+        const url = item[2];
+        html += `
+        <div class="manage-item" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 2/3; background: #000;">
+            <img src="${url}?w=300" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; opacity: 0.9;" onclick="toggleManageSelection(${index})" onload="this.style.opacity=1">
+            <input type="checkbox" id="manage_cb_${index}" data-key="${key}" data-url="${url}" style="position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; cursor: pointer; accent-color: var(--btn-bg);">
+            <button onclick="deleteSingleManagePhoto('${key}')" style="position: absolute; bottom: 8px; right: 8px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;"><i class="bi bi-trash"></i></button>
+        </div>`;
+      });
+      grid.innerHTML = html;
+    }
+
+    function closeManageModal() {
+      document.getElementById('manageModal').style.display = 'none';
+    }
+
+    function selectAllManagePhotos() {
+      const checkboxes = document.querySelectorAll('input[id^="manage_cb_"]');
+      let allChecked = true;
+      checkboxes.forEach(cb => { if (!cb.checked) allChecked = false; });
+      checkboxes.forEach(cb => { cb.checked = !allChecked; });
+    }
+
+    function toggleManageSelection(index) {
+      const cb = document.getElementById(`manage_cb_${index}`);
+      cb.checked = !cb.checked;
+    }
+
+    async function deleteSingleManagePhoto(key) {
+      if (!confirm('Permanently delete this photo?')) return;
+      showOverlay('Deleting...');
+
+      const res = await callWorkerApi('/api/dashboard/delete-file', { key }, true);
+      if (res && res.success) {
+        managePhotosData = managePhotosData.filter(item => item[0] !== key);
+        renderManageGrid();
+        showToast('Photo deleted');
+      } else {
+        showToast('Failed to delete photo');
+      }
+      hideOverlay();
+    }
+
+    async function deleteSelectedManagePhotos() {
+      const checkboxes = document.querySelectorAll('input[id^="manage_cb_"]:checked');
+      if (checkboxes.length === 0) return showToast('No photos selected');
+      if (!confirm(`Permanently delete ${checkboxes.length} selected photos?`)) return;
+
+      showOverlay('Deleting files from R2...');
+      for (const cb of checkboxes) {
+        const key = cb.getAttribute('data-key');
+        await callWorkerApi('/api/dashboard/delete-file', { key }, true);
+        managePhotosData = managePhotosData.filter(item => item[0] !== key);
+      }
+      renderManageGrid();
+      hideOverlay();
+      showToast('Selected photos deleted');
+    }
+
+    async function downloadImageSilent(url, f) {
+      try {
+        const r = await fetch(url);
+        const b = await r.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b);
+        a.download = f;
+        a.click();
+      } catch (e) {
+        window.open(url, '_blank');
+      }
+    }
+
+    async function downloadAllManagePhotos() {
+      if (!managePhotosData || managePhotosData.length === 0) return showToast('No photos to download');
+
+      showOverlay(`Downloading ${managePhotosData.length} photos...`);
+      for (let i = 0; i < managePhotosData.length; i++) {
+        const url = managePhotosData[i][2];
+        const filename = url.split('/').pop().split('?')[0] || `photo_${i}.jpg`;
+        await downloadImageSilent(url, filename);
+        await new Promise(r => setTimeout(r, 600)); // Sleep to prevent browser blocking
+      }
+      hideOverlay();
+      showToast('Downloads complete');
+    }
   </script>
 </body>
 
