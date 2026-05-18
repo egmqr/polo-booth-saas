@@ -195,18 +195,58 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     const actualNumBooths = isOnlyCommunity ? 0 : (parseInt(boothCount, 10) || 0);
 
     const cdn = (env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
-    let bgId = existingBgId || '';
-    let logoId = existingLogoId || '';
-    let qrLogoId = existingQrLogoId || '';
+
+    // ── BACKGROUND REUSE & BACKUP LOGIC ──
+    let bgId = p.existingBgId || '';
+    if (p.existingBgKey && !p.isNewBgUpload) {
+        // Reuse: Copy from Global Gallery into this Event's folder
+        const bgObj = await Storage.get(env, p.existingBgKey);
+        if (bgObj) {
+            bgId = `bg_${Date.now()}`;
+            await Storage.put(env, `${uPrefix}/${eventId}/assets/backgrounds/${bgId}.jpg`, await bgObj.arrayBuffer(), { httpMetadata: bgObj.httpMetadata });
+        }
+    } else if (p.isNewBgUpload && bgId) {
+        // Backup: Save a copy of the newly uploaded BG to the Global Gallery
+        const bgObj = await Storage.get(env, `${uPrefix}/${eventId}/assets/backgrounds/${bgId}.jpg`);
+        if (bgObj) {
+            await Storage.put(env, `users/${currentUser.uid}/assets/backgrounds/${bgId}.jpg`, await bgObj.arrayBuffer(), { httpMetadata: bgObj.httpMetadata });
+        }
+    }
+
+    // ── LOGO REUSE & BACKUP LOGIC ──
+    let logoId = p.existingLogoId || '';
+    let qrLogoId = p.existingQrLogoId || '';
 
     if (logoData?.base64) {
         const timestamp = Date.now();
         logoId = `logo_${timestamp}`;
-        await Storage.put(env, `${uPrefix}/${eventId}/assets/logos/${logoId}.png`, decodeBase64(logoData.base64), { httpMetadata: { contentType: logoData.mimeType || 'image/png' } });
+        const buffer = decodeBase64(logoData.base64);
+
+        // Upload to Event Folder AND backup to Global Gallery
+        await Storage.put(env, `${uPrefix}/${eventId}/assets/logos/${logoId}.png`, buffer, { httpMetadata: { contentType: logoData.mimeType || 'image/png' } });
+        await Storage.put(env, `users/${currentUser.uid}/assets/logos/${logoId}.png`, buffer, { httpMetadata: { contentType: logoData.mimeType || 'image/png' } });
 
         if (qrLogoData?.base64) {
             qrLogoId = `qrlogo_${timestamp}`;
-            await Storage.put(env, `${uPrefix}/${eventId}/assets/qr-logos/${qrLogoId}.png`, decodeBase64(qrLogoData.base64), { httpMetadata: { contentType: qrLogoData.mimeType || 'image/jpeg' } });
+            const qrBuffer = decodeBase64(qrLogoData.base64);
+            await Storage.put(env, `${uPrefix}/${eventId}/assets/qr-logos/${qrLogoId}.png`, qrBuffer, { httpMetadata: { contentType: qrLogoData.mimeType || 'image/jpeg' } });
+            await Storage.put(env, `users/${currentUser.uid}/assets/qr-logos/${qrLogoId}.png`, qrBuffer, { httpMetadata: { contentType: qrLogoData.mimeType || 'image/jpeg' } });
+        } else {
+            qrLogoId = logoId;
+        }
+    } else if (p.existingLogoKey) {
+        // Reuse: Copy from Global Gallery into this Event's folder
+        const lObj = await Storage.get(env, p.existingLogoKey);
+        if (lObj) {
+            logoId = `logo_${Date.now()}`;
+            await Storage.put(env, `${uPrefix}/${eventId}/assets/logos/${logoId}.png`, await lObj.arrayBuffer(), { httpMetadata: lObj.httpMetadata });
+        }
+        if (p.existingQrLogoKey) {
+            const qObj = await Storage.get(env, p.existingQrLogoKey);
+            if (qObj) {
+                qrLogoId = `qrlogo_${Date.now()}`;
+                await Storage.put(env, `${uPrefix}/${eventId}/assets/qr-logos/${qrLogoId}.png`, await qObj.arrayBuffer(), { httpMetadata: qObj.httpMetadata });
+            }
         } else {
             qrLogoId = logoId;
         }
@@ -431,9 +471,12 @@ async function listExistingAssets(env, body, currentUser) {
                 id,
                 key: o.key, // Send the explicit storage key so it can be deleted
                 name: o.key.split('/').pop(),
-                url: `${cdn}/${o.key}?w=150`
+                url: `${cdn}/${o.key}?w=150`,
+                uploadedAt: o.uploaded
             };
-        });
+        })
+        .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)); // Newest first
+
     return { success: true, assets };
 }
 

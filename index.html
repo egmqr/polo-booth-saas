@@ -1094,6 +1094,9 @@
     let croppedQrLogoPayload = null;
     let originalLogoFilename = "";
     let currentBoothBgId = null;
+    let currentBoothBgKey = null;
+    let selectedExistingLogoKey = null;
+    let selectedExistingQrLogoKey = null;
 
     const defaultBoothTemplates = [
       { "Name": "portrait", "CanvasWidth": 1200, "CanvasHeight": 1800, "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1200, "Height": 1800, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] },
@@ -1498,11 +1501,13 @@
       document.getElementById('bgColor').value = "#000000"; document.getElementById('bgColorPicker').value = "#000000";
       document.getElementById('bgFile').value = ""; document.getElementById('bgFileName').innerText = "No file";
       currentBoothBgId = null;
+      currentBoothBgKey = null;
       document.getElementById('logoFile').value = ""; document.getElementById('logoFileName').innerText = "No file";
 
       document.getElementById('boothBgPreviewContainer').style.display = "none";
       document.getElementById('boothLogoPreviewContainer').style.display = "none";
       selectedExistingLogoId = ""; selectedExistingQrLogoId = "";
+      selectedExistingLogoKey = null; selectedExistingQrLogoKey = null;
       document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
 
       document.getElementById('logoOnMain').checked = false; document.getElementById('eventSearch').value = "";
@@ -2000,10 +2005,13 @@
 
       const payload = {
         action: actionName, eventId, folderName, eventName, boothCount,
+        isNewBgUpload: !!uploadedBgId, // Tells backend to backup the new image
         existingBgId: uploadedBgId || currentBoothBgId || '',
+        existingBgKey: currentBoothBgKey || '',
         logoData: croppedLogoPayload, qrLogoData: croppedQrLogoPayload, logoOnMain: document.getElementById('logoOnMain').checked,
         fontColor: document.getElementById('fontColor').value, bgColor: document.getElementById('bgColor').value,
-        existingLogoId: selectedExistingLogoId, existingQrLogoId: selectedExistingQrLogoId,
+        existingLogoId: selectedExistingLogoId || '', existingQrLogoId: selectedExistingQrLogoId || '',
+        existingLogoKey: selectedExistingLogoKey || '', existingQrLogoKey: selectedExistingQrLogoKey || '',
         templates: boothTemplates, enableCommunity: document.getElementById('boothEnableCommunity').checked,
         communityOnly, userStickers: document.getElementById('boothUserStickers').checked
       };
@@ -2189,28 +2197,31 @@
       let html = '';
       assets.forEach(asset => {
         html += `<div class="gallery-item-wrapper">
-              <img src="${asset.url}" class="logo-gallery-item" title="${asset.name}" onclick="selectExistingAsset('${asset.id}', '${asset.url}', '${type}', this)">
+              <img src="${asset.url}" class="logo-gallery-item" title="${asset.name}" onclick="selectExistingAsset('${asset.id}', '${asset.key}', '${asset.url}', '${type}', this)">
               <button type="button" class="gallery-item-delete" title="Delete" onclick="deleteExistingAsset('${asset.key}', '${type}', event)">✕</button>
           </div>`;
       });
       container.innerHTML = html;
     }
 
-    function selectExistingAsset(id, url, type, el) {
+    function selectExistingAsset(id, key, url, type, el) {
       const gallery = el.closest('.logo-gallery');
       gallery.querySelectorAll('.logo-gallery-item').forEach(img => img.classList.remove('selected'));
       el.classList.add('selected');
 
       if (type === 'bg') {
-        currentBoothBgId = id;
+        currentBoothBgId = null; // Clear ID so backend knows it's a new copy
+        currentBoothBgKey = key;
         document.getElementById('bgFile').value = "";
         document.getElementById('bgFileName').innerText = "Using existing background";
         document.getElementById('bgFileName').style.color = "var(--btn-bg)";
         document.getElementById('boothBgPreview').src = url;
         document.getElementById('boothBgPreviewContainer').style.display = "flex";
       } else if (type === 'logo') {
-        selectedExistingLogoId = id;
-        selectedExistingQrLogoId = id.replace('logo_', 'qrlogo_');
+        selectedExistingLogoId = null; // Clear ID so backend knows it's a new copy
+        selectedExistingQrLogoId = null;
+        selectedExistingLogoKey = key;
+        selectedExistingQrLogoKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
         document.getElementById('logoFile').value = "";
         document.getElementById('logoFileName').innerText = "Using existing logo";
         document.getElementById('logoFileName').style.color = "var(--btn-bg)";
