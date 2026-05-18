@@ -416,25 +416,6 @@ async function handleSignedUpload(env, body, currentUser) {
     return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
 }
 
-// ── ASSET HELPERS ─────────────────────────────────────────────────────
-
-async function handleSignedUpload(env, body, currentUser) {
-    const prefix = safePrefix(body.prefix);
-    if (!prefix) return { error: 'Invalid prefix' };
-
-    // Ensure the prefix belongs to this user
-    const allowedBase = `users/${currentUser.uid}/`;
-    if (!prefix.startsWith(allowedBase)) {
-        return { error: 'Prefix must be within your user namespace' };
-    }
-
-    const filename = (body.filename || '').replace(/[^A-Za-z0-9._-]/g, '_');
-    const key = `${prefix}/${filename}`;
-    const uploadUrl = await Storage.presignPut(env, key, 900);
-
-    return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
-}
-
 // NEW: Consolidated asset fetcher for both Backgrounds and Logos
 async function listExistingAssets(env, body, currentUser) {
     const folder = body.kind === 'background' ? 'backgrounds' : 'logos';
