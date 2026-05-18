@@ -1424,6 +1424,9 @@
     // API WRAPPERS
     // ==========================================
     async function callWorkerApi(route, payload, isSilent = false) {
+      // 🟢 THE FIX: Prevent any API calls if logged out
+      if (!currentUser) return null;
+
       if (!isSilent) showOverlay("Processing...");
       try {
         const response = await fetch(`${WORKER_URL}${route}`, {
@@ -2204,6 +2207,9 @@
     // EXISTING ASSETS GALLERIES
     // ==========================================
     async function fetchExistingAssets(forceRefresh = false, eventId = null) {
+      // 🟢 THE FIX: Abort immediately if no user is logged in
+      if (!currentUser) return;
+
       const payloadBg = { kind: 'background' };
       const payloadLogo = { kind: 'logo' };
 
