@@ -199,12 +199,16 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // ── BACKGROUND REUSE & BACKUP LOGIC ──
     let bgId = p.existingBgId || '';
     if (p.existingBgKey && !p.isNewBgUpload) {
-        // Reuse: Copy from Global Gallery into this Event's folder
-        const bgObj = await Storage.get(env, p.existingBgKey);
-        if (bgObj) {
-            bgId = `bg_${Date.now()}`;
-            await Storage.put(env, `${uPrefix}/${eventId}/assets/backgrounds/${bgId}.jpg`, await bgObj.arrayBuffer(), { httpMetadata: bgObj.httpMetadata });
+        // Check if the key is already in this event's folder to prevent duplication
+        if (!p.existingBgKey.includes(`/${eventId}/`)) {
+            // Reuse: Copy from Global Gallery into this Event's folder
+            const bgObj = await Storage.get(env, p.existingBgKey);
+            if (bgObj) {
+                bgId = `bg_${Date.now()}`;
+                await Storage.put(env, `${uPrefix}/${eventId}/assets/backgrounds/${bgId}.jpg`, await bgObj.arrayBuffer(), { httpMetadata: bgObj.httpMetadata });
+            }
         }
+        // If it DOES include the eventId, bgId remains p.existingBgId (no copying needed)
     } else if (p.isNewBgUpload && bgId) {
         // Backup: Save a copy of the newly uploaded BG to the Global Gallery
         const bgObj = await Storage.get(env, `${uPrefix}/${eventId}/assets/backgrounds/${bgId}.jpg`);
@@ -235,23 +239,26 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
             qrLogoId = logoId;
         }
     } else if (p.existingLogoKey) {
-        // Reuse: Copy from Global Gallery into this Event's folder
-        const lObj = await Storage.get(env, p.existingLogoKey);
-        if (lObj) {
-            logoId = `logo_${Date.now()}`;
-            await Storage.put(env, `${uPrefix}/${eventId}/assets/logos/${logoId}.png`, await lObj.arrayBuffer(), { httpMetadata: lObj.httpMetadata });
-        }
-        if (p.existingQrLogoKey) {
-            const qObj = await Storage.get(env, p.existingQrLogoKey);
-            if (qObj) {
-                qrLogoId = `qrlogo_${Date.now()}`;
-                await Storage.put(env, `${uPrefix}/${eventId}/assets/qr-logos/${qrLogoId}.png`, await qObj.arrayBuffer(), { httpMetadata: qObj.httpMetadata });
+        // Check if the key is already in this event's folder to prevent duplication
+        if (!p.existingLogoKey.includes(`/${eventId}/`)) {
+            // Reuse: Copy from Global Gallery into this Event's folder
+            const lObj = await Storage.get(env, p.existingLogoKey);
+            if (lObj) {
+                logoId = `logo_${Date.now()}`;
+                await Storage.put(env, `${uPrefix}/${eventId}/assets/logos/${logoId}.png`, await lObj.arrayBuffer(), { httpMetadata: lObj.httpMetadata });
             }
-        } else {
-            qrLogoId = logoId;
+            if (p.existingQrLogoKey) {
+                const qObj = await Storage.get(env, p.existingQrLogoKey);
+                if (qObj) {
+                    qrLogoId = `qrlogo_${Date.now()}`;
+                    await Storage.put(env, `${uPrefix}/${eventId}/assets/qr-logos/${qrLogoId}.png`, await qObj.arrayBuffer(), { httpMetadata: qObj.httpMetadata });
+                }
+            } else {
+                qrLogoId = logoId;
+            }
         }
+        // If it DOES include the eventId, logoId and qrLogoId remain as passed
     }
-
     let logoUrlForQr = '';
     if (qrLogoId) {
         // FIX: Look in 'qr-logos' if it's a white-background QR logo, otherwise look in 'logos'
@@ -456,10 +463,15 @@ async function handleSignedUpload(env, body, currentUser) {
     return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
 }
 
-// NEW: Consolidated asset fetcher for both Backgrounds and Logos
+// NEW: Consolidated asset fetcher (Supports both Global and Isolated Event folders)
 async function listExistingAssets(env, body, currentUser) {
     const folder = body.kind === 'background' ? 'backgrounds' : 'logos';
-    const prefix = `users/${currentUser.uid}/assets/${folder}/`;
+
+    // Check if eventId is passed for isolated fetching
+    const prefix = body.eventId
+        ? `users/${currentUser.uid}/events/${body.eventId}/assets/${folder}/`
+        : `users/${currentUser.uid}/assets/${folder}/`;
+
     const list = await Storage.list(env, { prefix, limit: 100 });
     const cdn = (env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
 

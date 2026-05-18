@@ -1544,9 +1544,16 @@
         toggleEditFields(true);
         boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates)); renderTemplateList();
 
+        // Fetch Global Assets for New Setup
+        fetchExistingAssets(true);
+
       } else if (mode === 'edit' || mode === 'view') {
         document.getElementById('btnModeEdit').classList.toggle('active', mode === 'edit');
         document.getElementById('btnModeView').classList.toggle('active', mode === 'view');
+
+        // Hide the galleries immediately to prevent global assets from showing before an event is selected
+        document.getElementById('existingBgGalleryContainer').style.display = 'none';
+        document.getElementById('existingLogoGalleryContainer').style.display = 'none';
 
         document.getElementById('editSelectContainer').style.display = 'block';
         document.getElementById('editFormFields').style.display = mode === 'edit' ? 'block' : 'none';
@@ -1925,6 +1932,9 @@
 
         toggleEditFields(true);
 
+        // NEW: Fetch the isolated assets for this specific event to populate the grid
+        fetchExistingAssets(true, selectedId);
+
       } else if (currentMode === 'view') {
         document.getElementById('viewEventTitle').innerText = details.eventName || "Unnamed Event";
         document.getElementById('viewEventId').innerText = "ID: " + details.id;
@@ -2172,9 +2182,18 @@
     // ==========================================
     // EXISTING ASSETS GALLERIES
     // ==========================================
-    async function fetchExistingAssets(forceRefresh = false) {
+    async function fetchExistingAssets(forceRefresh = false, eventId = null) {
+      const payloadBg = { kind: 'background' };
+      const payloadLogo = { kind: 'logo' };
+
+      // If an event ID is provided, append it to fetch from the isolated folder
+      if (eventId) {
+        payloadBg.eventId = eventId;
+        payloadLogo.eventId = eventId;
+      }
+
       // Fetch Backgrounds
-      const bgRes = await callWorkerApi('/api/dashboard/existing-assets', { kind: 'background' }, true);
+      const bgRes = await callWorkerApi('/api/dashboard/existing-assets', payloadBg, true);
       if (bgRes && bgRes.success && bgRes.assets.length > 0) {
         document.getElementById('existingBgGalleryContainer').style.display = 'block';
         renderExistingGallery(bgRes.assets, 'existingBgGallery', 'bg');
@@ -2183,7 +2202,7 @@
       }
 
       // Fetch Logos
-      const logoRes = await callWorkerApi('/api/dashboard/existing-assets', { kind: 'logo' }, true);
+      const logoRes = await callWorkerApi('/api/dashboard/existing-assets', payloadLogo, true);
       if (logoRes && logoRes.success && logoRes.assets.length > 0) {
         document.getElementById('existingLogoGalleryContainer').style.display = 'block';
         renderExistingGallery(logoRes.assets, 'existingLogoGallery', 'logo');
@@ -2210,7 +2229,7 @@
       el.classList.add('selected');
 
       if (type === 'bg') {
-        currentBoothBgId = null; // Clear ID so backend knows it's a new copy
+        currentBoothBgId = id; // FIX: Keep the ID so the backend can use it if isolated
         currentBoothBgKey = key;
         document.getElementById('bgFile').value = "";
         document.getElementById('bgFileName').innerText = "Using existing background";
@@ -2218,8 +2237,8 @@
         document.getElementById('boothBgPreview').src = url;
         document.getElementById('boothBgPreviewContainer').style.display = "flex";
       } else if (type === 'logo') {
-        selectedExistingLogoId = null; // Clear ID so backend knows it's a new copy
-        selectedExistingQrLogoId = null;
+        selectedExistingLogoId = id; // FIX: Keep the ID so the backend can use it if isolated
+        selectedExistingQrLogoId = id.replace('logo_', 'qrlogo_');
         selectedExistingLogoKey = key;
         selectedExistingQrLogoKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
         document.getElementById('logoFile').value = "";
