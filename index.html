@@ -83,7 +83,8 @@
       background-color: var(--bg-body);
       color: var(--text-main);
       margin: 0;
-      padding: 60px 15px 15px 15px;
+      padding: 15px;
+      /* Removed 60px top padding so it flows naturally */
       transition: background-color 0.3s, color 0.3s;
     }
 
@@ -100,26 +101,32 @@
     }
 
     /* Theme, PIN & Logout Controls */
+    .top-navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      /* Allows items to stack on narrow phone screens */
+      gap: 12px;
+      max-width: 600px;
+      margin: 0 auto 20px auto;
+      z-index: 9999;
+      position: relative;
+    }
+
     .top-controls-left {
-      position: absolute;
-      top: 15px;
-      left: 20px;
       display: flex;
       align-items: center;
-      gap: 15px;
+      flex-wrap: wrap;
+      gap: 12px;
       font-size: 14px;
       font-weight: 600;
       color: var(--text-muted);
-      z-index: 9999;
     }
 
     .top-controls-right {
-      position: absolute;
-      top: 15px;
-      right: 20px;
       display: flex;
       align-items: center;
-      z-index: 9999;
     }
 
     .pin-wrapper {
@@ -130,7 +137,7 @@
       padding: 4px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
-      margin-left: 10px;
+      /* margin-left: 10px; REMOVED to rely on flex gap instead */
     }
 
     .pin-wrapper button {
@@ -825,22 +832,25 @@
     <img id="boothLightboxImg" src="" onclick="event.stopPropagation()">
   </div>
 
-  <div class="top-controls-left">
-    <span id="themeLabel">Dark Mode</span>
-    <label class="switch">
-      <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
-      <span class="slider round"></span>
-    </label>
+  <div class="top-navbar">
+    <div class="top-controls-left">
+      <span id="themeLabel">Dark Mode</span>
+      <label class="switch">
+        <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
+        <span class="slider round"></span>
+      </label>
 
-    <div class="pin-wrapper" id="pinWrapper" style="display: none;">
-      <span>Booth PIN: <strong id="displayPin" style="color:var(--text-main); letter-spacing: 2px;">••••</strong></span>
-      <button onclick="togglePinVisibility()" title="Show/Hide PIN"><i class="bi bi-eye" id="pinEyeIcon"></i></button>
-      <button onclick="openPinModal()" title="Edit PIN"><i class="bi bi-pencil-square"></i></button>
+      <div class="pin-wrapper" id="pinWrapper" style="display: none;">
+        <span>Booth PIN: <strong id="displayPin"
+            style="color:var(--text-main); letter-spacing: 2px;">••••</strong></span>
+        <button onclick="togglePinVisibility()" title="Show/Hide PIN"><i class="bi bi-eye" id="pinEyeIcon"></i></button>
+        <button onclick="openPinModal()" title="Edit PIN"><i class="bi bi-pencil-square"></i></button>
+      </div>
     </div>
-  </div>
 
-  <div class="top-controls-right">
-    <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+    <div class="top-controls-right">
+      <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
   </div>
 
   <div id="pinModal">
@@ -1199,7 +1209,7 @@
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('pinWrapper').style.display = 'none';
 
-        // 🟢 THE FIX: Reset the button and clear the password field when logging out!
+        // Reset the button and clear the password field when logging out!
         const authBtn = document.getElementById('authBtn');
         if (authBtn) {
           authBtn.disabled = false;
@@ -1207,6 +1217,17 @@
         }
         const passInput = document.getElementById('passwordInput');
         if (passInput) passInput.value = '';
+
+        // 🟢 THE FIX: Scrub all memory and reset the UI so data doesn't leak between accounts
+        allFetchedEvents = [];
+        boothDetailsCache = {};
+        currentViewBooths = [];
+        const eventSelectDropdown = document.getElementById('eventSelect');
+        if (eventSelectDropdown) {
+          eventSelectDropdown.innerHTML = '<option value="">-- Loading Booths... --</option>';
+          eventSelectDropdown.value = '';
+        }
+        setMode('new');
 
       } else {
         // Show app, hide login screen
@@ -1218,7 +1239,7 @@
 
         applyTierRestrictions();
         fetchBoothEvents(true);
-        fetchExistingAssets(true); // NEW: Fetch assets on login
+        fetchExistingAssets(true); // Fetch assets on login
         renderTemplateList();
       }
     }
