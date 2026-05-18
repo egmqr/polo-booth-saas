@@ -11,6 +11,37 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
   <style>
+    /* New Gallery Wrappers */
+    .gallery-item-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .gallery-item-delete {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+    }
+
+    .gallery-item-delete:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
     /* --- CSS VARIABLES FOR THEMING --- */
     :root {
       --bg-body: #f4f5f7;
@@ -826,9 +857,9 @@
     </div>
   </div>
   <div id="manageModal"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 10005; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 10005; justify-content: center; align-items: center; padding: 0; box-sizing: border-box;">
     <div
-      style="background: var(--bg-container); border-radius: 12px; width: 100%; max-width: 700px; max-height: 90vh; display: flex; flex-direction: column; border: 1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+      style="background: var(--bg-container); border-radius: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; display: flex; flex-direction: column; border: none; box-shadow: none;">
       <div
         style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
         <h3 style="margin: 0; color: var(--text-main); font-size: 18px;">Manage Photos</h3>
@@ -877,11 +908,11 @@
       <div class="color-group">
         <div class="form-group">
           <label for="eventId">Event ID</label>
-          <input type="text" id="eventId" placeholder="egm0015" disabled>
+          <input type="text" id="eventId" placeholder="evt####" disabled>
         </div>
         <div class="form-group" style="flex: 2;">
           <label for="eventName">Page Title</label>
-          <input type="text" id="eventName" placeholder="e.g., Jollibee Convention" required>
+          <input type="text" id="eventName" placeholder="e.g., Polo's Birthday" required>
         </div>
       </div>
 
@@ -977,6 +1008,11 @@
             <img id="boothBgPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
           </div>
         </div>
+        <div id="existingBgGalleryContainer"
+          style="display:none; margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+          <label style="margin-bottom: 4px;">Recently Uploaded Backgrounds</label>
+          <div id="existingBgGallery" class="logo-gallery"></div>
+        </div>
       </div>
 
       <div class="form-group">
@@ -990,12 +1026,11 @@
             <img id="boothLogoPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
           </div>
         </div>
-        <!--
-        <div
-          style="margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
-          <label style="margin-bottom: 4px;">Or select existing logo:</label>
+        <div id="existingLogoGalleryContainer"
+          style="display:none; margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+          <label style="margin-bottom: 4px;">Recently Uploaded Logos</label>
           <div id="existingLogoGallery" class="logo-gallery"></div>
-        </div> -->
+        </div>
 
         <div class="checkbox-wrapper">
           <input type="checkbox" id="logoOnMain">
@@ -1180,6 +1215,7 @@
 
         applyTierRestrictions();
         fetchBoothEvents(true);
+        fetchExistingAssets(true); // NEW: Fetch assets on login
         renderTemplateList();
       }
     }
@@ -1321,6 +1357,13 @@
       if (fileInput.files.length > 0) {
         textSpan.innerText = fileInput.files[0].name;
         textSpan.style.color = "var(--text-main)";
+
+        // Reset existing selection if they upload a new BG
+        if (inputId === 'bgFile') {
+          currentBoothBgId = null;
+          document.getElementById('boothBgPreviewContainer').style.display = "none";
+          document.querySelectorAll('#existingBgGallery .logo-gallery-item').forEach(el => el.classList.remove('selected'));
+        }
       } else {
         textSpan.innerText = "No file chosen";
         textSpan.style.color = "var(--text-muted)";
@@ -1430,10 +1473,11 @@
 
     async function getNextEventId() {
       const snapshot = await db.collection("users").doc(currentUser.uid).collection("events").orderBy("timestamp", "desc").limit(1).get();
-      if (snapshot.empty) return "egm0001";
+      if (snapshot.empty) return "evt0001";
       const lastId = snapshot.docs[0].id;
-      const num = parseInt(lastId.replace('egm', ''), 10);
-      return 'egm' + ('0000' + (num + 1)).slice(-4);
+      // Handle legacy 'egm' safely and step into 'evt'
+      const num = parseInt(lastId.replace('evt', '').replace('egm', ''), 10);
+      return 'evt' + ('0000' + (num + 1)).slice(-4);
     }
 
     // ==========================================
@@ -1602,6 +1646,13 @@
       const file = event.target.files[0];
       if (!file) return;
       originalLogoFilename = file.name;
+
+      // Reset existing logo selections
+      selectedExistingLogoId = "";
+      selectedExistingQrLogoId = "";
+      document.getElementById('boothLogoPreviewContainer').style.display = 'none';
+      document.querySelectorAll('#existingLogoGallery .logo-gallery-item').forEach(el => el.classList.remove('selected'));
+
       const reader = new FileReader();
       reader.onload = (e) => {
         const image = document.getElementById('imageToCrop');
@@ -1961,7 +2012,9 @@
 
       if (res && res.success) {
         if (uploadedBgId) currentBoothBgId = uploadedBgId;
-        delete boothDetailsCache[eventId]; fetchBoothEvents(true);
+        delete boothDetailsCache[eventId];
+        fetchBoothEvents(true);
+        fetchExistingAssets(true); // NEW: Refresh asset galleries after saving
         setMode('view'); setTimeout(() => { document.getElementById('eventSelect').value = eventId; loadBoothEventDetails(); }, 100);
       }
     }
@@ -2107,6 +2160,84 @@
       }
       hideOverlay();
       showToast('Downloads complete');
+    }
+    // ==========================================
+    // EXISTING ASSETS GALLERIES
+    // ==========================================
+    async function fetchExistingAssets(forceRefresh = false) {
+      // Fetch Backgrounds
+      const bgRes = await callWorkerApi('/api/dashboard/existing-assets', { kind: 'background' }, true);
+      if (bgRes && bgRes.success && bgRes.assets.length > 0) {
+        document.getElementById('existingBgGalleryContainer').style.display = 'block';
+        renderExistingGallery(bgRes.assets, 'existingBgGallery', 'bg');
+      } else {
+        document.getElementById('existingBgGalleryContainer').style.display = 'none';
+      }
+
+      // Fetch Logos
+      const logoRes = await callWorkerApi('/api/dashboard/existing-assets', { kind: 'logo' }, true);
+      if (logoRes && logoRes.success && logoRes.assets.length > 0) {
+        document.getElementById('existingLogoGalleryContainer').style.display = 'block';
+        renderExistingGallery(logoRes.assets, 'existingLogoGallery', 'logo');
+      } else {
+        document.getElementById('existingLogoGalleryContainer').style.display = 'none';
+      }
+    }
+
+    function renderExistingGallery(assets, containerId, type) {
+      const container = document.getElementById(containerId);
+      let html = '';
+      assets.forEach(asset => {
+        html += `<div class="gallery-item-wrapper">
+              <img src="${asset.url}" class="logo-gallery-item" title="${asset.name}" onclick="selectExistingAsset('${asset.id}', '${asset.url}', '${type}', this)">
+              <button type="button" class="gallery-item-delete" title="Delete" onclick="deleteExistingAsset('${asset.key}', '${type}', event)">✕</button>
+          </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function selectExistingAsset(id, url, type, el) {
+      const gallery = el.closest('.logo-gallery');
+      gallery.querySelectorAll('.logo-gallery-item').forEach(img => img.classList.remove('selected'));
+      el.classList.add('selected');
+
+      if (type === 'bg') {
+        currentBoothBgId = id;
+        document.getElementById('bgFile').value = "";
+        document.getElementById('bgFileName').innerText = "Using existing background";
+        document.getElementById('bgFileName').style.color = "var(--btn-bg)";
+        document.getElementById('boothBgPreview').src = url;
+        document.getElementById('boothBgPreviewContainer').style.display = "flex";
+      } else if (type === 'logo') {
+        selectedExistingLogoId = id;
+        selectedExistingQrLogoId = id.replace('logo_', 'qrlogo_');
+        document.getElementById('logoFile').value = "";
+        document.getElementById('logoFileName').innerText = "Using existing logo";
+        document.getElementById('logoFileName').style.color = "var(--btn-bg)";
+        croppedLogoPayload = null; croppedQrLogoPayload = null;
+        document.getElementById('boothLogoPreview').src = url;
+        document.getElementById('boothLogoPreviewContainer').style.display = "flex";
+      }
+    }
+
+    async function deleteExistingAsset(key, type, event) {
+      event.stopPropagation();
+      if (!confirm("Permanently delete this asset?")) return;
+      showOverlay("Deleting...");
+
+      const res = await callWorkerApi('/api/dashboard/delete-file', { key: key });
+      if (res && res.success) {
+        // If deleting a logo, also attempt to delete its QR counterpart
+        if (type === 'logo') {
+          const qrKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
+          await callWorkerApi('/api/dashboard/delete-file', { key: qrKey }, true);
+        }
+        await fetchExistingAssets(true);
+        showToast("Deleted successfully.");
+      } else {
+        showToast("Error deleting file.");
+      }
+      hideOverlay();
     }
   </script>
 </body>

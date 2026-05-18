@@ -128,7 +128,7 @@ export async function handleDashboardRoutes(request, env) {
     if (path === '/api/dashboard/update-booth') return json(await updateBoothSetup(env, body, currentUser));
     if (path === '/api/dashboard/booth-details') return json(await getBoothDetails(env, body.eventId, currentUser));
     if (path === '/api/dashboard/delete-booth') return json(await deleteBoothEvent(env, body.eventId, currentUser));
-    if (path === '/api/dashboard/existing-logos') return json(await listExistingLogos(env, currentUser));
+    if (path === '/api/dashboard/existing-assets') return json(await listExistingAssets(env, body, currentUser));
     if (path === '/api/dashboard/upload-asset') return json(await uploadAsset(env, body, currentUser));
     if (path === '/api/sign-upload') return json(await handleSignedUpload(env, body, currentUser));
 
@@ -416,17 +416,44 @@ async function handleSignedUpload(env, body, currentUser) {
     return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
 }
 
-async function listExistingLogos(env, currentUser) {
-    const prefix = `users/${currentUser.uid}/assets/logos/`;
-    const list = await Storage.list(env, { prefix, limit: 1000 });
+// ── ASSET HELPERS ─────────────────────────────────────────────────────
+
+async function handleSignedUpload(env, body, currentUser) {
+    const prefix = safePrefix(body.prefix);
+    if (!prefix) return { error: 'Invalid prefix' };
+
+    // Ensure the prefix belongs to this user
+    const allowedBase = `users/${currentUser.uid}/`;
+    if (!prefix.startsWith(allowedBase)) {
+        return { error: 'Prefix must be within your user namespace' };
+    }
+
+    const filename = (body.filename || '').replace(/[^A-Za-z0-9._-]/g, '_');
+    const key = `${prefix}/${filename}`;
+    const uploadUrl = await Storage.presignPut(env, key, 900);
+
+    return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
+}
+
+// NEW: Consolidated asset fetcher for both Backgrounds and Logos
+async function listExistingAssets(env, body, currentUser) {
+    const folder = body.kind === 'background' ? 'backgrounds' : 'logos';
+    const prefix = `users/${currentUser.uid}/assets/${folder}/`;
+    const list = await Storage.list(env, { prefix, limit: 100 });
     const cdn = (env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
-    const logos = list.objects
+
+    const assets = list.objects
         .filter(o => !o.key.split('/').pop().startsWith('.'))
         .map(o => {
             const id = o.key.replace(prefix, '').replace(/\.[^.]+$/, '');
-            return { id, qrId: id.replace('logo_', 'qrlogo_'), name: o.key.split('/').pop(), url: `${cdn}/${o.key}?w=150` };
+            return {
+                id,
+                key: o.key, // Send the explicit storage key so it can be deleted
+                name: o.key.split('/').pop(),
+                url: `${cdn}/${o.key}?w=150`
+            };
         });
-    return { success: true, logos };
+    return { success: true, assets };
 }
 
 async function uploadAsset(env, body, currentUser) {
@@ -465,9 +492,12 @@ async function mintNextEventId(env) {
             headers: { Authorization: `Bearer ${serviceToken}` }
         });
         const doc = await getRes.json();
-        return { success: true, eventId: 'egm' + String(parseInt(doc.fields?.currentId?.integerValue || '1', 10)).padStart(4, '0') };
+
+        // Changed "egm" to "evt"
+        return { success: true, eventId: 'evt' + String(parseInt(doc.fields?.currentId?.integerValue || '1', 10)).padStart(4, '0') };
     } catch (err) {
-        return { success: true, eventId: 'egm' + Math.floor(10000 + Math.random() * 90000), fallback: true };
+        // Changed "egm" to "evt"
+        return { success: true, eventId: 'evt' + Math.floor(10000 + Math.random() * 90000), fallback: true };
     }
 }
 
