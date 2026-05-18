@@ -1211,7 +1211,7 @@
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('pinWrapper').style.display = 'none';
 
-        // Reset the button and clear the password field when logging out!
+        // Reset the button and clear the password field when logging out
         const authBtn = document.getElementById('authBtn');
         if (authBtn) {
           authBtn.disabled = false;
@@ -1220,7 +1220,7 @@
         const passInput = document.getElementById('passwordInput');
         if (passInput) passInput.value = '';
 
-        // 🟢 THE FIX: Scrub all memory and reset the UI so data doesn't leak between accounts
+        // Scrub all memory and reset the UI so data doesn't leak between accounts
         allFetchedEvents = [];
         boothDetailsCache = {};
         currentViewBooths = [];
@@ -1239,9 +1239,12 @@
         document.getElementById('pinWrapper').style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
 
+        // 🟢 THE FIX: Force the UI to reset upon login to unlock fields for Paid accounts!
+        setMode('new');
+
         applyTierRestrictions();
         fetchBoothEvents(true);
-        fetchExistingAssets(true); // Fetch assets on login
+        fetchExistingAssets(true);
         renderTemplateList();
       }
     }
@@ -1281,7 +1284,17 @@
     function logout() { auth.signOut(); }
 
     function applyTierRestrictions() {
-      if (userTier === 'paid') return; // paid users see everything unlocked
+      // 🟢 THE FIX: Scrub existing tags first so they don't carry over from previous logouts
+      document.querySelectorAll('.pro-tag').forEach(el => el.remove());
+
+      if (userTier === 'paid') {
+        // Ensure Booth Count isn't stuck disabled from a previous Free session
+        if (currentMode === 'new') {
+          const boothCountEl = document.getElementById('boothCount');
+          if (boothCountEl) boothCountEl.disabled = false;
+        }
+        return; // Paid users see everything unlocked, so stop here
+      }
 
       const proTag = '<span class="pro-tag" style="color:#ef4444;font-size:10px;font-weight:bold;vertical-align:middle;margin-left:4px;">PRO</span>';
 
@@ -1290,13 +1303,13 @@
         if (el) el.disabled = true;
         if (labelFor) {
           const lbl = document.querySelector(`label[for="${labelFor}"]`);
-          if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
+          if (lbl) lbl.insertAdjacentHTML('beforeend', proTag);
         }
       }
 
       function lockBtn(selector) {
-        const el = document.querySelector(selector);
-        if (el) el.disabled = true;
+        const els = document.querySelectorAll(selector);
+        els.forEach(el => el.disabled = true);
       }
 
       // 1. Custom background
@@ -1309,8 +1322,8 @@
 
       // 3. Community booth
       lockField('boothEnableCommunity', 'boothEnableCommunity');
-      lockField('boothCommunityOnly', 'boothCommunityOnly');  // ← ADD
-      lockField('boothUserStickers', 'boothUserStickers');    // ← ADD
+      lockField('boothCommunityOnly', 'boothCommunityOnly');
+      lockField('boothUserStickers', 'boothUserStickers');
 
       // 4. Font color
       lockField('fontColor');
@@ -1320,27 +1333,16 @@
       lockField('bgColor');
       lockField('bgColorPicker', 'bgColor');
 
-      // 6. Page title — fixed to "Your Gallery"
-      /*const eventNameEl = document.getElementById('eventName');
-      if (eventNameEl) {
-        eventNameEl.disabled = true;
-        eventNameEl.value = 'Your Gallery';
-        eventNameEl.placeholder = 'Your Gallery';
-        eventNameEl.dataset.freeSet = '1';
-        const lbl = document.querySelector('label[for="eventName"]');
-        if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
-      }*/
-
-      // 7. Number of booths — fixed to 1
+      // 6. Number of booths — fixed to 1
       const boothCountEl = document.getElementById('boothCount');
       if (boothCountEl) {
         boothCountEl.disabled = true;
         if (!boothCountEl.value) boothCountEl.value = '1';
         const lbl = document.querySelector('label[for="boothCount"]');
-        if (lbl && !lbl.querySelector('.pro-tag')) lbl.insertAdjacentHTML('beforeend', proTag);
+        if (lbl) lbl.insertAdjacentHTML('beforeend', proTag);
       }
 
-      // 8. Show logo as custom branding
+      // 7. Show logo as custom branding
       lockField('logoOnMain', 'logoOnMain');
     }
 
