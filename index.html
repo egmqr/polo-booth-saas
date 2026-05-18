@@ -834,22 +834,24 @@
 
   <div class="top-navbar">
     <div class="top-controls-left">
-      <span id="themeLabel">Dark Mode</span>
+      <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="top-controls-right" style="gap: 10px;">
+      <i id="themeIcon" class="bi bi-moon-fill"
+        style="color: var(--text-muted); font-size: 1.1rem; padding-top: 2px;"></i>
       <label class="switch">
         <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
         <span class="slider round"></span>
       </label>
-
-      <div class="pin-wrapper" id="pinWrapper" style="display: none;">
-        <span>Booth PIN: <strong id="displayPin"
-            style="color:var(--text-main); letter-spacing: 2px;">••••</strong></span>
-        <button onclick="togglePinVisibility()" title="Show/Hide PIN"><i class="bi bi-eye" id="pinEyeIcon"></i></button>
-        <button onclick="openPinModal()" title="Edit PIN"><i class="bi bi-pencil-square"></i></button>
-      </div>
     </div>
+  </div>
 
-    <div class="top-controls-right">
-      <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+  <div style="max-width: 600px; margin: 0 auto 15px auto;">
+    <div class="pin-wrapper" id="pinWrapper" style="display: none; width: max-content; margin: 0;">
+      <span>Booth PIN: <strong id="displayPin" style="color:var(--text-main); letter-spacing: 2px;">••••</strong></span>
+      <button onclick="togglePinVisibility()" title="Show/Hide PIN"><i class="bi bi-eye" id="pinEyeIcon"></i></button>
+      <button onclick="openPinModal()" title="Edit PIN"><i class="bi bi-pencil-square"></i></button>
     </div>
   </div>
 
@@ -1361,8 +1363,15 @@
 
     function toggleTheme() {
       const isDark = document.getElementById('themeSwitch').checked;
-      if (isDark) { document.body.classList.add('dark-mode'); document.getElementById('themeLabel').innerText = "Dark Mode"; }
-      else { document.body.classList.remove('dark-mode'); document.getElementById('themeLabel').innerText = "Light Mode"; }
+      const icon = document.getElementById('themeIcon');
+
+      if (isDark) {
+        document.body.classList.add('dark-mode');
+        if (icon) icon.className = "bi bi-moon-fill";
+      } else {
+        document.body.classList.remove('dark-mode');
+        if (icon) icon.className = "bi bi-sun-fill text-warning";
+      }
     }
 
     function syncColor(sourceId, targetId) {
