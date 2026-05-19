@@ -444,6 +444,12 @@ async function deleteBoothEvent(env, eventId, currentUser) {
         cursor = page.truncated ? page.cursor : null;
     } while (cursor);
 
+    // Also purge any hotfolder entries for this event so ProBooth
+    // won't re-sync a deleted event on its next startup.
+    const hotPrefix = `users/${currentUser.uid}/hotfolder/${eventId}_`;
+    const hotList = await Storage.list(env, { prefix: hotPrefix, limit: 50 });
+    if (hotList.objects.length) await Storage.delete(env, hotList.objects.map(o => o.key));
+
     const serviceToken = await getServiceToken(env);
     const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}`;
     await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${serviceToken}` } });
