@@ -188,7 +188,9 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // ── User-scoped path prefix ───────────────────────────────────────
     const uPrefix = `users/${currentUser.uid}/events`;
 
-    const { eventId, folderName, eventName, boothCount, logoData, qrLogoData, existingLogoId, existingQrLogoId, existingBgId, fontColor, bgColor, logoOnMain, templates, enableCommunity, communityOnly, userStickers } = p;
+    const { eventId, folderName, eventName, boothCount, logoData, qrLogoData, existingLogoId, existingQrLogoId, existingBgId, fontColor, bgColor, logoOnMain, templates, enableCommunity, communityOnly, userStickers, source } = p;
+    // Origin marker: 'probooth' events have templates locked on the web dashboard.
+    const eventSource = (source === 'probooth') ? 'probooth' : (p._existingSource || 'dashboard');
 
     const includeCommunity = enableCommunity === true;
     const isOnlyCommunity = communityOnly === true;
@@ -292,7 +294,8 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
                 R2KeyPrefix: prefix,
                 StaticBoothPreviewSeconds: preserved.StaticBoothPreviewSeconds ?? 30,
                 TemplatePaths: [], IsStaticBoothMode: preserved.IsStaticBoothMode ?? false,
-                StaticBoothCountdownSeconds: preserved.StaticBoothCountdownSeconds ?? 10
+                StaticBoothCountdownSeconds: preserved.StaticBoothCountdownSeconds ?? 10,
+                Source: eventSource
             },
             Templates: templates || []
         };
@@ -334,7 +337,8 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         booths: appUrls.join('|'), qrUrls: qrUrls.join('|'),
         configKeys: configKeys.join('|'), boothPrefixes: boothPrefixes.join('|'),
         enableCommunity: includeCommunity, communityOnly: isOnlyCommunity,
-        userStickers: userStickers === true
+        userStickers: userStickers === true,
+        source: eventSource
     });
 
     // Push each booth config to the user's hotfolder so ProBooth picks it up on next sync
@@ -374,6 +378,7 @@ async function updateBoothSetup(env, p, currentUser) {
             const obj = await Storage.get(env, `${uPrefix}/${p.eventId}/config/Booth${i}.json`);
             if (obj) {
                 const existing = JSON.parse(await obj.text());
+                if (existing?.Settings?.Source && !p._existingSource) p._existingSource = existing.Settings.Source;
                 if (existing?.Settings) existingSettings[i] = {
                     IsStaticBoothMode: existing.Settings.IsStaticBoothMode ?? false,
                     StaticBoothPreviewSeconds: existing.Settings.StaticBoothPreviewSeconds ?? 30,
@@ -425,6 +430,7 @@ async function getBoothDetails(env, eventId, currentUser) {
         boothPrefixesStr: f.boothPrefixes?.stringValue || '',
         enableCommunity: f.enableCommunity?.booleanValue || false,
         communityOnly: f.communityOnly?.booleanValue || false,
+        source: f.source?.stringValue || 'dashboard',
         templatesStr: JSON.stringify(templates)
     };
 }
@@ -557,6 +563,7 @@ async function saveEventToFirestore(env, uid, eventId, data) {
             enableCommunity: { booleanValue: data.enableCommunity === true },
             communityOnly: { booleanValue: data.communityOnly === true },
             userStickers: { booleanValue: data.userStickers === true },
+            source: { stringValue: data.source || 'dashboard' },
             timestamp: { timestampValue: new Date().toISOString() }
         }
     };
