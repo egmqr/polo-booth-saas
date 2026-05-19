@@ -163,15 +163,15 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         // Only check event count for NEW events, not updates
         if (!isUpdate) {
             const serviceToken = await getServiceToken(env);
-            // FIX: Increased pageSize to 3 so we can accurately count if they already have 2
-            const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=3`;
+            // Fetch up to 4 so we can accurately count if they already have 3
+            const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=4`;
             const listRes = await fetch(listUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
             const listData = await listRes.json();
             const existingCount = (listData.documents || []).length;
 
-            // FIX: Allow up to 2 events for free users
-            if (existingCount >= 2) {
-                return { success: false, error: 'Free accounts can publish 2 events. Contact us to upgrade your account.' };
+            // Allow up to 3 cloud events for free users; extras are saved locally in ProBooth.
+            if (existingCount >= 3) {
+                return { success: false, error: 'Free accounts can publish 3 cloud events. Additional events are saved locally in the ProBooth app.' };
             }
         }
 
