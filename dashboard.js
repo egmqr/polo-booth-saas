@@ -271,8 +271,6 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     }
 
     const totalBooths = includeCommunity ? actualNumBooths + 1 : actualNumBooths;
-    let cWidth = templates?.[0]?.CanvasWidth || 1800;
-    let cHeight = templates?.[0]?.CanvasHeight || 1200;
 
     const boothPrefixes = [], qrUrls = [], appUrls = [], configKeys = [];
 
@@ -287,7 +285,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
         const eventConfig = {
             Settings: {
-                EventName: `${eventName}-Booth${i}`, CanvasWidth: cWidth, CanvasHeight: cHeight,
+                EventName: `${eventName}-Booth${i}`,
                 PrinterName: preserved.PrinterName ?? null,
                 CloudLink: `https://webqr.polo-booth.com/gallery?prefix=${encodeURIComponent(prefix)}`,
                 MainGalleryLink: mainGalleryUrl,
