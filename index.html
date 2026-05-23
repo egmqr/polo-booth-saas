@@ -4,7 +4,7 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Booth Management</title>
+  <title>Standalone Booth Generator</title>
 
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
@@ -1115,8 +1115,8 @@
     let selectedExistingQrLogoKey = null;
 
     const defaultBoothTemplates = [
-      { "Name": "portrait", "CanvasWidth": 1200, "CanvasHeight": 1800, "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1200, "Height": 1800, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] },
-      { "Name": "landscape", "CanvasWidth": 1800, "CanvasHeight": 1200, "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1800, "Height": 1200, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] }
+      { "Name": "portrait", "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1200, "Height": 1800, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] },
+      { "Name": "landscape", "Layers": [{ "LayerType": "PhotoSlot", "X": 0, "Y": 0, "Width": 1800, "Height": 1200, "ImagePath": null, "Rotation": 0, "DisplayName": "Photo Slot 1" }] }
     ];
     let boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates));
 
@@ -2026,7 +2026,7 @@
 
           const card = document.createElement('div'); card.className = 'booth-card';
           card.innerHTML = `
-                    <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${dynFolder}${bNum}`}</h4>
+                    <h4>${isComm ? `<span class="badge-community">Community Booth</span>` : `${dynFolder}${bNum}`}</h4>
                     <div class="link-row"><span>Main Gallery</span><div class="link-actions">
                         <button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button>
                         <button class="mini-btn backup" onclick="openManageModal('${finalPrefix}')">Manage</button>
