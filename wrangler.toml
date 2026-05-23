@@ -2,6 +2,17 @@ name = "probooth-api"
 main = "index.js"
 compatibility_date = "2024-01-01"
 
+workers_dev = false
+
+[vars]
+BUCKET_NAME = "probooth-production"
+PUBLIC_CDN_BASE = "https://cdn.polo-booth.com"
+
+[[routes]]
+pattern = "api.polo-booth.com"
+zone_name = "polo-booth.com"
+custom_domain = true
+
 [[r2_buckets]]
 binding = "PHOTOS"
 bucket_name = "probooth-production"
