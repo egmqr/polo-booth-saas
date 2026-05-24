@@ -961,7 +961,7 @@
       </div>
 
       <div class="form-group" id="communityGroup" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-        <div class="checkbox-wrapper">
+        <div class="checkbox-wrapper" id="communityEnableRow">
           <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
           <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Virtual Booth</label>
         </div>
@@ -979,7 +979,7 @@
         <div id="userStickersManager"
           style="display:none; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-top: 8px; border: 1px solid var(--border);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <label style="margin:0;"><i class="bi bi-stars"></i> Virtual Booth Custom Prop Stickers</label>
+            <label style="margin:0;"><i class="bi bi-stars"></i> Prop Stickers</label>
             <input type="file" id="userStickerUploadInput" accept="image/png, image/jpeg" style="display:none;"
               onchange="uploadUserSticker(event)">
             <button type="button" class="file-btn" style="padding: 4px 8px; font-size: 10px;"
@@ -1604,7 +1604,10 @@
         document.getElementById('boothHint').style.display = 'none';
         document.getElementById('boothCount').closest('.form-group').style.display = 'block';
         document.getElementById('templatesGroup').style.display = 'block';
-        document.getElementById('communityGroup').style.display = 'block';
+        document.getElementById('communityEnableRow').style.display = 'flex';
+        document.getElementById('communityOnlyRow').style.display = 'none';
+        document.getElementById('userStickersRow').style.display = 'none';
+        document.getElementById('communityEditHint').style.display = 'none';
         toggleEditFields(true);
         lockTemplatesForEdit(false);
         boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates)); renderTemplateList();
@@ -1633,7 +1636,10 @@
           document.getElementById('boothHint').style.display = 'block';
           document.getElementById('boothCount').closest('.form-group').style.display = 'none';
           document.getElementById('templatesGroup').style.display = 'none';
-          document.getElementById('communityGroup').style.display = 'none';
+          document.getElementById('communityEnableRow').style.display = 'none';
+          document.getElementById('communityOnlyRow').style.display = 'none';
+          document.getElementById('userStickersRow').style.display = 'none';
+          document.getElementById('communityEditHint').style.display = 'none';
           toggleEditFields(false);
           lockTemplatesForEdit(true);
         }
