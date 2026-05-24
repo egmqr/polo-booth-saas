@@ -1691,7 +1691,8 @@
         stickersEl.disabled = !isEnabled || !document.getElementById('boothEnableCommunity').checked;
       }
 
-      document.getElementById('communityEditHint').style.display = isEditMode ? 'inline' : 'none';
+      // hint is managed by setMode; keep it hidden in edit mode always
+      if (!isEditMode) document.getElementById('communityEditHint').style.display = 'none';
 
       document.getElementById('eventName').disabled = !isEnabled;
       document.getElementById('fontColorPicker').disabled = !isEnabled; document.getElementById('fontColor').disabled = !isEnabled;
@@ -1716,8 +1717,8 @@
       const stickersRow = document.getElementById('userStickersRow');
 
       if (isEnabled) {
-        onlyRow.style.display = '';
-        stickersRow.style.display = '';
+        if (currentMode !== 'edit') onlyRow.style.display = '';
+        if (currentMode !== 'edit') stickersRow.style.display = '';
         onlyToggle.disabled = false;
 
         // FIX: Don't unlock the stickers toggle if we are in Edit mode and it is already checked
