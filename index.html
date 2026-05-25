@@ -2195,7 +2195,8 @@
         if (uploadedBgId) currentBoothBgId = uploadedBgId;
         delete boothDetailsCache[eventId];
         fetchBoothEvents(true);
-        fetchExistingAssets(true); // NEW: Refresh asset galleries after saving
+        // Refresh the gallery in the correct scope: local for edits, global for new events
+        fetchExistingAssets(true, actionName === 'updateBoothSetup' ? eventId : null);
         setMode('view'); setTimeout(() => { document.getElementById('eventSelect').value = eventId; loadBoothEventDetails(); }, 100);
       }
     }
@@ -2346,23 +2347,35 @@
     // EXISTING ASSETS GALLERIES
     // ==========================================
     async function fetchExistingAssets(forceRefresh = false, eventId = null) {
-      // 🟢 THE FIX: Abort immediately if no user is logged in
+      // Abort immediately if no user is logged in
       if (!currentUser) return;
+
+      // Scope rules:
+      //  • New Setup  → global gallery only (no eventId)
+      //  • Edit Setup → local event gallery only (eventId required; hide if none selected yet)
+      const resolvedEventId = (currentMode === 'edit')
+        ? (eventId || document.getElementById('eventSelect').value || null)
+        : null;
+
+      // In edit mode with no event selected yet, keep galleries hidden and bail.
+      if (currentMode === 'edit' && !resolvedEventId) {
+        document.getElementById('existingBgGalleryContainer').style.display = 'none';
+        document.getElementById('existingLogoGalleryContainer').style.display = 'none';
+        return;
+      }
 
       const payloadBg = { kind: 'background' };
       const payloadLogo = { kind: 'logo' };
-
-      // If an event ID is provided, append it to fetch from the isolated folder
-      if (eventId) {
-        payloadBg.eventId = eventId;
-        payloadLogo.eventId = eventId;
+      if (resolvedEventId) {
+        payloadBg.eventId = resolvedEventId;
+        payloadLogo.eventId = resolvedEventId;
       }
 
       // Fetch Backgrounds
       const bgRes = await callWorkerApi('/api/dashboard/existing-assets', payloadBg, true);
       if (bgRes && bgRes.success && bgRes.assets.length > 0) {
         document.getElementById('existingBgGalleryContainer').style.display = 'block';
-        renderExistingGallery(bgRes.assets, 'existingBgGallery', 'bg');
+        renderExistingGallery(bgRes.assets, 'existingBgGallery', 'bg', resolvedEventId);
       } else {
         document.getElementById('existingBgGalleryContainer').style.display = 'none';
       }
@@ -2371,19 +2384,21 @@
       const logoRes = await callWorkerApi('/api/dashboard/existing-assets', payloadLogo, true);
       if (logoRes && logoRes.success && logoRes.assets.length > 0) {
         document.getElementById('existingLogoGalleryContainer').style.display = 'block';
-        renderExistingGallery(logoRes.assets, 'existingLogoGallery', 'logo');
+        renderExistingGallery(logoRes.assets, 'existingLogoGallery', 'logo', resolvedEventId);
       } else {
         document.getElementById('existingLogoGalleryContainer').style.display = 'none';
       }
     }
 
-    function renderExistingGallery(assets, containerId, type) {
+    function renderExistingGallery(assets, containerId, type, scopedEventId) {
       const container = document.getElementById(containerId);
+      // Encode scopedEventId safely for inline onclick (empty string = global scope)
+      const scopeArg = scopedEventId ? `'${scopedEventId}'` : 'null';
       let html = '';
       assets.forEach(asset => {
         html += `<div class="gallery-item-wrapper">
               <img src="${asset.url}" class="logo-gallery-item" title="${asset.name}" onclick="selectExistingAsset('${asset.id}', '${asset.key}', '${asset.url}', '${type}', this)">
-              <button type="button" class="gallery-item-delete" title="Delete" onclick="deleteExistingAsset('${asset.key}', '${type}', event)">✕</button>
+              <button type="button" class="gallery-item-delete" title="Delete" onclick="deleteExistingAsset('${asset.key}', '${type}', ${scopeArg}, event)">✕</button>
           </div>`;
       });
       container.innerHTML = html;
@@ -2416,7 +2431,7 @@
       }
     }
 
-    async function deleteExistingAsset(key, type, event) {
+    async function deleteExistingAsset(key, type, scopedEventId, event) {
       event.stopPropagation();
       if (!confirm("Permanently delete this asset?")) return;
       showOverlay("Deleting...");
@@ -2428,7 +2443,9 @@
           const qrKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
           await callWorkerApi('/api/dashboard/delete-file', { key: qrKey }, true);
         }
-        await fetchExistingAssets(true);
+        // Re-fetch within the same scope the delete came from:
+        //   global (new mode) → no eventId  |  local (edit mode) → pass the event's id
+        await fetchExistingAssets(true, scopedEventId || null);
         showToast("Deleted successfully.");
       } else {
         showToast("Error deleting file.");
