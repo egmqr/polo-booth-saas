@@ -457,11 +457,19 @@ async function deleteBoothEvent(env, eventId, currentUser) {
         cursor = page.truncated ? page.cursor : null;
     } while (cursor);
 
-    // Also purge any hotfolder entries for this event so ProBooth
-    // won't re-sync a deleted event on its next startup.
+    // Purge any existing hotfolder entries for this event (stale booth configs).
     const hotPrefix = `users/${currentUser.uid}/hotfolder/${eventId}_`;
     const hotList = await Storage.list(env, { prefix: hotPrefix, limit: 50 });
     if (hotList.objects.length) await Storage.delete(env, hotList.objects.map(o => o.key));
+
+    // Write a deletion tombstone so ProBooth removes its local folders on next sync.
+    // Pattern: {eventId}_deleted.json — ProBooth's Pass 1 detects and processes these.
+    await Storage.put(
+        env,
+        `${hotPrefix}deleted.json`,
+        JSON.stringify({ deleted: true, eventId }),
+        { httpMetadata: { contentType: 'application/json' } }
+    );
 
     const serviceToken = await getServiceToken(env);
     const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}`;
