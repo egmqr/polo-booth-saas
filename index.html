@@ -11,6 +11,26 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
   <style>
+    .download-app-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--btn-bg);
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+
+    .download-app-btn:hover {
+      background: var(--btn-hover);
+      color: #fff;
+      text-decoration: none;
+    }
+
     /* New Gallery Wrappers */
     .gallery-item-wrapper {
       position: relative;
@@ -916,6 +936,10 @@
   <div class="top-navbar">
     <div class="top-controls-left">
       <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+      <a href="https://cdn.polo-booth.com/ProBooth.exe" id="downloadAppBtn" class="download-app-btn"
+        style="display:none;">
+        <i class="bi bi-windows"></i> Download ProBooth
+      </a>
     </div>
 
     <div class="top-controls-right" style="gap: 8px;">
@@ -1446,6 +1470,10 @@
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('settingsBtn').style.display = 'none';
 
+        // Add this line to hide it when logged out
+        const dlBtn = document.getElementById('downloadAppBtn');
+        if (dlBtn) dlBtn.style.display = 'none';
+
         // Reset the button and clear the password field when logging out
         const authBtn = document.getElementById('authBtn');
         if (authBtn) {
@@ -1472,6 +1500,10 @@
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
         document.getElementById('settingsBtn').style.display = 'flex';
+
+        // Add this line to show it when logged in
+        const dlBtn = document.getElementById('downloadAppBtn');
+        if (dlBtn) dlBtn.style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
 
         // 🟢 THE FIX: Force the UI to reset upon login to unlock fields for Paid accounts!
