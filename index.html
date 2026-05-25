@@ -1819,12 +1819,12 @@
       // Reset the file input so the user can select the same file again if they want
       document.getElementById('logoFile').value = "";
     }
-    function applyCrop() {
+    async function applyCrop() {
       if (!cropper) return;
       let baseName = originalLogoFilename.substring(0, originalLogoFilename.lastIndexOf('.')) || originalLogoFilename;
+
       const canvasTrans = cropper.getCroppedCanvas({ width: 250, height: 250 });
       const base64Trans = canvasTrans.toDataURL('image/png').split(',')[1];
-      croppedLogoPayload = { filename: baseName + '_transparent.png', mimeType: 'image/png', base64: base64Trans };
 
       const canvasWhite = document.createElement('canvas');
       canvasWhite.width = 250; canvasWhite.height = 250;
@@ -1832,14 +1832,53 @@
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 250, 250);
       ctx.drawImage(canvasTrans, 0, 0);
       const base64White = canvasWhite.toDataURL('image/jpeg', 0.95).split(',')[1];
-      croppedQrLogoPayload = { filename: baseName + '_qr_whitebg.png', mimeType: 'image/jpeg', base64: base64White };
 
       document.getElementById('cropModal').style.display = 'none';
       cropper.destroy(); cropper = null;
-      document.getElementById('logoFileName').innerText = baseName + "_cropped";
-      document.getElementById('logoFileName').style.color = "var(--btn-bg)";
-      selectedExistingLogoId = ""; selectedExistingQrLogoId = "";
-      document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
+
+      // Upload both variants to the global gallery immediately.
+      // Generate will then copy from global → event-local, keeping the two stores independent.
+      document.getElementById('logoFileName').innerText = "Uploading...";
+      document.getElementById('logoFileName').style.color = "var(--text-muted, #888)";
+
+      try {
+        const [logoRes, qrRes] = await Promise.all([
+          callWorkerApi('/api/dashboard/upload-asset', {
+            kind: 'logo', filename: baseName + '_transparent.png',
+            mimeType: 'image/png', base64Data: base64Trans
+          }),
+          callWorkerApi('/api/dashboard/upload-asset', {
+            kind: 'qr-logo', filename: baseName + '_qr_whitebg.jpg',
+            mimeType: 'image/jpeg', base64Data: base64White
+          })
+        ]);
+
+        if (logoRes?.success) {
+          selectedExistingLogoId = logoRes.id;
+          selectedExistingLogoKey = logoRes.key;
+          // Derive the QR logo key/id from the qr-logo upload result
+          selectedExistingQrLogoId = qrRes?.success ? qrRes.id : logoRes.id;
+          selectedExistingQrLogoKey = qrRes?.success ? qrRes.key : logoRes.key;
+          // Keep croppedLogoPayload null — generate now uses existingLogoKey path
+          croppedLogoPayload = null;
+          croppedQrLogoPayload = null;
+          document.getElementById('logoFileName').innerText = baseName + "_cropped";
+          document.getElementById('logoFileName').style.color = "var(--btn-bg)";
+          document.getElementById('boothLogoPreview').src = logoRes.url;
+          document.getElementById('boothLogoPreviewContainer').style.display = "flex";
+          document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
+          // Refresh global gallery to show the newly uploaded logo
+          await fetchExistingAssets(true);
+        } else {
+          throw new Error('Upload failed');
+        }
+      } catch (e) {
+        showToast("Logo upload failed. Please try again.");
+        document.getElementById('logoFileName').innerText = "No file";
+        document.getElementById('logoFileName').style.color = "";
+        selectedExistingLogoId = ""; selectedExistingLogoKey = null;
+        selectedExistingQrLogoId = ""; selectedExistingQrLogoKey = null;
+      }
     }
 
 
@@ -2195,7 +2234,7 @@
         if (uploadedBgId) currentBoothBgId = uploadedBgId;
         delete boothDetailsCache[eventId];
         fetchBoothEvents(true);
-        // Refresh the gallery in the correct scope: local for edits, global for new events
+        // Refresh the gallery in the correct scope: local for edits, global for new events.
         fetchExistingAssets(true, actionName === 'updateBoothSetup' ? eventId : null);
         setMode('view'); setTimeout(() => { document.getElementById('eventSelect').value = eventId; loadBoothEventDetails(); }, 100);
       }
@@ -2347,17 +2386,16 @@
     // EXISTING ASSETS GALLERIES
     // ==========================================
     async function fetchExistingAssets(forceRefresh = false, eventId = null) {
-      // Abort immediately if no user is logged in
       if (!currentUser) return;
 
       // Scope rules:
-      //  • New Setup  → global gallery only (no eventId)
-      //  • Edit Setup → local event gallery only (eventId required; hide if none selected yet)
+      //   New Setup  → global gallery only (no eventId)
+      //   Edit Setup → local event gallery only (requires an event to be selected)
       const resolvedEventId = (currentMode === 'edit')
         ? (eventId || document.getElementById('eventSelect').value || null)
         : null;
 
-      // In edit mode with no event selected yet, keep galleries hidden and bail.
+      // In edit mode with no event selected yet, keep galleries hidden.
       if (currentMode === 'edit' && !resolvedEventId) {
         document.getElementById('existingBgGalleryContainer').style.display = 'none';
         document.getElementById('existingLogoGalleryContainer').style.display = 'none';
@@ -2371,7 +2409,6 @@
         payloadLogo.eventId = resolvedEventId;
       }
 
-      // Fetch Backgrounds
       const bgRes = await callWorkerApi('/api/dashboard/existing-assets', payloadBg, true);
       if (bgRes && bgRes.success && bgRes.assets.length > 0) {
         document.getElementById('existingBgGalleryContainer').style.display = 'block';
@@ -2380,7 +2417,6 @@
         document.getElementById('existingBgGalleryContainer').style.display = 'none';
       }
 
-      // Fetch Logos
       const logoRes = await callWorkerApi('/api/dashboard/existing-assets', payloadLogo, true);
       if (logoRes && logoRes.success && logoRes.assets.length > 0) {
         document.getElementById('existingLogoGalleryContainer').style.display = 'block';
@@ -2392,7 +2428,6 @@
 
     function renderExistingGallery(assets, containerId, type, scopedEventId) {
       const container = document.getElementById(containerId);
-      // Encode scopedEventId safely for inline onclick (empty string = global scope)
       const scopeArg = scopedEventId ? `'${scopedEventId}'` : 'null';
       let html = '';
       assets.forEach(asset => {
@@ -2443,8 +2478,7 @@
           const qrKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
           await callWorkerApi('/api/dashboard/delete-file', { key: qrKey }, true);
         }
-        // Re-fetch within the same scope the delete came from:
-        //   global (new mode) → no eventId  |  local (edit mode) → pass the event's id
+        // Re-fetch in the same scope the delete came from (global or local event).
         await fetchExistingAssets(true, scopedEventId || null);
         showToast("Deleted successfully.");
       } else {
