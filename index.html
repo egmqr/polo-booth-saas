@@ -2062,7 +2062,14 @@
       const selectedId = document.getElementById('eventSelect').value;
       if (!selectedId) { setMode(currentMode); return; }
 
-      let details = boothDetailsCache[selectedId];
+      // Always fetch fresh from the backend in edit mode so we get the latest
+      // templates from R2 (ProBooth may have updated them since last load).
+      // Use the cache only in view mode where templates aren't editable.
+      let details;
+      if (currentMode === 'edit') {
+        delete boothDetailsCache[selectedId]; // invalidate any cached version
+      }
+      details = boothDetailsCache[selectedId];
       if (!details) {
         details = await callWorkerApi('/api/dashboard/booth-details', { eventId: selectedId });
         if (details && details.success !== false) boothDetailsCache[selectedId] = details;

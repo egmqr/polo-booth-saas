@@ -408,6 +408,8 @@ async function updateBoothSetup(env, p, currentUser) {
     const totalBooths = (p.enableCommunity === true) ? actualNumBooths + 1 : actualNumBooths;
 
     const existingSettings = {};
+    let latestTemplates = p.templates || [];   // start with what the dashboard sent
+
     for (let i = 1; i <= totalBooths; i++) {
         try {
             const obj = await Storage.get(env, `${uPrefix}/${p.eventId}/config/Booth${i}.json`);
@@ -420,10 +422,26 @@ async function updateBoothSetup(env, p, currentUser) {
                     StaticBoothCountdownSeconds: existing.Settings.StaticBoothCountdownSeconds ?? 10,
                     PrinterName: existing.Settings.PrinterName ?? null,
                 };
+
+                // Always pull the latest Templates from R2 for the first non-community booth.
+                // ProBooth is the owner of templates for probooth-source events; the dashboard
+                // must carry them forward unchanged. For dashboard-source events this still
+                // ensures the R2 config is the source of truth if the frontend sent an empty list.
+                if (i === 1 && Array.isArray(existing?.Templates) && existing.Templates.length > 0) {
+                    // Prefer R2 templates if:
+                    //   a) the source is probooth (ProBooth owns templates), OR
+                    //   b) the dashboard sent no templates (empty/null)
+                    const isProbooth = (existing?.Settings?.Source === 'probooth') || (p._existingSource === 'probooth');
+                    if (isProbooth || !latestTemplates.length) {
+                        latestTemplates = existing.Templates;
+                    }
+                }
             }
         } catch { }
     }
+
     p._existingBoothSettings = existingSettings;
+    p.templates = latestTemplates;   // ensure generate uses the authoritative template list
     return generateBoothSetup(env, p, currentUser, true);
 }
 
