@@ -641,6 +641,10 @@ async function renameEventName(env, body, currentUser) {
             if (!r2obj) continue;
             const pkg = JSON.parse(await r2obj.text());
             if (pkg?.Settings) {
+                // Skip the community booth — its R2KeyPrefix contains '/community'
+                // and ProBooth doesn't need a hotfolder entry for it.
+                if ((pkg.Settings.R2KeyPrefix || '').includes('/community')) continue;
+
                 // Update EventName in the config JSON (keeps the -BoothN suffix pattern)
                 const oldName = pkg.Settings.EventName || '';
                 const boothSuffix = oldName.match(/-Booth\d+$/)?.[0] || '';
