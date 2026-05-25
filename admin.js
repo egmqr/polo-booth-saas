@@ -41,7 +41,8 @@ export async function handleAdminRoutes(request, env) {
                 email: f.email?.stringValue || '',
                 tier: f.tier?.stringValue || 'free',
                 createdAt: f.createdAt?.timestampValue || '',
-                note: f.note?.stringValue || ''
+                note: f.note?.stringValue || '',
+                expiresAt: f.expiresAt?.timestampValue || '' // <-- ADD THIS LINE
             };
         });
 
@@ -78,16 +79,27 @@ export async function handleAdminRoutes(request, env) {
             return json({ success: false, error: 'Invalid uid or tier' }, 400);
         }
 
-        const updateMask = `updateMask.fieldPaths=tier&updateMask.fieldPaths=note`;
+        let updateMask = `updateMask.fieldPaths=tier&updateMask.fieldPaths=note`;
+        let fields = {
+            tier: { stringValue: tier },
+            note: { stringValue: note || '' }
+        };
+
+        // NEW: Calculate 1 year expiration on upgrade, clear it on downgrade
+        if (tier === 'paid') {
+            const oneYearFromNow = new Date();
+            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+            updateMask += `&updateMask.fieldPaths=expiresAt`;
+            fields.expiresAt = { timestampValue: oneYearFromNow.toISOString() };
+        } else {
+            updateMask += `&updateMask.fieldPaths=expiresAt`;
+            fields.expiresAt = { nullValue: null };
+        }
+
         await fetch(`${fsBase}/users/${uid}?${updateMask}`, {
             method: 'PATCH',
             headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                fields: {
-                    tier: { stringValue: tier },
-                    note: { stringValue: note || '' }
-                }
-            })
+            body: JSON.stringify({ fields })
         });
 
         return json({ success: true, uid, tier });

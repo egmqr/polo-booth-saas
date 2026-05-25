@@ -462,12 +462,28 @@
             tbody.innerHTML = '';
             users.forEach(u => {
                 const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-                const isPaid = u.tier === 'paid';
+
+                // NEW: Handle expiration display and local auto-downgrade
+                let isPaid = u.tier === 'paid';
+                let expHtml = '';
+                if (isPaid && u.expiresAt) {
+                    const expDate = new Date(u.expiresAt);
+                    if (new Date() > expDate) {
+                        isPaid = false; // Expired! Treat as free locally
+                        u.tier = 'free';
+                    } else {
+                        expHtml = `<div style="font-size:10px; color:#888; margin-top:4px;">Exp: ${expDate.toLocaleDateString('en-PH')}</div>`;
+                    }
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${esc(u.email)}</td>
                     <td class="mono">${u.uid.substring(0, 14)}…</td>
-                    <td><span class="badge ${isPaid ? 'b-paid' : 'b-free'}" id="badge-${u.uid}">${u.tier}</span></td>
+                    <td id="tier-cell-${u.uid}">
+                        <span class="badge ${isPaid ? 'b-paid' : 'b-free'}" id="badge-${u.uid}">${u.tier}</span>
+                        ${isPaid ? expHtml : ''}
+                    </td>
                     <td class="muted">${joined}</td>
                     <td><input class="note-input" id="note-${u.uid}" value="${esc(u.note || '')}" placeholder="e.g. GCash Jan 2025"></td>
                     <td class="acts">

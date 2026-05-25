@@ -16,8 +16,19 @@ async function getUserTier(env, uid) {
     const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${uid}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${serviceToken}` } });
     if (!res.ok) return 'free';
+
     const doc = await res.json();
-    return doc.fields?.tier?.stringValue || 'free';
+    let tier = doc.fields?.tier?.stringValue || 'free';
+    const expiresAt = doc.fields?.expiresAt?.timestampValue;
+
+    // ENFORCEMENT: If they are marked paid but the date has passed, force 'free'
+    if (tier === 'paid' && expiresAt) {
+        if (new Date() > new Date(expiresAt)) {
+            tier = 'free';
+        }
+    }
+
+    return tier;
 }
 
 // ── USER ROUTES (provision + profile) ────────────────────────────────
@@ -95,12 +106,24 @@ export async function handleUserRoutes(request, env) {
         const docUrl = `${fsBase}/users/${user.uid}`;
         const res = await fetch(docUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
         if (!res.ok) return json({ uid: user.uid, email: user.email, tier: 'free' });
+
         const doc = await res.json();
         const f = doc.fields || {};
+
+        let tier = f.tier?.stringValue || 'free';
+        const expiresAt = f.expiresAt?.timestampValue;
+
+        // Force to free on the frontend if expired
+        if (tier === 'paid' && expiresAt) {
+            if (new Date() > new Date(expiresAt)) {
+                tier = 'free';
+            }
+        }
+
         return json({
             uid: user.uid,
             email: user.email,
-            tier: f.tier?.stringValue || 'free',
+            tier: tier, // <-- Pass the evaluated tier here
             note: f.note?.stringValue || '',
             pin: f.pin?.stringValue || '1234'
         });
