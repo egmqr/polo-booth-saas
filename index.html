@@ -812,7 +812,14 @@
       <button onclick="toggleAuthMode()"
         style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;"
         id="authToggleBtn">Don't have an account? Sign up</button>
+      <button onclick="enterResetMode()" id="forgotBtn"
+        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;text-decoration:underline;display:block;width:100%;">
+        Forgot password?
+      </button>
       <p id="authError" style="color:#ef4444;font-size:12px;margin-top:12px;display:none;"></p>
+      <p id="resetSuccess" style="color:#0d9488;font-size:12px;margin-top:12px;display:none;">
+        Reset link sent — check your email.
+      </p>
     </div>
   </div>
 
@@ -1188,16 +1195,48 @@
     let isProvisioning = false; // NEW: Prevents UI flashing during sign up
     const auth = firebase.auth();
 
-    function toggleAuthMode() {
-      isSignUpMode = !isSignUpMode;
-      document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
-      document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Create a new account' : 'Sign in to your account';
-      document.getElementById('authToggleBtn').textContent = isSignUpMode ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
+    let isResetMode = false;
+
+    function _applyAuthUI() {
+      const resetSuccess = document.getElementById('resetSuccess');
+      if (resetSuccess) resetSuccess.style.display = 'none';
       document.getElementById('authError').style.display = 'none';
       document.getElementById('authError').textContent = '';
+      document.getElementById('inviteCodeInput').style.display = isSignUpMode && !isResetMode ? 'block' : 'none';
+      document.getElementById('passwordInput').style.display = isResetMode ? 'none' : 'block';
+      document.getElementById('forgotBtn').style.display = isResetMode || isSignUpMode ? 'none' : 'block';
+      document.getElementById('authToggleBtn').style.display = isResetMode ? 'none' : 'block';
 
-      // NEW: Show/Hide the Invite Code field
-      document.getElementById('inviteCodeInput').style.display = isSignUpMode ? 'block' : 'none';
+      if (isResetMode) {
+        document.getElementById('authBtn').textContent = 'Send Reset Link';
+        document.getElementById('authSubtitle').textContent = 'Enter your email to reset your password';
+        // Back to sign-in link
+        document.getElementById('authToggleBtn').style.display = 'block';
+        document.getElementById('authToggleBtn').textContent = '← Back to sign in';
+        document.getElementById('authToggleBtn').onclick = exitResetMode;
+      } else {
+        document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+        document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Create a new account' : 'Sign in to your account';
+        document.getElementById('authToggleBtn').textContent = isSignUpMode ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
+        document.getElementById('authToggleBtn').onclick = toggleAuthMode;
+      }
+    }
+
+    function toggleAuthMode() {
+      isSignUpMode = !isSignUpMode;
+      isResetMode = false;
+      _applyAuthUI();
+    }
+
+    function enterResetMode() {
+      isResetMode = true;
+      isSignUpMode = false;
+      _applyAuthUI();
+    }
+
+    function exitResetMode() {
+      isResetMode = false;
+      _applyAuthUI();
     }
 
     async function submitAuth() {
@@ -1206,6 +1245,26 @@
       const inviteCode = document.getElementById('inviteCodeInput').value.trim();
       const errEl = document.getElementById('authError');
       errEl.style.display = 'none';
+
+      // ── Password reset path ───────────────────────────────────────────────
+      if (isResetMode) {
+        if (!email) { errEl.textContent = 'Please enter your email address.'; errEl.style.display = 'block'; return; }
+        document.getElementById('authBtn').disabled = true;
+        document.getElementById('authBtn').textContent = 'Sending…';
+        try {
+          await auth.sendPasswordResetEmail(email);
+          document.getElementById('resetSuccess').style.display = 'block';
+          document.getElementById('emailInput').value = '';
+        } catch (err) {
+          errEl.textContent = err.message || 'Could not send reset email.';
+          errEl.style.display = 'block';
+        } finally {
+          document.getElementById('authBtn').disabled = false;
+          document.getElementById('authBtn').textContent = 'Send Reset Link';
+        }
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────────
 
       if (!email || !password) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; return; }
       if (isSignUpMode && !inviteCode) { errEl.textContent = 'An invite code is required to sign up.'; errEl.style.display = 'block'; return; }
