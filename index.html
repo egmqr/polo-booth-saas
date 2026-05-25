@@ -926,10 +926,12 @@
             oninput="checkEventNameDuplicate()">
           <span class="hint-text" id="eventNameHint" style="display:none; color: var(--danger, #e53935);">An event with
             this name already exists.</span>
+          <span class="hint-text">Used in ProBooth and the config JSON.</span>
         </div>
         <div class="form-group">
-          <label for="pageTitle">Web Gallery Page Title</label>
+          <label for="pageTitle">Page Title</label>
           <input type="text" id="pageTitle" placeholder="e.g., Polo's Birthday 🎉">
+          <span class="hint-text">Shown as the web gallery heading.</span>
         </div>
       </div>
 
@@ -1152,6 +1154,38 @@
     // UI & AUTH LOGIC
     // ==========================================
     let currentUser = null;
+
+    // ── SESSION TIMEOUT ────────────────────────────────────────────────
+    // Auto-logout after 1 hour of being logged in. The timer resets each
+    // time the user logs in (or the page reloads while already logged in).
+    const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+    let _sessionTimer = null;
+
+    function startSessionTimer() {
+      clearSessionTimer();
+      sessionStorage.setItem('sessionStart', Date.now().toString());
+      _sessionTimer = setTimeout(() => {
+        // Time's up — sign out and show a friendly re-login message
+        auth.signOut().then(() => {
+          showSessionExpiredBanner();
+        });
+      }, SESSION_DURATION_MS);
+    }
+
+    function clearSessionTimer() {
+      if (_sessionTimer) { clearTimeout(_sessionTimer); _sessionTimer = null; }
+      sessionStorage.removeItem('sessionStart');
+    }
+
+    function showSessionExpiredBanner() {
+      // Re-use the authError element to surface the message after the login
+      // overlay reappears (checkLogin() will have already shown it by then).
+      const errEl = document.getElementById('authError');
+      if (errEl) {
+        errEl.textContent = 'Your session expired after 1 hour. Please sign in again.';
+        errEl.style.display = 'block';
+      }
+    }
     let userTier = 'free';
     let isSignUpMode = false;
     let isProvisioning = false; // NEW: Prevents UI flashing during sign up
@@ -1163,6 +1197,7 @@
       document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Create a new account' : 'Sign in to your account';
       document.getElementById('authToggleBtn').textContent = isSignUpMode ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
       document.getElementById('authError').style.display = 'none';
+      document.getElementById('authError').textContent = '';
 
       // NEW: Show/Hide the Invite Code field
       document.getElementById('inviteCodeInput').style.display = isSignUpMode ? 'block' : 'none';
@@ -1313,7 +1348,7 @@
         showToast("PIN updated successfully!");
       }
     }
-    function logout() { auth.signOut(); }
+    function logout() { clearSessionTimer(); auth.signOut(); }
 
     function applyTierRestrictions() {
       // 🟢 THE FIX: Scrub existing tags first so they don't carry over from previous logouts
@@ -1385,10 +1420,12 @@
         if (!isProvisioning) {
           await loadUserProfile();
           checkLogin();
+          startSessionTimer(); // ← begin 1-hour countdown
         }
       } else {
         currentUser = null;
         userTier = 'free';
+        clearSessionTimer(); // ← cancel any running timer on sign-out
         if (!isProvisioning) {
           checkLogin();
         }
