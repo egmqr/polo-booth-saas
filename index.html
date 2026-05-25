@@ -916,14 +916,22 @@
     </div>
 
     <div id="editFormFields">
+      <!-- eventId is hidden from UI but kept in DOM for backend use -->
+      <input type="hidden" id="eventId">
+
       <div class="color-group">
         <div class="form-group">
-          <label for="eventId">Event ID</label>
-          <input type="text" id="eventId" placeholder="evt####" disabled>
+          <label for="eventName">Event Name</label>
+          <input type="text" id="eventName" placeholder="e.g., PoloBooth_Wedding" required
+            oninput="checkEventNameDuplicate()">
+          <span class="hint-text" id="eventNameHint" style="display:none; color: var(--danger, #e53935);">An event with
+            this name already exists.</span>
+          <span class="hint-text">Used in ProBooth and the config JSON.</span>
         </div>
-        <div class="form-group" style="flex: 2;">
-          <label for="eventName">Page Title</label>
-          <input type="text" id="eventName" placeholder="e.g., Polo's Birthday" required>
+        <div class="form-group">
+          <label for="pageTitle">Page Title</label>
+          <input type="text" id="pageTitle" placeholder="e.g., Polo's Birthday 🎉">
+          <span class="hint-text">Shown as the web gallery heading.</span>
         </div>
       </div>
 
@@ -1554,8 +1562,9 @@
       currentMode = mode;
       document.getElementById('boothEnableCommunity').checked = true;
 
-      document.getElementById('folderName').value = ""; document.getElementById('eventName').value = "";
+      document.getElementById('folderName').value = ""; document.getElementById('eventName').value = ""; document.getElementById('pageTitle').value = "";
       document.getElementById('eventId').value = "";
+      document.getElementById('eventNameHint').style.display = 'none';
       if (mode !== 'new') document.getElementById('boothCount').value = "";
 
       document.getElementById('fontColor').value = "#ffffff"; document.getElementById('fontColorPicker').value = "#ffffff";
@@ -1695,6 +1704,7 @@
       if (!isEditMode) document.getElementById('communityEditHint').style.display = 'none';
 
       document.getElementById('eventName').disabled = !isEnabled;
+      document.getElementById('pageTitle').disabled = !isEnabled;
       document.getElementById('fontColorPicker').disabled = !isEnabled; document.getElementById('fontColor').disabled = !isEnabled;
       document.getElementById('bgColorPicker').disabled = !isEnabled; document.getElementById('bgColor').disabled = !isEnabled;
       document.getElementById('logoOnMain').disabled = !isEnabled;
@@ -1965,6 +1975,18 @@
       renderDropdownOptions(allFetchedEvents.filter(e => e.name.toLowerCase().includes(term) || e.id.toLowerCase().includes(term)));
     }
 
+    function checkEventNameDuplicate() {
+      const input = document.getElementById('eventName').value.trim().toLowerCase();
+      const hint = document.getElementById('eventNameHint');
+      if (!input) { hint.style.display = 'none'; return; }
+      // In edit mode, the current event's own name is not a duplicate
+      const currentEventId = document.getElementById('eventId').value;
+      const isDuplicate = allFetchedEvents.some(e =>
+        e.name.trim().toLowerCase() === input && e.id !== currentEventId
+      );
+      hint.style.display = isDuplicate ? '' : 'none';
+    }
+
     async function loadBoothEventDetails() {
       const selectedId = document.getElementById('eventSelect').value;
       if (!selectedId) { setMode(currentMode); return; }
@@ -1987,6 +2009,7 @@
         document.getElementById('eventId').value = selectedId;
         document.getElementById('folderName').value = details.folderName || "";
         document.getElementById('eventName').value = details.eventName || "";
+        document.getElementById('pageTitle').value = details.pageTitle || details.eventName || "";
         document.getElementById('boothCount').value = details.boothCount || "";
         document.getElementById('logoOnMain').checked = details.logoOnMain === true;
         document.getElementById('boothCommunityOnly').checked = details.communityOnly === true;
@@ -2029,7 +2052,7 @@
         fetchExistingAssets(true, selectedId);
 
       } else if (currentMode === 'view') {
-        document.getElementById('viewEventTitle').innerText = details.eventName || "Unnamed Event";
+        document.getElementById('viewEventTitle').innerText = details.pageTitle || details.eventName || "Unnamed Event";
         document.getElementById('viewEventId').innerText = "ID: " + details.id;
 
         const boothList = document.getElementById('boothList'); boothList.innerHTML = ''; currentViewBooths = [];
@@ -2096,10 +2119,25 @@
 
       const folderName = document.getElementById('folderName').value.trim() || document.getElementById('eventName').value.trim();
       const eventName = document.getElementById('eventName').value.trim();
+      const pageTitle = document.getElementById('pageTitle').value.trim() || eventName;
       const communityOnly = document.getElementById('boothCommunityOnly').checked;
       let boothCount = document.getElementById('boothCount').value || "1";
 
-      if (!eventName) return showToast("Title required!");
+      if (!eventName) return showToast("Event Name required!");
+
+      // ── Duplicate-name guard ──────────────────────────────────────────
+      // For new events: block any existing name. For edits: block collisions with OTHER events.
+      const normalizedInput = eventName.trim().toLowerCase();
+      const duplicate = allFetchedEvents.find(e => {
+        const nameMatch = e.name.trim().toLowerCase() === normalizedInput;
+        if (actionName === 'generateBoothSetup') return nameMatch; // new: no duplicates at all
+        return nameMatch && e.id !== eventId;                      // edit: allow same event, block others
+      });
+      if (duplicate) {
+        document.getElementById('eventNameHint').style.display = '';
+        return showToast("An event with this name already exists.");
+      }
+      document.getElementById('eventNameHint').style.display = 'none';
 
       showOverlay("Processing...");
       const bgFile = document.getElementById('bgFile').files[0];
@@ -2107,7 +2145,7 @@
       if (bgFile) { try { uploadedBgId = await uploadBgDirect(bgFile, eventId); } catch (e) { hideOverlay(); console.error(e); return showToast('BG Upload Failed: ' + e.message); } }
 
       const payload = {
-        action: actionName, eventId, folderName, eventName, boothCount,
+        action: actionName, eventId, folderName, eventName, pageTitle, boothCount,
         isNewBgUpload: !!uploadedBgId, // Tells backend to backup the new image
         existingBgId: uploadedBgId || currentBoothBgId || '',
         existingBgKey: currentBoothBgKey || '',

@@ -124,8 +124,10 @@ export async function handleDashboardRoutes(request, env) {
     const body = await request.json();
 
     if (path === '/api/next-event-id') return json(await mintNextEventId(env));
+    if (path === '/api/dashboard/check-event-name') return json(await checkEventNameUnique(env, body, currentUser));
     if (path === '/api/dashboard/generate-booth') return json(await generateBoothSetup(env, body, currentUser));
     if (path === '/api/dashboard/update-booth') return json(await updateBoothSetup(env, body, currentUser));
+    if (path === '/api/dashboard/rename-event') return json(await renameEventName(env, body, currentUser));
     if (path === '/api/dashboard/booth-details') return json(await getBoothDetails(env, body.eventId, currentUser));
     if (path === '/api/dashboard/delete-booth') return json(await deleteBoothEvent(env, body.eventId, currentUser));
     if (path === '/api/dashboard/existing-assets') return json(await listExistingAssets(env, body, currentUser));
@@ -188,7 +190,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // ── User-scoped path prefix ───────────────────────────────────────
     const uPrefix = `users/${currentUser.uid}/events`;
 
-    const { eventId, folderName, eventName, boothCount, logoData, qrLogoData, existingLogoId, existingQrLogoId, existingBgId, fontColor, bgColor, logoOnMain, templates, enableCommunity, communityOnly, userStickers, source } = p;
+    const { eventId, folderName, eventName, pageTitle, boothCount, logoData, qrLogoData, existingLogoId, existingQrLogoId, existingBgId, fontColor, bgColor, logoOnMain, templates, enableCommunity, communityOnly, userStickers, source } = p;
     // Origin marker: 'probooth' events have templates locked on the web dashboard.
     const eventSource = (source === 'probooth') ? 'probooth' : (p._existingSource || 'dashboard');
 
@@ -330,7 +332,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     }
 
     await saveEventToFirestore(env, currentUser.uid, eventId, {
-        folderName, eventName, boothCount: String(actualNumBooths || boothCount || '1'),
+        folderName, eventName, pageTitle: pageTitle || eventName, boothCount: String(actualNumBooths || boothCount || '1'),
         bgId, logoId, qrLogoId, fontColor, bgColor, logoOnMain,
         booths: appUrls.join('|'), qrUrls: qrUrls.join('|'),
         configKeys: configKeys.join('|'), boothPrefixes: boothPrefixes.join('|'),
@@ -414,6 +416,7 @@ async function getBoothDetails(env, eventId, currentUser) {
         success: true, id: eventId,
         folderName: f.folderName?.stringValue || '',
         eventName: f.eventName?.stringValue || '',
+        pageTitle: f.pageTitle?.stringValue || f.eventName?.stringValue || '',
         boothCount: f.boothCount?.stringValue || '',
         bgId: f.bgId?.stringValue || '',
         logoId: f.logoId?.stringValue || '',
@@ -553,6 +556,7 @@ async function saveEventToFirestore(env, uid, eventId, data) {
         fields: {
             folderName: { stringValue: data.folderName || '' },
             eventName: { stringValue: data.eventName || '' },
+            pageTitle: { stringValue: data.pageTitle || data.eventName || '' },
             boothCount: { stringValue: data.boothCount || '1' },
             bgId: { stringValue: data.bgId || '' },
             logoId: { stringValue: data.logoId || '' },
@@ -582,6 +586,76 @@ async function saveEventToFirestore(env, uid, eventId, data) {
         },
         body: JSON.stringify(payload)
     });
+}
+
+// ── EVENT NAME UNIQUENESS CHECK ──────────────────────────────────────
+async function checkEventNameUnique(env, body, currentUser) {
+    const { eventName, excludeEventId } = body;
+    if (!eventName) return { success: false, error: 'eventName required' };
+
+    const serviceToken = await getServiceToken(env);
+    const listUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events?pageSize=200`;
+    const res = await fetch(listUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
+    if (!res.ok) return { success: true, unique: true }; // fail open
+
+    const data = await res.json();
+    const docs = data.documents || [];
+    const conflict = docs.find(doc => {
+        const docId = doc.name.split('/').pop();
+        if (excludeEventId && docId === excludeEventId) return false;
+        const name = doc.fields?.eventName?.stringValue || '';
+        return name.trim().toLowerCase() === eventName.trim().toLowerCase();
+    });
+
+    return { success: true, unique: !conflict };
+}
+
+// ── EVENT NAME RENAME (push to Firestore + hotfolder) ────────────────
+// Called when a dashboard user changes only the Event Name in Edit Setup.
+// Updates Firestore and pushes a lightweight rename marker to the hotfolder
+// so ProBooth can update the event name on its side on next sync.
+async function renameEventName(env, body, currentUser) {
+    const { eventId, newEventName } = body;
+    if (!eventId || !newEventName) return { success: false, error: 'eventId and newEventName required' };
+
+    // 1. Update eventName in Firestore
+    const serviceToken = await getServiceToken(env);
+    const fsUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}?updateMask.fieldPaths=eventName`;
+    const fsRes = await fetch(fsUrl, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { eventName: { stringValue: newEventName } } })
+    });
+    if (!fsRes.ok) return { success: false, error: `Firestore error ${fsRes.status}` };
+
+    // 2. Push a rename marker to the hotfolder so ProBooth picks it up on next startup sync.
+    //    We patch all existing booth config files to carry the new EventName.
+    const uPrefix = `users/${currentUser.uid}/events/${eventId}/config`;
+    const configList = await Storage.list(env, { prefix: uPrefix + '/', limit: 20 });
+    const hotPrefix = `users/${currentUser.uid}/hotfolder/`;
+
+    for (const obj of configList.objects) {
+        if (!obj.key.endsWith('.json')) continue;
+        try {
+            const r2obj = await Storage.get(env, obj.key);
+            if (!r2obj) continue;
+            const pkg = JSON.parse(await r2obj.text());
+            if (pkg?.Settings) {
+                // Update EventName in the config JSON (keeps the -BoothN suffix pattern)
+                const oldName = pkg.Settings.EventName || '';
+                const boothSuffix = oldName.match(/-Booth\d+$/)?.[0] || '';
+                pkg.Settings.EventName = `${newEventName}${boothSuffix}`;
+                const updated = JSON.stringify(pkg, null, 2);
+                // Overwrite the R2 config
+                await Storage.put(env, obj.key, updated, { httpMetadata: { contentType: 'application/json' } });
+                // Push to hotfolder
+                const filename = obj.key.split('/').pop();
+                await Storage.put(env, `${hotPrefix}${eventId}_${filename}`, updated, { httpMetadata: { contentType: 'application/json' } });
+            }
+        } catch { }
+    }
+
+    return { success: true };
 }
 
 async function saveSystemPinToFirestore(env, pin, currentUser) {
