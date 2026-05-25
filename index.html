@@ -154,39 +154,7 @@
       color: var(--btn-bg);
     }
 
-    /* PIN Modal */
-    #pinModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.85);
-      z-index: 10005;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-
-    .pin-modal-content {
-      background: var(--bg-container);
-      padding: 30px;
-      border-radius: 12px;
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
-      border: 1px solid var(--border);
-    }
-
-    .pin-modal-content input {
-      text-align: center;
-      font-size: 24px;
-      letter-spacing: 6px;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
+    /* pin-modal styles moved to settingsModal */
 
     .logout-btn {
       background: none;
@@ -206,49 +174,155 @@
       color: var(--text-main);
     }
 
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 46px;
-      height: 24px;
-    }
-
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-
-    .slider {
-      position: absolute;
+    /* ── Theme toggle pill ── */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 2px;
       cursor: pointer;
+    }
+
+    .theme-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      transition: background .2s, color .2s;
+    }
+
+    .theme-toggle-btn.active {
+      background: var(--btn-bg);
+      color: #fff;
+    }
+
+    /* ── Settings button ── */
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      font-size: 15px;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+
+    .settings-btn:hover {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    /* ── Settings modal ── */
+    #settingsModal {
+      position: fixed;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .3s;
-      border-radius: 24px;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .85);
+      z-index: 10005;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .3s;
-      border-radius: 50%;
+    .settings-modal-content {
+      background: var(--bg-container);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 360px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
 
-    input:checked+.slider {
-      background-color: var(--btn-bg);
+    .settings-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
     }
 
-    input:checked+.slider:before {
-      transform: translateX(22px);
+    .settings-pin-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .settings-pin-display {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: var(--text-main);
+    }
+
+    .settings-icon-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 7px 10px;
+      font-size: 14px;
+      transition: .2s;
+    }
+
+    .settings-icon-btn:hover {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    .settings-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    .settings-field-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    #settingsPassError {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    #settingsPassSuccess {
+      color: #0d9488;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
     }
 
     /* Full Screen Login Overlay */
@@ -810,10 +884,10 @@
 
       <button class="action-btn" id="authBtn" onclick="submitAuth()" style="margin-top:0;">Sign In</button>
       <button onclick="toggleAuthMode()"
-        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;display:block;width:100%;text-align:center;"
+        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;"
         id="authToggleBtn">Don't have an account? Sign up</button>
       <button onclick="enterResetMode()" id="forgotBtn"
-        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;text-decoration:underline;display:block;width:100%;text-align:center;">
+        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;text-decoration:underline;display:block;width:100%;">
         Forgot password?
       </button>
       <p id="authError" style="color:#ef4444;font-size:12px;margin-top:12px;display:none;"></p>
@@ -845,33 +919,71 @@
     </div>
 
     <div class="top-controls-right" style="gap: 8px;">
-      <i id="themeIcon" class="bi bi-moon-fill" style="color: var(--text-muted); font-size: 1.1rem;"></i>
-      <label class="switch" style="margin: 0;">
-        <input type="checkbox" id="themeSwitch" checked onchange="toggleTheme()">
-        <span class="slider round"></span>
-      </label>
-    </div>
-  </div>
-
-  <div style="max-width: 600px; margin: 0 auto 15px auto;">
-    <div class="pin-wrapper" id="pinWrapper" style="display: none; width: max-content; margin: 0;">
-      <span>Booth PIN: <strong id="displayPin" style="color:var(--text-main); letter-spacing: 2px;">••••</strong></span>
-      <button onclick="togglePinVisibility()" title="Show/Hide PIN"><i class="bi bi-eye" id="pinEyeIcon"></i></button>
-      <button onclick="openPinModal()" title="Edit PIN"><i class="bi bi-pencil-square"></i></button>
-    </div>
-  </div>
-
-  <div id="pinModal">
-    <div class="pin-modal-content">
-      <h3 style="margin-top:0; color: var(--text-main);">Update System PIN</h3>
-      <p style="font-size:12px; color:var(--text-muted); margin-bottom: 20px;">This PIN secures all your offline desktop
-        booths.</p>
-      <input type="text" id="newPinInput" maxlength="8" placeholder="1234"
-        onkeypress="if(event.key==='Enter') submitNewPin()">
-      <div style="display:flex; gap:10px;">
-        <button class="action-btn crop-btn-cancel" onclick="closePinModal()">Cancel</button>
-        <button class="action-btn" onclick="submitNewPin()">Save PIN</button>
+      <!-- Moon/Sun pill — each icon is its own button and the active one is highlighted -->
+      <div class="theme-toggle" title="Toggle theme">
+        <button class="theme-toggle-btn" id="btnMoon" onclick="setTheme(true)" title="Dark mode"><i
+            class="bi bi-moon-fill"></i></button>
+        <button class="theme-toggle-btn" id="btnSun" onclick="setTheme(false)" title="Light mode"><i
+            class="bi bi-sun-fill"></i></button>
       </div>
+      <!-- Settings gear — hidden until logged in, same as logoutBtn -->
+      <button class="settings-btn" id="settingsBtn" onclick="openSettingsModal()" title="Settings"
+        style="display:none;">
+        <i class="bi bi-gear-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Unified Settings Modal (replaces pinModal) -->
+  <div id="settingsModal">
+    <div class="settings-modal-content">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <h3 style="margin:0; font-size:17px; color:var(--text-main);">Settings</h3>
+        <button onclick="closeSettingsModal()"
+          style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+
+      <!-- Booth PIN section -->
+      <div>
+        <p class="settings-section-title">Booth PIN</p>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">Secures all offline desktop booths.</p>
+        <div class="settings-pin-row">
+          <div class="settings-pin-display" id="displayPin">••••</div>
+          <button class="settings-icon-btn" onclick="togglePinVisibility()" title="Show/Hide PIN">
+            <i class="bi bi-eye" id="pinEyeIcon"></i>
+          </button>
+          <button class="settings-icon-btn" onclick="focusPinEdit()" title="Edit PIN">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+        </div>
+        <div id="pinEditRow" style="display:none; margin-top:10px; display:none;">
+          <input type="text" id="newPinInput" maxlength="8" placeholder="Enter new PIN"
+            style="text-align:center; font-size:20px; letter-spacing:6px; font-weight:700; margin-bottom:10px;"
+            onkeypress="if(event.key==='Enter') submitNewPin()">
+          <div style="display:flex; gap:8px;">
+            <button class="action-btn crop-btn-cancel" style="flex:1;" onclick="cancelPinEdit()">Cancel</button>
+            <button class="action-btn" style="flex:1;" onclick="submitNewPin()">Save PIN</button>
+          </div>
+        </div>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Change Password section -->
+      <div>
+        <p class="settings-section-title">Change Password</p>
+        <p class="settings-field-label">Current Password</p>
+        <input type="password" id="currentPasswordInput" placeholder="Current password" style="margin-bottom:10px;">
+        <p class="settings-field-label">New Password</p>
+        <input type="password" id="newPasswordInput" placeholder="New password" style="margin-bottom:10px;">
+        <p class="settings-field-label">Confirm New Password</p>
+        <input type="password" id="confirmPasswordInput" placeholder="Re-type new password" style="margin-bottom:10px;">
+        <button class="action-btn" onclick="submitChangePassword()" style="margin-top:4px;">Update Password</button>
+        <p id="settingsPassError"></p>
+        <p id="settingsPassSuccess"></p>
+      </div>
+
     </div>
   </div>
   <div id="manageModal"
@@ -987,7 +1099,7 @@
           <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers</label>
         </div>
 
-        <!-- Prop Stickers — Edit Setup only -->
+        <!-- Prop Stickers — Edit Setup only (needs eventId for R2 path) -->
         <div id="userStickersManager"
           style="display:none; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-top: 8px; border: 1px solid var(--border);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -1332,7 +1444,7 @@
         document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('mainApp').style.display = 'none';
         document.getElementById('logoutBtn').style.display = 'none';
-        document.getElementById('pinWrapper').style.display = 'none';
+        document.getElementById('settingsBtn').style.display = 'none';
 
         // Reset the button and clear the password field when logging out
         const authBtn = document.getElementById('authBtn');
@@ -1359,7 +1471,7 @@
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         document.getElementById('logoutBtn').style.display = 'block';
-        document.getElementById('pinWrapper').style.display = 'flex';
+        document.getElementById('settingsBtn').style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
 
         // 🟢 THE FIX: Force the UI to reset upon login to unlock fields for Paid accounts!
@@ -1382,15 +1494,37 @@
       updatePinDisplay();
     }
 
-    function openPinModal() {
-      document.getElementById('newPinInput').value = systemPin;
-      document.getElementById('pinModal').style.display = 'flex';
-      setTimeout(() => document.getElementById('newPinInput').focus(), 100);
+    // ── Settings modal ────────────────────────────────────────────────────────
+    function openSettingsModal() {
+      updatePinDisplay();
+      // Reset password fields and messages
+      ['currentPasswordInput', 'newPasswordInput', 'confirmPasswordInput'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('settingsPassError').style.display = 'none';
+      document.getElementById('settingsPassSuccess').style.display = 'none';
+      cancelPinEdit();
+      document.getElementById('settingsModal').style.display = 'flex';
     }
 
-    function closePinModal() {
-      document.getElementById('pinModal').style.display = 'none';
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').style.display = 'none';
     }
+
+    function focusPinEdit() {
+      const row = document.getElementById('pinEditRow');
+      row.style.display = 'block';
+      document.getElementById('newPinInput').value = systemPin;
+      setTimeout(() => document.getElementById('newPinInput').focus(), 50);
+    }
+
+    function cancelPinEdit() {
+      document.getElementById('pinEditRow').style.display = 'none';
+    }
+
+    // Legacy alias used by old call sites (now unused but kept for safety)
+    function openPinModal() { openSettingsModal(); setTimeout(focusPinEdit, 100); }
+    function closePinModal() { closeSettingsModal(); }
 
     async function submitNewPin() {
       const newPin = document.getElementById('newPinInput').value.trim();
@@ -1400,8 +1534,50 @@
       if (res && res.success) {
         systemPin = newPin;
         updatePinDisplay();
-        closePinModal();
-        showToast("PIN updated successfully!");
+        cancelPinEdit();
+        showToast("PIN updated!");
+      }
+    }
+
+    // ── Change password ───────────────────────────────────────────────────────
+    async function submitChangePassword() {
+      const currentPwd = document.getElementById('currentPasswordInput').value;
+      const newPwd = document.getElementById('newPasswordInput').value;
+      const confirmPwd = document.getElementById('confirmPasswordInput').value;
+      const errEl = document.getElementById('settingsPassError');
+      const okEl = document.getElementById('settingsPassSuccess');
+      errEl.style.display = 'none';
+      okEl.style.display = 'none';
+
+      if (!currentPwd || !newPwd || !confirmPwd) {
+        errEl.textContent = 'Please fill in all password fields.';
+        errEl.style.display = 'block'; return;
+      }
+      if (newPwd !== confirmPwd) {
+        errEl.textContent = 'New passwords do not match.';
+        errEl.style.display = 'block'; return;
+      }
+      if (newPwd.length < 6) {
+        errEl.textContent = 'New password must be at least 6 characters.';
+        errEl.style.display = 'block'; return;
+      }
+
+      try {
+        // Reauthenticate first — Firebase requires it for sensitive operations
+        const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, currentPwd);
+        await currentUser.reauthenticateWithCredential(credential);
+        await currentUser.updatePassword(newPwd);
+        ['currentPasswordInput', 'newPasswordInput', 'confirmPasswordInput'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        okEl.textContent = 'Password updated successfully!';
+        okEl.style.display = 'block';
+      } catch (err) {
+        const msg = err.code === 'auth/wrong-password' ? 'Current password is incorrect.'
+          : err.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.'
+            : err.message || 'Password update failed.';
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
       }
     }
     function logout() { clearSessionTimer(); auth.signOut(); }
@@ -1488,18 +1664,17 @@
       }
     });
 
-    function toggleTheme() {
-      const isDark = document.getElementById('themeSwitch').checked;
-      const icon = document.getElementById('themeIcon');
-
-      if (isDark) {
+    function setTheme(dark) {
+      if (dark) {
         document.body.classList.add('dark-mode');
-        if (icon) icon.className = "bi bi-moon-fill";
       } else {
         document.body.classList.remove('dark-mode');
-        if (icon) icon.className = "bi bi-sun-fill text-warning";
       }
+      document.getElementById('btnMoon').classList.toggle('active', dark);
+      document.getElementById('btnSun').classList.toggle('active', !dark);
     }
+    // Initialize pill state on load (body starts with dark-mode class)
+    document.addEventListener('DOMContentLoaded', () => setTheme(document.body.classList.contains('dark-mode')));
 
     function syncColor(sourceId, targetId) {
       let val = document.getElementById(sourceId).value;
@@ -1629,7 +1804,7 @@
 
       const { uploadUrl } = responseData;
       const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
-      if (!putRes.ok) throw new Error('Upload failed. Please check your connection.');
+      if (!putRes.ok) throw new Error('R2 upload failed');
 
       return bgId;
     }
@@ -2122,7 +2297,7 @@
       if (!selectedId) { setMode(currentMode); return; }
 
       // Always fetch fresh from the backend in edit mode so we get the latest
-      // templates from cloud (ProBooth may have updated them since last load).
+      // templates from R2 (ProBooth may have updated them since last load).
       // Use the cache only in view mode where templates aren't editable.
       let details;
       if (currentMode === 'edit') {
@@ -2210,13 +2385,13 @@
           const qrUrl = qrUrlsArr[i] || "";
           const fileName = isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QR.png`;
 
-          // Calculate QR path dynamically
+          // FIX: Calculate exact R2 path dynamically instead of falling back to QuickChart
           const r2QrUrl = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/qr/${isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QRCode.png`}?v=${Date.now()}`;
 
           currentViewBooths.push({ boothNum: bNum, url: r2QrUrl, filename: fileName });
           let qrHtml = `<button class="mini-btn" onclick="copyText('${r2QrUrl}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${r2QrUrl}', '${fileName}')">Download</button>`;
 
-          // Calculate the prefix for this specific booth
+          // Calculate the correct R2 prefix for this specific booth
           const finalPrefix = prefix || (isComm ? `users/${currentUser.uid}/events/${details.id}/community` : `users/${currentUser.uid}/events/${details.id}/booth-${bNum}/prints`);
 
           const card = document.createElement('div'); card.className = 'booth-card';
@@ -2350,7 +2525,7 @@
           document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
         }
       } catch (e) {
-        document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Could not load photos. Please check your connection and try again.</div>';
+        document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to Cloudflare R2.</div>';
       }
     }
 
@@ -2411,7 +2586,7 @@
       if (checkboxes.length === 0) return showToast('No photos selected');
       if (!confirm(`Permanently delete ${checkboxes.length} selected photos?`)) return;
 
-      showOverlay('Deleting...');
+      showOverlay('Deleting files from R2...');
       for (const cb of checkboxes) {
         const key = cb.getAttribute('data-key');
         await callWorkerApi('/api/dashboard/delete-file', { key }, true);
