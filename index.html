@@ -2525,7 +2525,7 @@
           document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
         }
       } catch (e) {
-        document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to Cloudflare R2.</div>';
+        document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to storage.</div>';
       }
     }
 
@@ -2586,7 +2586,7 @@
       if (checkboxes.length === 0) return showToast('No photos selected');
       if (!confirm(`Permanently delete ${checkboxes.length} selected photos?`)) return;
 
-      showOverlay('Deleting files from R2...');
+      showOverlay('Deleting files...');
       for (const cb of checkboxes) {
         const key = cb.getAttribute('data-key');
         await callWorkerApi('/api/dashboard/delete-file', { key }, true);
