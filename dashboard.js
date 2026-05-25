@@ -276,6 +276,15 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
     const boothPrefixes = [], qrUrls = [], appUrls = [], configKeys = [];
 
+    // Pre-compute all non-community booth prefixes so every booth config
+    // carries the full list. ProBooth can then register all booths from
+    // whichever config file it processes first.
+    const allBoothPrefixes = [];
+    for (let i = 1; i <= totalBooths; i++) {
+        const isCommunity = includeCommunity && i === totalBooths;
+        if (!isCommunity) allBoothPrefixes.push(`${uPrefix}/${eventId}/booth-${i}/prints`);
+    }
+
     for (let i = 1; i <= totalBooths; i++) {
         const isCommunity = includeCommunity && i === totalBooths;
         const tabParam = i.toString();
@@ -292,6 +301,9 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
                 CloudLink: `https://webqr.polo-booth.com/gallery?prefix=${encodeURIComponent(prefix)}`,
                 MainGalleryLink: mainGalleryUrl,
                 R2KeyPrefix: prefix,
+                // All non-community booth prefixes — present in every booth config
+                // so ProBooth gets the full list regardless of sync order.
+                AllBoothPrefixes: allBoothPrefixes,
                 StaticBoothPreviewSeconds: preserved.StaticBoothPreviewSeconds ?? 30,
                 TemplatePaths: [], IsStaticBoothMode: preserved.IsStaticBoothMode ?? false,
                 StaticBoothCountdownSeconds: preserved.StaticBoothCountdownSeconds ?? 10,
