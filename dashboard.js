@@ -154,6 +154,13 @@ export async function handleDashboardRoutes(request, env) {
     if (path === '/api/dashboard/booth-details') return json(await getBoothDetails(env, body.eventId, currentUser));
     if (path === '/api/dashboard/delete-booth') return json(await deleteBoothEvent(env, body.eventId, currentUser));
     if (path === '/api/dashboard/existing-assets') return json(await listExistingAssets(env, body, currentUser));
+    if (path === '/api/dashboard/existing-assets-both') {
+        const [bgRes, logoRes] = await Promise.all([
+            listExistingAssets(env, { kind: 'background', eventId: body.eventId }, currentUser),
+            listExistingAssets(env, { kind: 'logo', eventId: body.eventId }, currentUser)
+        ]);
+        return json({ success: true, bg: bgRes.assets, logo: logoRes.assets });
+    }
     if (path === '/api/dashboard/upload-asset') return json(await uploadAsset(env, body, currentUser));
     if (path === '/api/sign-upload') return json(await handleSignedUpload(env, body, currentUser));
 

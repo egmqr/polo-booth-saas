@@ -1230,6 +1230,17 @@
     // CONFIGURATION & SECRETS
     // ==========================================
     const WORKER_URL = "https://api.polo-booth.com";
+
+    // Client-side ID token cache — Firebase tokens are valid for 1h, we cache for 50 min
+    let _cachedIdToken = null;
+    let _cachedIdTokenExp = 0;
+    async function getIdTokenCached() {
+      const now = Date.now();
+      if (_cachedIdToken && now < _cachedIdTokenExp) return _cachedIdToken;
+      _cachedIdToken = await currentUser.getIdToken();
+      _cachedIdTokenExp = now + 50 * 60 * 1000; // 50 minutes
+      return _cachedIdToken;
+    }
     const NETLIFY_BASE_URL = "https://gallery.polo-booth.com/main.html";
     let systemPin = "••••";
     let pinVisible = false;
@@ -1775,7 +1786,7 @@
         const response = await fetch(`${WORKER_URL}${route}`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}`
+            'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}`
           },
           body: JSON.stringify(payload)
         });
@@ -1820,7 +1831,7 @@
 
       const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}` },
         // 2. FIX: Pass the corrected prefix here
         body: JSON.stringify({ prefix: r2Prefix, filename: bgId + '.jpg' })
       });
@@ -2266,7 +2277,7 @@
         const r2Prefix = `users/${currentUser.uid}/events/${eventId}/user-stickers`;
         const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await currentUser.getIdToken()}` },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}` },
           body: JSON.stringify({ prefix: r2Prefix, filename: `sticker_${Date.now()}.png` })
         });
         const { uploadUrl } = await signRes.json();
@@ -2675,25 +2686,21 @@
         return;
       }
 
-      const payloadBg = { kind: 'background' };
-      const payloadLogo = { kind: 'logo' };
-      if (resolvedEventId) {
-        payloadBg.eventId = resolvedEventId;
-        payloadLogo.eventId = resolvedEventId;
-      }
+      // Single request fetches both bg + logo assets in parallel on the worker side
+      const payload = resolvedEventId ? { eventId: resolvedEventId } : {};
+      const res = await callWorkerApi('/api/dashboard/existing-assets-both', payload, true);
+      if (!res || !res.success) return;
 
-      const bgRes = await callWorkerApi('/api/dashboard/existing-assets', payloadBg, true);
-      if (bgRes && bgRes.success && bgRes.assets.length > 0) {
+      if (res.bg && res.bg.length > 0) {
         document.getElementById('existingBgGalleryContainer').style.display = 'block';
-        renderExistingGallery(bgRes.assets, 'existingBgGallery', 'bg', resolvedEventId);
+        renderExistingGallery(res.bg, 'existingBgGallery', 'bg', resolvedEventId);
       } else {
         document.getElementById('existingBgGalleryContainer').style.display = 'none';
       }
 
-      const logoRes = await callWorkerApi('/api/dashboard/existing-assets', payloadLogo, true);
-      if (logoRes && logoRes.success && logoRes.assets.length > 0) {
+      if (res.logo && res.logo.length > 0) {
         document.getElementById('existingLogoGalleryContainer').style.display = 'block';
-        renderExistingGallery(logoRes.assets, 'existingLogoGallery', 'logo', resolvedEventId);
+        renderExistingGallery(res.logo, 'existingLogoGallery', 'logo', resolvedEventId);
       } else {
         document.getElementById('existingLogoGalleryContainer').style.display = 'none';
       }

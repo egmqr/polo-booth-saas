@@ -3,8 +3,17 @@
 // ── VERIFY USER TOKEN ─────────────────────────────────────────────────
 // Called on every API request. Returns { uid, email } or throws.
 
+// Cache verified tokens for 5 minutes (Firebase ID tokens are valid for 1 hour)
+const _verifiedTokenCache = new Map(); // token -> { uid, email, exp }
+
 export async function verifyFirebaseToken(env, idToken) {
     if (!idToken) throw new Error('No token provided');
+
+    const now = Math.floor(Date.now() / 1000);
+
+    // Return cached result if still valid
+    const cached = _verifiedTokenCache.get(idToken);
+    if (cached && now < cached.exp) return { uid: cached.uid, email: cached.email };
 
     const resp = await fetch(
         `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`,
@@ -21,7 +30,17 @@ export async function verifyFirebaseToken(env, idToken) {
     const user = data.users?.[0];
     if (!user) throw new Error('User not found');
 
-    return { uid: user.localId, email: user.email };
+    const result = { uid: user.localId, email: user.email };
+
+    // Cache for 5 min; evict stale entries to keep the Map small
+    _verifiedTokenCache.set(idToken, { ...result, exp: now + 300 });
+    if (_verifiedTokenCache.size > 50) {
+        for (const [k, v] of _verifiedTokenCache) {
+            if (now >= v.exp) _verifiedTokenCache.delete(k);
+        }
+    }
+
+    return result;
 }
 
 // ── SERVICE ACCOUNT TOKEN ─────────────────────────────────────────────
