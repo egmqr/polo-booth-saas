@@ -2084,7 +2084,7 @@
         const image = document.getElementById('imageToCrop');
         if (cropper) cropper.destroy();
         document.getElementById('cropModal').style.display = 'flex';
-        image.onload = () => { cropper = new Cropper(image, { aspectRatio: 1, viewMode: 1, autoCropArea: 0.9, background: false }); };
+        image.onload = () => { cropper = new Cropper(image, { aspectRatio: 1, viewMode: 0, autoCropArea: 0.9, background: false }); };
         image.src = e.target.result;
       };
       reader.readAsDataURL(file);
@@ -2102,7 +2102,7 @@
       if (!cropper) return;
       let baseName = originalLogoFilename.substring(0, originalLogoFilename.lastIndexOf('.')) || originalLogoFilename;
 
-      const canvasTrans = cropper.getCroppedCanvas({ width: 250, height: 250 });
+      const canvasTrans = cropper.getCroppedCanvas({ width: 250, height: 250, fillColor: 'transparent' });
       const base64Trans = canvasTrans.toDataURL('image/png').split(',')[1];
 
       const canvasWhite = document.createElement('canvas');
