@@ -1260,6 +1260,7 @@
     // STATE VARIABLES
     // ==========================================
     let currentMode = 'new';
+    let _lastAssetsEventId = null; // skip re-fetching assets when just switching tabs
     let allFetchedEvents = [];
     let currentViewBooths = [];
     let boothDetailsCache = {};
@@ -1889,6 +1890,7 @@
       selectedExistingLogoKey = null; selectedExistingQrLogoKey = null;
       document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
 
+      _lastAssetsEventId = null; // reset so next edit mode load always fetches fresh assets
       document.getElementById('logoOnMain').checked = false; document.getElementById('eventSearch').value = "";
       document.getElementById('boothEnableCommunity').checked = false;
       document.getElementById('boothCommunityOnly').checked = false;
@@ -2343,9 +2345,8 @@
       // templates from R2 (ProBooth may have updated them since last load).
       // Use the cache only in view mode where templates aren't editable.
       let details;
-      if (currentMode === 'edit') {
-        delete boothDetailsCache[selectedId]; // invalidate any cached version
-      }
+      // Cache is only invalidated after a successful save (executeAction deletes it).
+      // Do NOT delete here — switching between Edit/View tabs should use the cache.
       details = boothDetailsCache[selectedId];
       if (!details) {
         details = await callWorkerApi('/api/dashboard/booth-details', { eventId: selectedId });
@@ -2403,8 +2404,8 @@
 
         toggleEditFields(true);
 
-        // NEW: Fetch the isolated assets for this specific event to populate the grid
-        fetchExistingAssets(true, selectedId);
+        // Only fetch assets if we haven't already loaded them for this event
+        if (_lastAssetsEventId !== selectedId) { fetchExistingAssets(true, selectedId); _lastAssetsEventId = selectedId; }
 
       } else if (currentMode === 'view') {
         document.getElementById('viewEventTitle').innerText = details.pageTitle || details.eventName || "Unnamed Event";
