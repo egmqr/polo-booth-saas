@@ -61,22 +61,33 @@ export async function handleUserRoutes(request, env) {
 
         const codeDoc = await codeRes.json();
         const isUsed = codeDoc.fields?.used?.booleanValue;
+        const isMultiUse = codeDoc.fields?.isMultiUse?.booleanValue;
+        const expiresAt = codeDoc.fields?.expiresAt?.timestampValue;
 
-        if (isUsed) {
-            return json({ success: false, error: 'This invite code has already been used.' }, 400);
+        if (isMultiUse) {
+            // Validate expiration for multi-use codes
+            if (expiresAt && new Date() > new Date(expiresAt)) {
+                return json({ success: false, error: 'This invite code has expired.' }, 400);
+            }
+            // Note: We skip the PATCH request below so it remains usable.
+        } else {
+            // Standard single-use logic
+            if (isUsed) {
+                return json({ success: false, error: 'This invite code has already been used.' }, 400);
+            }
+
+            // 2. Mark the single-use code as used
+            await fetch(`${codeUrl}?updateMask.fieldPaths=used&updateMask.fieldPaths=usedBy`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fields: {
+                        used: { booleanValue: true },
+                        usedBy: { stringValue: user.uid }
+                    }
+                })
+            });
         }
-
-        // 2. Mark the code as used
-        await fetch(`${codeUrl}?updateMask.fieldPaths=used&updateMask.fieldPaths=usedBy`, {
-            method: 'PATCH',
-            headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                fields: {
-                    used: { booleanValue: true },
-                    usedBy: { stringValue: user.uid }
-                }
-            })
-        });
 
         // 3. Provision the user
         const docUrl = `${fsBase}/users/${user.uid}`;

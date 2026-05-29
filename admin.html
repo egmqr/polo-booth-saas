@@ -525,15 +525,30 @@
             tbody.innerHTML = '';
             list.forEach(i => {
                 const created = i.createdAt ? new Date(i.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+
+                let statusHtml = '';
+                let isUsable = false;
+
+                if (i.isMultiUse) {
+                    const expired = i.expiresAt && new Date() > new Date(i.expiresAt);
+                    isUsable = !expired;
+                    const expDate = i.expiresAt ? new Date(i.expiresAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never';
+                    statusHtml = `<span class="badge ${expired ? 'b-free' : 'b-paid'}">Multi-Use ${expired ? '(Expired)' : ''}</span>
+                                  <div class="muted" style="font-size:10px; margin-top:4px;">Exp: ${expDate}</div>`;
+                } else {
+                    isUsable = !i.used;
+                    statusHtml = `<span class="badge ${i.used ? 'b-free' : 'b-paid'}">${i.used ? 'Used' : 'Available'}</span>`;
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="mono fw-bold" style="${i.used ? 'text-decoration: line-through; color: #555;' : ''}">${i.code}</td>
-                    <td><span class="badge ${i.used ? 'b-free' : 'b-paid'}">${i.used ? 'Used' : 'Available'}</span></td>
-                    <td class="mono muted">${i.usedBy || '—'}</td>
+                    <td class="mono fw-bold" style="${!isUsable ? 'text-decoration: line-through; color: #555;' : ''}">${i.code}</td>
+                    <td>${statusHtml}</td>
+                    <td class="mono muted">${i.isMultiUse ? 'Multiple Users' : (i.usedBy || '—')}</td>
                     <td class="muted">${created}</td>
                     <td class="acts">
-                        <button class="${i.used ? 'btn-muted' : 'btn-upgrade'}" ${i.used ? 'disabled' : ''} onclick="copyCode('${i.code}')">
-                            ${i.used ? 'N/A' : 'Copy'}
+                        <button class="${!isUsable ? 'btn-muted' : 'btn-upgrade'}" ${!isUsable ? 'disabled' : ''} onclick="copyCode('${i.code}')">
+                            ${!isUsable ? 'N/A' : 'Copy'}
                         </button>
                     </td>
                 `;

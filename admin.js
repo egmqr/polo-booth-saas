@@ -63,7 +63,9 @@ export async function handleAdminRoutes(request, env) {
                 code,
                 used: f.used?.booleanValue || false,
                 usedBy: f.usedBy?.stringValue || '',
-                createdAt: f.createdAt?.timestampValue || ''
+                createdAt: f.createdAt?.timestampValue || '',
+                isMultiUse: f.isMultiUse?.booleanValue || false,
+                expiresAt: f.expiresAt?.timestampValue || ''
             };
         });
 
