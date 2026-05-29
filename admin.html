@@ -359,6 +359,44 @@
         let allInvites = [];
         let currentTab = 'users';
 
+        const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+        let sessionTimer = null;
+
+        window.onload = async () => {
+            const storedApi = sessionStorage.getItem('adminApi');
+            const storedSecret = sessionStorage.getItem('adminSecret');
+            const storedTime = sessionStorage.getItem('adminTime');
+
+            if (storedApi && storedSecret && storedTime) {
+                const age = Date.now() - parseInt(storedTime, 10);
+                if (age < SESSION_DURATION_MS) {
+                    API = storedApi;
+                    SECRET = storedSecret;
+                    document.getElementById('apiBase').value = API;
+                    document.getElementById('adminSecret').value = SECRET;
+
+                    // Attempt to restore session
+                    const uOk = await fetchUsers();
+                    if (uOk) {
+                        await fetchInvites();
+                        document.getElementById('loginSection').style.display = 'none';
+                        document.getElementById('mainSection').style.display = 'block';
+                        updateStats();
+
+                        // Resume the countdown
+                        sessionTimer = setTimeout(() => {
+                            showToast('Session expired after 1 hour.');
+                            doLogout();
+                        }, SESSION_DURATION_MS - age);
+                    } else {
+                        doLogout(); // Secret might have been revoked
+                    }
+                } else {
+                    doLogout(); // Expired
+                }
+            }
+        };
+
         async function doLogin() {
             API = (document.getElementById('apiBase').value || '').trim().replace(/\/$/, '');
             SECRET = (document.getElementById('adminSecret').value || '').trim();
@@ -373,6 +411,18 @@
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('mainSection').style.display = 'block';
                     updateStats();
+
+                    // Save session data
+                    sessionStorage.setItem('adminApi', API);
+                    sessionStorage.setItem('adminSecret', SECRET);
+                    sessionStorage.setItem('adminTime', Date.now().toString());
+
+                    // Start 1-hour timer
+                    if (sessionTimer) clearTimeout(sessionTimer);
+                    sessionTimer = setTimeout(() => {
+                        showToast('Session expired after 1 hour.');
+                        doLogout();
+                    }, SESSION_DURATION_MS);
                 } else {
                     errEl.textContent = 'Authentication failed or no access.';
                     errEl.style.display = 'block';
@@ -569,6 +619,11 @@
         /* --- GLOBAL LOGIC --- */
         function doLogout() {
             API = ''; SECRET = ''; allUsers = []; allInvites = [];
+            sessionStorage.removeItem('adminApi');
+            sessionStorage.removeItem('adminSecret');
+            sessionStorage.removeItem('adminTime');
+            if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
+
             document.getElementById('mainSection').style.display = 'none';
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminSecret').value = '';
