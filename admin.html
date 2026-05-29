@@ -277,7 +277,7 @@
 
 <body>
 
-    <div id="loginSection">
+    <div id="loginSection" style="display:none;">
         <div class="card">
             <h1>ProBooth Admin</h1>
             <p class="sub">Enter credentials to manage the system.</p>
@@ -379,7 +379,6 @@
                     const uOk = await fetchUsers();
                     if (uOk) {
                         await fetchInvites();
-                        document.getElementById('loginSection').style.display = 'none';
                         document.getElementById('mainSection').style.display = 'block';
                         updateStats();
 
@@ -388,13 +387,14 @@
                             showToast('Session expired after 1 hour.');
                             doLogout();
                         }, SESSION_DURATION_MS - age);
-                    } else {
-                        doLogout(); // Secret might have been revoked
+
+                        return; // Successfully restored, exit early
                     }
-                } else {
-                    doLogout(); // Expired
                 }
             }
+
+            // If no session exists or validation fails, reveal the login box
+            doLogout();
         };
 
         async function doLogin() {
