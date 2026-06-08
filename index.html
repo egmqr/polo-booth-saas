@@ -4,7 +4,7 @@
 <head>
   <base target="_top">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ProBooth Management</title>
+  <title>PoloPro Management</title>
 
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
@@ -891,7 +891,7 @@
   </div>
   <div id="loginOverlay">
     <div class="container" style="max-width:380px; text-align:center; padding:40px 30px;">
-      <h2 style="margin-top:0; font-size:22px; margin-bottom:8px;">ProBooth</h2>
+      <h2 style="margin-top:0; font-size:22px; margin-bottom:8px;">PoloPro</h2>
       <p style="color:var(--text-muted); font-size:13px; margin-bottom:28px;" id="authSubtitle">Sign in to your account
       </p>
 
@@ -936,9 +936,9 @@
   <div class="top-navbar">
     <div class="top-controls-left">
       <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
-      <a href="https://cdn.polo-booth.com/ProBooth.exe" id="downloadAppBtn" class="download-app-btn"
+      <a href="https://cdn.polo-booth.com/PoloPro.exe" id="downloadAppBtn" class="download-app-btn"
         style="display:none;">
-        <i class="bi bi-windows"></i> Download ProBooth
+        <i class="bi bi-windows"></i> Download PoloPro
       </a>
     </div>
 
@@ -1088,7 +1088,7 @@
         <select id="boothTemplateList" size="3" onchange="handleTemplateSelection()"></select>
         <div id="templateLockNotice"
           style="display:none; margin:8px 0; padding:10px 12px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--text-muted);">
-          <i class="bi bi-lock-fill"></i> Templates can only be edited in the ProBooth desktop app. Web gallery settings
+          <i class="bi bi-lock-fill"></i> Templates can only be edited in the PoloPro desktop app. Web gallery settings
           below remain editable.
         </div>
         <div class="template-actions" id="templateActions">
@@ -2342,7 +2342,7 @@
       if (!selectedId) { setMode(currentMode); return; }
 
       // Always fetch fresh from the backend in edit mode so we get the latest
-      // templates from R2 (ProBooth may have updated them since last load).
+      // templates from R2 (PoloPro may have updated them since last load).
       // Use the cache only in view mode where templates aren't editable.
       let details;
       // Cache is only invalidated after a successful save (executeAction deletes it).
@@ -2357,7 +2357,7 @@
       try { boothTemplates = JSON.parse(details.templatesStr || "[]"); } catch (e) { boothTemplates = []; }
       renderTemplateList();
 
-      // Templates are owned by ProBooth and are always locked in Edit Setup.
+      // Templates are owned by PoloPro and are always locked in Edit Setup.
       // The whole form is no longer forced to View — web gallery settings stay editable.
       if (currentMode === 'edit') {
         lockTemplatesForEdit(true);
