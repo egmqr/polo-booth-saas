@@ -1140,6 +1140,22 @@
           locked during edits.</span>
       </div>
 
+      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="boothShowSearchBar" checked>
+          <label for="boothShowSearchBar"><i class="bi bi-search"></i> Show Search Bar</label>
+        </div>
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="boothShowTime" checked>
+          <label for="boothShowTime"><i class="bi bi-clock"></i> Show Time</label>
+        </div>
+        <div class="form-group" style="margin-top: 14px; margin-bottom: 0;">
+          <label for="boothCustomTerm">Custom Term for "Photobooth"</label>
+          <input type="text" id="boothCustomTerm" placeholder='Leave blank to use default: "Photobooth"'>
+          <span class="hint-text" style="display:block; margin-top:8px;">Renames the label "Photobooth" across the gallery view.</span>
+        </div>
+      </div>
+
       <div class="color-group">
         <div class="form-group">
           <label>Font Color</label>
@@ -1895,6 +1911,9 @@
       document.getElementById('boothEnableCommunity').checked = false;
       document.getElementById('boothCommunityOnly').checked = false;
       document.getElementById('boothUserStickers').checked = false;
+      document.getElementById('boothShowSearchBar').checked = true;
+      document.getElementById('boothShowTime').checked = true;
+      document.getElementById('boothCustomTerm').value = "";
 
       handleCommunityToggle(); handleUserStickersToggle();
 
@@ -2016,6 +2035,9 @@
 
       document.getElementById('eventName').disabled = !isEnabled;
       document.getElementById('pageTitle').disabled = !isEnabled;
+      document.getElementById('boothShowSearchBar').disabled = !isEnabled;
+      document.getElementById('boothShowTime').disabled = !isEnabled;
+      document.getElementById('boothCustomTerm').disabled = !isEnabled;
       document.getElementById('fontColorPicker').disabled = !isEnabled; document.getElementById('fontColor').disabled = !isEnabled;
       document.getElementById('bgColorPicker').disabled = !isEnabled; document.getElementById('bgColor').disabled = !isEnabled;
       document.getElementById('logoOnMain').disabled = !isEnabled;
@@ -2369,6 +2391,9 @@
         document.getElementById('boothCount').value = details.boothCount || "";
         document.getElementById('logoOnMain').checked = details.logoOnMain === true;
         document.getElementById('boothCommunityOnly').checked = details.communityOnly === true;
+        document.getElementById('boothShowSearchBar').checked = details.showSearchBar !== false;
+        document.getElementById('boothShowTime').checked = details.showTime !== false;
+        document.getElementById('boothCustomTerm').value = details.customTerm || "";
 
         const stickersEl = document.getElementById('boothUserStickers');
         stickersEl.checked = details.userStickers === true;
@@ -2422,8 +2447,11 @@
           const isComm = hadComm && (i === boothsArr.length - 1);
           const bNum = isComm ? 'Community' : (i + 1);
           const stickerParam = details.userStickers ? '&userStickers=true' : '';
+          const searchParam = details.showSearchBar === false ? '&showSearchBar=false' : '';
+          const timeParam = details.showTime === false ? '&showTime=false' : '';
+          const customTermParam = details.customTerm ? `&customTerm=${encodeURIComponent(details.customTerm)}` : '';
 
-          const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&uid=${currentUser.uid}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}`;
+          const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&uid=${currentUser.uid}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}${searchParam}${timeParam}${customTermParam}`;
           const backupUrl = mainUrl;
           const prefix = prefixesArr[i] || '';
           const qrUrl = qrUrlsArr[i] || "";
@@ -2510,7 +2538,11 @@
         existingLogoId: selectedExistingLogoId || '', existingQrLogoId: selectedExistingQrLogoId || '',
         existingLogoKey: selectedExistingLogoKey || '', existingQrLogoKey: selectedExistingQrLogoKey || '',
         templates: boothTemplates, enableCommunity: document.getElementById('boothEnableCommunity').checked,
-        communityOnly, userStickers: document.getElementById('boothUserStickers').checked
+        communityOnly,
+        userStickers: document.getElementById('boothUserStickers').checked,
+        showSearchBar: document.getElementById('boothShowSearchBar').checked,
+        showTime: document.getElementById('boothShowTime').checked,
+        customTerm: document.getElementById('boothCustomTerm').value.trim()
       };
 
       const res = await callWorkerApi(actionName === 'generateBoothSetup' ? '/api/dashboard/generate-booth' : '/api/dashboard/update-booth', payload);

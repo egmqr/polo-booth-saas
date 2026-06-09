@@ -231,7 +231,13 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // ── User-scoped path prefix ───────────────────────────────────────
     const uPrefix = `users/${currentUser.uid}/events`;
 
-    const { eventId, folderName, eventName, pageTitle, boothCount, logoData, qrLogoData, existingLogoId, existingQrLogoId, existingBgId, fontColor, bgColor, logoOnMain, templates, enableCommunity, communityOnly, userStickers, source } = p;
+    const {
+        eventId, folderName, eventName, pageTitle, boothCount,
+        logoData, qrLogoData, existingLogoId, existingQrLogoId, existingBgId,
+        fontColor, bgColor, logoOnMain, templates,
+        enableCommunity, communityOnly, userStickers,
+        showSearchBar, showTime, customTerm, source
+    } = p;
     // Origin marker: 'probooth' events have templates locked on the web dashboard.
     const eventSource = (source === 'probooth') ? 'probooth' : (p._existingSource || 'dashboard');
 
@@ -391,6 +397,9 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         configKeys: configKeys.join('|'), boothPrefixes: boothPrefixes.join('|'),
         enableCommunity: includeCommunity, communityOnly: isOnlyCommunity,
         userStickers: userStickers === true,
+        showSearchBar: showSearchBar !== false,
+        showTime: showTime !== false,
+        customTerm: customTerm || '',
         source: eventSource
     });
 
@@ -496,6 +505,9 @@ async function getBoothDetails(env, eventId, currentUser) {
         bgColor: f.bgColor?.stringValue || '#000000',
         logoOnMain: f.logoOnMain?.booleanValue || false,
         userStickers: f.userStickers?.booleanValue || false,
+        showSearchBar: f.showSearchBar?.booleanValue ?? true,
+        showTime: f.showTime?.booleanValue ?? true,
+        customTerm: f.customTerm?.stringValue || '',
         boothsStr: f.booths?.stringValue || '',
         qrUrlsStr: f.qrUrls?.stringValue || '',
         configKeysStr: f.configKeys?.stringValue || '',
@@ -650,6 +662,9 @@ async function saveEventToFirestore(env, uid, eventId, data) {
             enableCommunity: { booleanValue: data.enableCommunity === true },
             communityOnly: { booleanValue: data.communityOnly === true },
             userStickers: { booleanValue: data.userStickers === true },
+            showSearchBar: { booleanValue: data.showSearchBar !== false },
+            showTime: { booleanValue: data.showTime !== false },
+            customTerm: { stringValue: data.customTerm || '' },
             source: { stringValue: data.source || 'dashboard' },
             timestamp: { timestampValue: new Date().toISOString() }
         }
