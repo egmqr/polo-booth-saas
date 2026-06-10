@@ -103,13 +103,13 @@ export async function handleUserRoutes(request, env) {
             body: JSON.stringify({
                 fields: {
                     email: { stringValue: user.email },
-                    tier: { stringValue: 'free' },
+                    tier: { stringValue: 'paid' },
                     createdAt: { timestampValue: new Date().toISOString() },
                     note: { stringValue: '' }
                 }
             })
         });
-        return json({ success: true, tier: 'free' });
+        return json({ success: true, tier: 'paid' });
     }
 
     // GET /api/user/profile — called on every login
@@ -162,7 +162,7 @@ export async function handleDashboardRoutes(request, env) {
     if (path === '/api/dashboard/generate-booth') return json(await generateBoothSetup(env, body, currentUser));
     if (path === '/api/dashboard/update-booth') return json(await updateBoothSetup(env, body, currentUser));
     if (path === '/api/dashboard/rename-event') return json(await renameEventName(env, body, currentUser));
-    if (path === '/api/dashboard/booth-details') return json(await getBoothDetails(env, body.eventId, currentUser));
+    if (path === '/api/dashboard/booth-details') return json(await getBoothDetails(env, body.eventId, currentUser, { includeTemplates: body.includeTemplates !== false }));
     if (path === '/api/dashboard/delete-booth') return json(await deleteBoothEvent(env, body.eventId, currentUser));
     if (path === '/api/dashboard/existing-assets') return json(await listExistingAssets(env, body, currentUser));
     if (path === '/api/dashboard/existing-assets-both') {
@@ -321,8 +321,6 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
     const totalBooths = includeCommunity ? actualNumBooths + 1 : actualNumBooths;
 
-    const boothPrefixes = [], qrUrls = [], appUrls = [], configKeys = [];
-
     // Pre-compute all non-community booth prefixes so every booth config
     // carries the full list. ProBooth can then register all booths from
     // whichever config file it processes first.
@@ -332,11 +330,11 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         if (!isCommunity) allBoothPrefixes.push(`${uPrefix}/${eventId}/booth-${i}/prints`);
     }
 
-    for (let i = 1; i <= totalBooths; i++) {
+    const boothResults = await Promise.all(Array.from({ length: totalBooths }, async (_, index) => {
+        const i = index + 1;
         const isCommunity = includeCommunity && i === totalBooths;
         const tabParam = i.toString();
         const prefix = isCommunity ? `${uPrefix}/${eventId}/community` : `${uPrefix}/${eventId}/booth-${i}/prints`;
-        boothPrefixes.push(prefix);
 
         const mainGalleryUrl = `${NETLIFY_BASE_URL}?id=${eventId}&uid=${currentUser.uid}&tab=${tabParam}${isCommunity ? '&isCommunity=true' : ''}`;
         const preserved = p._existingBoothSettings?.[i] || {};
@@ -360,35 +358,55 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         };
 
         const configKey = `${uPrefix}/${eventId}/config/Booth${i}.json`;
-        await Storage.put(env, configKey, JSON.stringify(eventConfig, null, 2), { httpMetadata: { contentType: 'application/json' } });
-        configKeys.push(configKey);
+        const configText = JSON.stringify(eventConfig, null, 2);
+        const configWrite = Storage.put(env, configKey, configText, { httpMetadata: { contentType: 'application/json' } });
 
         const qcUrl = `https://quickchart.io/qr?size=1000&errorCorrectionLevel=H&text=${encodeURIComponent(mainGalleryUrl)}` +
             (logoUrlForQr ? `&centerImageUrl=${encodeURIComponent(logoUrlForQr + '?v=' + Date.now())}&centerImageSizeRatio=0.22` : '');
 
-        try {
+        let qrUrl = '';
+        const qrWrite = (async () => {
+            try {
             // FIX: Pass a longer timeout signal so Cloudflare waits for QuickChart to process your logo
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds max
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds max
 
-            const qrResp = await fetch(qcUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
+                const qrResp = await fetch(qcUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
 
-            if (qrResp.ok) {
-                const qrKey = `${uPrefix}/${eventId}/qr/${isCommunity ? 'Community_QRCode.png' : `Booth_${i}_QRCode.png`}`;
-                await Storage.put(env, qrKey, await qrResp.arrayBuffer(), { httpMetadata: { contentType: 'image/png', cacheControl: 'no-cache' } });
-                qrUrls.push(`${cdn}/${qrKey}?v=${Date.now()}`);
-            } else {
-                console.error("QuickChart returned error:", qrResp.status);
-                qrUrls.push('');
+                if (qrResp.ok) {
+                    const qrKey = `${uPrefix}/${eventId}/qr/${isCommunity ? 'Community_QRCode.png' : `Booth_${i}_QRCode.png`}`;
+                    await Storage.put(env, qrKey, await qrResp.arrayBuffer(), { httpMetadata: { contentType: 'image/png', cacheControl: 'no-cache' } });
+                    qrUrl = `${cdn}/${qrKey}?v=${Date.now()}`;
+                } else {
+                    console.error("QuickChart returned error:", qrResp.status);
+                }
+            } catch (err) {
+                console.error("QR Code Generation/Upload failed:", err);
             }
-        } catch (err) {
-            console.error("QR Code Generation/Upload failed:", err);
-            qrUrls.push('');
-        }
+        })();
 
-        appUrls.push(`${MASTER_APP_URL}?prefix=${encodeURIComponent(prefix)}&tab=${tabParam}${isCommunity ? '&isCommunity=true' : ''}${userStickers === true ? '&userStickers=true' : ''}`);
-    }
+        await Promise.all([configWrite, qrWrite]);
+        return {
+            isCommunity,
+            prefix,
+            configKey,
+            configText,
+            qrUrl,
+            appUrl: `${MASTER_APP_URL}?prefix=${encodeURIComponent(prefix)}&tab=${tabParam}${isCommunity ? '&isCommunity=true' : ''}${userStickers === true ? '&userStickers=true' : ''}`
+        };
+    }));
+
+    const boothPrefixes = boothResults.map(booth => booth.prefix);
+    const qrUrls = boothResults.map(booth => booth.qrUrl);
+    const appUrls = boothResults.map(booth => booth.appUrl);
+    const configKeys = boothResults.map(booth => booth.configKey);
+
+    const gallerySettings = {
+        showSearchBar: showSearchBar !== false,
+        showTime: showTime !== false,
+        customTerm: customTerm || ''
+    };
 
     await saveEventToFirestore(env, currentUser.uid, eventId, {
         folderName, eventName, pageTitle: pageTitle || eventName, boothCount: String(actualNumBooths || boothCount || '1'),
@@ -397,9 +415,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         configKeys: configKeys.join('|'), boothPrefixes: boothPrefixes.join('|'),
         enableCommunity: includeCommunity, communityOnly: isOnlyCommunity,
         userStickers: userStickers === true,
-        showSearchBar: showSearchBar !== false,
-        showTime: showTime !== false,
-        customTerm: customTerm || '',
+        ...gallerySettings,
         source: eventSource
     });
 
@@ -407,26 +423,48 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // FIX: Skip pushing to hotfolder if this is a "Community Only" web event
     if (!isOnlyCommunity) {
         const userHotfolderPrefix = `users/${currentUser.uid}/hotfolder/`;
-        for (const configKey of configKeys) {
-
-            // FIX: If the event has normal booths PLUS a community booth, 
-            // skip pushing the community booth config (which is always the last one)
-            if (includeCommunity && configKey.endsWith(`Booth${totalBooths}.json`)) {
-                continue;
-            }
-
-            try {
-                const obj = await Storage.get(env, configKey);
-                if (obj) {
-                    const filename = configKey.split('/').pop(); // e.g. Booth1.json
+        await Promise.all(boothResults
+            .filter(booth => !booth.isCommunity)
+            .map(async booth => {
+                try {
+                    const filename = booth.configKey.split('/').pop(); // e.g. Booth1.json
                     const hotKey = `${userHotfolderPrefix}${eventId}_${filename}`;
-                    await Storage.put(env, hotKey, await obj.text(), { httpMetadata: { contentType: 'application/json' } });
-                }
-            } catch { }
-        }
+                    await Storage.put(env, hotKey, booth.configText, { httpMetadata: { contentType: 'application/json' } });
+                } catch { }
+            }));
     }
 
-    return { success: true, message: 'Generated successfully!' };
+    return {
+        success: true,
+        message: 'Generated successfully!',
+        gallerySettings,
+        details: {
+            success: true,
+            id: eventId,
+            folderName,
+            eventName,
+            pageTitle: pageTitle || eventName,
+            boothCount: String(actualNumBooths || boothCount || '1'),
+            bgId,
+            logoId,
+            qrLogoId,
+            fontColor,
+            bgColor,
+            logoOnMain: logoOnMain === true,
+            userStickers: userStickers === true,
+            showSearchBar: gallerySettings.showSearchBar,
+            showTime: gallerySettings.showTime,
+            customTerm: gallerySettings.customTerm,
+            boothsStr: appUrls.join('|'),
+            qrUrlsStr: qrUrls.join('|'),
+            configKeysStr: configKeys.join('|'),
+            boothPrefixesStr: boothPrefixes.join('|'),
+            enableCommunity: includeCommunity,
+            communityOnly: isOnlyCommunity,
+            source: eventSource,
+            templatesStr: ''
+        }
+    };
 }
 
 async function updateBoothSetup(env, p, currentUser) {
@@ -437,7 +475,8 @@ async function updateBoothSetup(env, p, currentUser) {
     const existingSettings = {};
     let latestTemplates = p.templates || [];   // start with what the dashboard sent
 
-    for (let i = 1; i <= totalBooths; i++) {
+    await Promise.all(Array.from({ length: totalBooths }, async (_, index) => {
+        const i = index + 1;
         try {
             const obj = await Storage.get(env, `${uPrefix}/${p.eventId}/config/Booth${i}.json`);
             if (obj) {
@@ -465,14 +504,14 @@ async function updateBoothSetup(env, p, currentUser) {
                 }
             }
         } catch { }
-    }
+    }));
 
     p._existingBoothSettings = existingSettings;
     p.templates = latestTemplates;   // ensure generate uses the authoritative template list
     return generateBoothSetup(env, p, currentUser, true);
 }
 
-async function getBoothDetails(env, eventId, currentUser) {
+async function getBoothDetails(env, eventId, currentUser, options = {}) {
     const serviceToken = await getServiceToken(env);
     const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${serviceToken}` } });
@@ -481,8 +520,9 @@ async function getBoothDetails(env, eventId, currentUser) {
     const f = doc.fields || {};
 
     let templates = [];
-    const firstConfigKey = (f.configKeys?.stringValue || '').split('|').find(k => k && k.length > 5) || '';
-    if (firstConfigKey) {
+    if (options.includeTemplates !== false) {
+        const firstConfigKey = (f.configKeys?.stringValue || '').split('|').find(k => k && k.length > 5) || '';
+        if (firstConfigKey) {
         try {
             const obj = await Storage.get(env, firstConfigKey);
             if (obj) {
@@ -490,6 +530,7 @@ async function getBoothDetails(env, eventId, currentUser) {
                 if (Array.isArray(data.Templates)) templates = data.Templates;
             }
         } catch { }
+        }
     }
 
     return {
@@ -672,7 +713,7 @@ async function saveEventToFirestore(env, uid, eventId, data) {
     const updateMaskPaths = Object.keys(payload.fields)
         .map(k => `updateMask.fieldPaths=${k}`).join('&');
     const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${uid}/events/${eventId}?${updateMaskPaths}`;
-    await fetch(url, {
+    const res = await fetch(url, {
         method: 'PATCH',
         headers: {
             Authorization: `Bearer ${serviceToken}`,
@@ -680,6 +721,10 @@ async function saveEventToFirestore(env, uid, eventId, data) {
         },
         body: JSON.stringify(payload)
     });
+
+    if (!res.ok) {
+        throw new Error(`Firestore event save failed (${res.status}): ${await res.text()}`);
+    }
 }
 
 // ── EVENT NAME UNIQUENESS CHECK ──────────────────────────────────────
@@ -712,13 +757,14 @@ async function renameEventName(env, body, currentUser) {
     const { eventId, newEventName } = body;
     if (!eventId || !newEventName) return { success: false, error: 'eventId and newEventName required' };
 
-    // 1. Update eventName in Firestore
+    // 1. Update eventName/folderName in Firestore. folderName is the legacy display
+    // source for booth card labels, so keep it aligned with the visible event name.
     const serviceToken = await getServiceToken(env);
-    const fsUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}?updateMask.fieldPaths=eventName`;
+    const fsUrl = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}?updateMask.fieldPaths=eventName&updateMask.fieldPaths=folderName`;
     const fsRes = await fetch(fsUrl, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { eventName: { stringValue: newEventName } } })
+        body: JSON.stringify({ fields: { eventName: { stringValue: newEventName }, folderName: { stringValue: newEventName } } })
     });
     if (!fsRes.ok) return { success: false, error: `Firestore error ${fsRes.status}` };
 
@@ -728,16 +774,16 @@ async function renameEventName(env, body, currentUser) {
     const configList = await Storage.list(env, { prefix: uPrefix + '/', limit: 20 });
     const hotPrefix = `users/${currentUser.uid}/hotfolder/`;
 
-    for (const obj of configList.objects) {
-        if (!obj.key.endsWith('.json')) continue;
+    await Promise.all(configList.objects.map(async obj => {
+        if (!obj.key.endsWith('.json')) return;
         try {
             const r2obj = await Storage.get(env, obj.key);
-            if (!r2obj) continue;
+            if (!r2obj) return;
             const pkg = JSON.parse(await r2obj.text());
             if (pkg?.Settings) {
                 // Skip the community booth — its R2KeyPrefix contains '/community'
                 // and ProBooth doesn't need a hotfolder entry for it.
-                if ((pkg.Settings.R2KeyPrefix || '').includes('/community')) continue;
+                if ((pkg.Settings.R2KeyPrefix || '').includes('/community')) return;
 
                 // Update EventName in the config JSON (keeps the -BoothN suffix pattern)
                 const oldName = pkg.Settings.EventName || '';
@@ -751,7 +797,7 @@ async function renameEventName(env, body, currentUser) {
                 await Storage.put(env, `${hotPrefix}${eventId}_${filename}`, updated, { httpMetadata: { contentType: 'application/json' } });
             }
         } catch { }
-    }
+    }));
 
     return { success: true };
 }
