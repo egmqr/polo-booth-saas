@@ -1810,11 +1810,15 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const result = await response.json();
         if (!isSilent) hideOverlay();
-        if (result.success === false) { showToast('Error: ' + (result.error || 'Unknown error')); return null; }
+        if (result.success === false) {
+          if (!isSilent) showToast('Error: ' + (result.error || 'Unknown error'));
+          return null;
+        }
         return result;
       } catch (error) {
         if (!isSilent) hideOverlay();
-        showToast('Network Error: ' + error.message); return null;
+        if (!isSilent) showToast('Network Error: ' + error.message);
+        return null;
       }
     }
 
@@ -1870,6 +1874,9 @@
     }
 
     async function getNextEventId() {
+      const minted = await callWorkerApi('/api/next-event-id', {}, true);
+      if (minted?.eventId) return minted.eventId;
+
       const snapshot = await db.collection("users").doc(currentUser.uid).collection("events").orderBy("timestamp", "desc").limit(1).get();
       if (snapshot.empty) return "evt0001";
       const lastId = snapshot.docs[0].id;
@@ -1906,7 +1913,7 @@
       selectedExistingLogoKey = null; selectedExistingQrLogoKey = null;
       document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
 
-      _lastAssetsEventId = null; // reset so next edit mode load always fetches fresh assets
+      if (mode === 'new') _lastAssetsEventId = null; // reset global/event asset scope for a fresh setup
       document.getElementById('logoOnMain').checked = false; document.getElementById('eventSearch').value = "";
       document.getElementById('boothEnableCommunity').checked = false;
       document.getElementById('boothCommunityOnly').checked = false;
@@ -2371,7 +2378,7 @@
       // Do NOT delete here — switching between Edit/View tabs should use the cache.
       details = boothDetailsCache[selectedId];
       if (!details) {
-        details = await callWorkerApi('/api/dashboard/booth-details', { eventId: selectedId });
+        details = await callWorkerApi('/api/dashboard/booth-details', { eventId: selectedId, includeTemplates: false });
         if (details && details.success !== false) boothDetailsCache[selectedId] = details;
       }
       if (!details || details.success === false) return;
@@ -2440,7 +2447,7 @@
         const boothsArr = details.boothsStr ? details.boothsStr.split('|') : [];
         const qrUrlsArr = details.qrUrlsStr ? details.qrUrlsStr.split('|') : [];
         const prefixesArr = details.boothPrefixesStr ? details.boothPrefixesStr.split('|') : [];
-        const dynFolder = details.folderName || 'Booth ';
+        const eventLabel = details.eventName || details.folderName || 'Booth ';
         const hadComm = (details.communityOnly || details.enableCommunity);
 
         boothsArr.forEach((link, i) => {
@@ -2468,7 +2475,7 @@
 
           const card = document.createElement('div'); card.className = 'booth-card';
           card.innerHTML = `
-                    <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${dynFolder}${bNum}`}</h4>
+                    <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${eventLabel}${bNum}`}</h4>
                     <div class="link-row"><span>Main Gallery</span><div class="link-actions">
                         <button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button>
                         <button class="mini-btn backup" onclick="openManageModal('${finalPrefix}')">Manage</button>
@@ -2499,10 +2506,9 @@
     // ==========================================
     async function executeAction(actionName) {
       let eventId = actionName === 'generateBoothSetup' ? document.getElementById('eventId').value : document.getElementById('eventSelect').value;
-      if (actionName === 'generateBoothSetup' && !eventId) { eventId = await getNextEventId(); document.getElementById('eventId').value = eventId; }
 
-      const folderName = document.getElementById('folderName').value.trim() || document.getElementById('eventName').value.trim();
       const eventName = document.getElementById('eventName').value.trim();
+      const folderName = eventName;
       const pageTitle = document.getElementById('pageTitle').value.trim() || eventName;
       const communityOnly = document.getElementById('boothCommunityOnly').checked;
       let boothCount = document.getElementById('boothCount').value || "1";
@@ -2522,6 +2528,11 @@
         return showToast("An event with this name already exists.");
       }
       document.getElementById('eventNameHint').style.display = 'none';
+
+      if (actionName === 'generateBoothSetup' && !eventId) {
+        eventId = await getNextEventId();
+        document.getElementById('eventId').value = eventId;
+      }
 
       showOverlay("Processing...");
       const bgFile = document.getElementById('bgFile').files[0];
@@ -2549,11 +2560,18 @@
 
       if (res && res.success) {
         if (uploadedBgId) currentBoothBgId = uploadedBgId;
-        delete boothDetailsCache[eventId];
-        fetchBoothEvents(true);
-        // Refresh the gallery in the correct scope: local for edits, global for new events.
-        fetchExistingAssets(true, actionName === 'updateBoothSetup' ? eventId : null);
-        setMode('view'); setTimeout(() => { document.getElementById('eventSelect').value = eventId; loadBoothEventDetails(); }, 100);
+        if (res.details) boothDetailsCache[eventId] = res.details;
+        else delete boothDetailsCache[eventId];
+
+        const existingEvent = allFetchedEvents.find(e => e.id === eventId);
+        if (existingEvent) existingEvent.name = eventName;
+        else allFetchedEvents.unshift({ id: eventId, name: eventName });
+        if (uploadedBgId) _lastAssetsEventId = null;
+
+        const needsViewLoad = document.getElementById('eventSelect').value !== eventId;
+        setMode('view');
+        document.getElementById('eventSelect').value = eventId;
+        if (needsViewLoad) loadBoothEventDetails();
       }
     }
 
