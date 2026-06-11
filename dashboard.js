@@ -241,8 +241,8 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // Origin marker: 'probooth' events have templates locked on the web dashboard.
     const eventSource = (source === 'probooth') ? 'probooth' : (p._existingSource || 'dashboard');
 
-    const includeCommunity = enableCommunity === true;
     const isOnlyCommunity = communityOnly === true;
+    const includeCommunity = enableCommunity === true || isOnlyCommunity;
     const actualNumBooths = isOnlyCommunity ? 0 : (parseInt(boothCount, 10) || 0);
 
     const cdn = (env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
@@ -470,7 +470,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 async function updateBoothSetup(env, p, currentUser) {
     const uPrefix = `users/${currentUser.uid}/events`;
     const actualNumBooths = p.communityOnly === true ? 0 : (parseInt(p.boothCount, 10) || 1);
-    const totalBooths = (p.enableCommunity === true) ? actualNumBooths + 1 : actualNumBooths;
+    const totalBooths = (p.enableCommunity === true || p.communityOnly === true) ? actualNumBooths + 1 : actualNumBooths;
 
     const existingSettings = {};
     let latestTemplates = p.templates || [];   // start with what the dashboard sent
