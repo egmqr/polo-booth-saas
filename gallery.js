@@ -32,6 +32,10 @@ export async function handleGalleryRoutes(request, env) {
             const parent = prefix.split('/').slice(0, -1).join('/');
             if (parent && parent !== prefix) config = await findTemplateConfig(env, parent);
         }
+        if (!config) {
+            const eventConfigPrefix = getEventConfigPrefix(prefix);
+            if (eventConfigPrefix) config = await findTemplateConfig(env, eventConfigPrefix);
+        }
         if (!config?.Templates?.length) return json({ success: false, error: 'No valid configuration file found.' });
 
         return json({ success: true, data: config.Templates });
@@ -86,6 +90,13 @@ async function findTemplateConfig(env, prefix) {
         } catch { }
     }
     return null;
+}
+
+function getEventConfigPrefix(prefix) {
+    const parts = prefix.split('/').filter(Boolean);
+    const eventIdx = parts.lastIndexOf('events');
+    if (eventIdx === -1 || !parts[eventIdx + 1]) return '';
+    return parts.slice(0, eventIdx + 2).concat('config').join('/');
 }
 
 async function streamLiveUpdates(env, prefix, writer, encoder) {
