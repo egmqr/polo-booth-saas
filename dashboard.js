@@ -3,11 +3,63 @@
 import { Storage } from './cloud.js';
 import { json, decodeBase64, safePrefix } from './util.js';
 import { verifyFirebaseToken, getServiceToken } from './auth.js';
+import { putHotfolderTargets } from './hotfolder.js';
 
 // ── AUTH HELPER ───────────────────────────────────────────────────────
 async function authenticate(request, env) {
     const token = (request.headers.get('authorization') || '').replace('Bearer ', '');
     return await verifyFirebaseToken(env, token); // throws if invalid
+}
+
+function normalizeInviteCode(value) {
+    return String(value || '')
+        .normalize('NFKC')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        .replace(/[\u2010-\u2015\u2212]/g, '-')
+        .replace(/\s+/g, '')
+        .toUpperCase();
+}
+
+async function findInviteCode(fsBase, serviceToken, submittedCode) {
+    const rawCode = String(submittedCode || '').trim();
+    const normalizedCode = normalizeInviteCode(rawCode);
+    const candidates = [...new Set([rawCode, normalizedCode].filter(Boolean))];
+
+    for (const candidate of candidates) {
+        const codeUrl = `${fsBase}/invite_codes/${encodeURIComponent(candidate)}`;
+        const res = await fetch(codeUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
+        if (res.ok) return { codeUrl, codeDoc: await res.json() };
+        if (res.status !== 404) return { errorStatus: res.status, errorBody: await res.text() };
+    }
+
+    // Firestore document IDs are case-sensitive. Fall back to a normalized scan so
+    // codes copied with different casing, Unicode dashes, or invisible spaces work.
+    let pageToken = '';
+    do {
+        const listUrl = new URL(`${fsBase}/invite_codes`);
+        listUrl.searchParams.set('pageSize', '500');
+        if (pageToken) listUrl.searchParams.set('pageToken', pageToken);
+
+        const res = await fetch(listUrl.toString(), { headers: { Authorization: `Bearer ${serviceToken}` } });
+        if (!res.ok) return { errorStatus: res.status, errorBody: await res.text() };
+
+        const data = await res.json();
+        const match = (data.documents || []).find(doc => {
+            const storedCode = doc.name.split('/').pop() || '';
+            return normalizeInviteCode(storedCode) === normalizedCode;
+        });
+        if (match) {
+            const storedCode = match.name.split('/').pop();
+            return {
+                codeUrl: `${fsBase}/invite_codes/${encodeURIComponent(storedCode)}`,
+                codeDoc: match
+            };
+        }
+
+        pageToken = data.nextPageToken || '';
+    } while (pageToken);
+
+    return null;
 }
 
 // ── TIER HELPER ───────────────────────────────────────────────────────
@@ -49,17 +101,19 @@ export async function handleUserRoutes(request, env) {
         try { body = await request.json(); } catch (e) { }
         const inviteCode = body.inviteCode;
 
-        if (!inviteCode) return json({ success: false, error: 'Invite code is required.' }, 400);
+        if (!normalizeInviteCode(inviteCode)) return json({ success: false, error: 'Invite code is required.' }, 400);
 
         // 1. Verify the invite code in Firestore
-        const codeUrl = `${fsBase}/invite_codes/${inviteCode}`;
-        const codeRes = await fetch(codeUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
-
-        if (!codeRes.ok) {
+        const inviteLookup = await findInviteCode(fsBase, serviceToken, inviteCode);
+        if (!inviteLookup) {
             return json({ success: false, error: 'Invalid invite code.' }, 400);
         }
+        if (inviteLookup.errorStatus) {
+            console.error('Invite code lookup failed:', inviteLookup.errorStatus, inviteLookup.errorBody);
+            return json({ success: false, error: 'Invite code verification is temporarily unavailable. Please try again.' }, 503);
+        }
 
-        const codeDoc = await codeRes.json();
+        const { codeUrl, codeDoc } = inviteLookup;
         const isUsed = codeDoc.fields?.used?.booleanValue;
         const isMultiUse = codeDoc.fields?.isMultiUse?.booleanValue;
         const expiresAt = codeDoc.fields?.expiresAt?.timestampValue;
@@ -162,6 +216,7 @@ export async function handleDashboardRoutes(request, env) {
     if (path === '/api/dashboard/generate-booth') return json(await generateBoothSetup(env, body, currentUser));
     if (path === '/api/dashboard/update-booth') return json(await updateBoothSetup(env, body, currentUser));
     if (path === '/api/dashboard/rename-event') return json(await renameEventName(env, body, currentUser));
+    if (path === '/api/dashboard/sync-config-templates') return json(await syncConfigTemplates(env, body, currentUser));
     if (path === '/api/dashboard/booth-details') return json(await getBoothDetails(env, body.eventId, currentUser, { includeTemplates: body.includeTemplates !== false }));
     if (path === '/api/dashboard/delete-booth') return json(await deleteBoothEvent(env, body.eventId, currentUser));
     if (path === '/api/dashboard/existing-assets') return json(await listExistingAssets(env, body, currentUser));
@@ -179,6 +234,24 @@ export async function handleDashboardRoutes(request, env) {
         if (!body.pin) return json({ success: false, error: 'No pin provided' }, 400);
         // FIX: Pass currentUser into the function so it knows whose profile to update
         return json(await saveSystemPinToFirestore(env, body.pin, currentUser));
+    }
+    if (path === '/api/dashboard/download-file') {
+        if (!body.key) return json({ success: false, error: 'No key provided' }, 400);
+        if (!body.key.startsWith(`users/${currentUser.uid}/`)) {
+            return json({ success: false, error: 'Forbidden' }, 403);
+        }
+
+        try {
+            const obj = await Storage.get(env, body.key);
+            if (!obj) return json({ success: false, error: 'File not found' }, 404);
+
+            const headers = new Headers();
+            headers.set('content-type', obj.httpMetadata?.contentType || 'application/octet-stream');
+            headers.set('cache-control', 'no-store');
+            return new Response(obj.body, { headers });
+        } catch (err) {
+            return json({ success: false, error: err.message }, 500);
+        }
     }
     if (path === '/api/dashboard/delete-file') {
         if (!body.key) return json({ success: false, error: 'No key provided' }, 400);
@@ -341,8 +414,10 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
 
         const eventConfig = {
             Settings: {
+                EventId: eventId,
+                BoothCount: totalBooths,
                 EventName: `${eventName}-Booth${i}`,
-                PrinterName: preserved.PrinterName ?? null,
+                PrinterName: preserved.PrinterName ?? '',
                 CloudLink: `https://webqr.polo-booth.com/gallery?prefix=${encodeURIComponent(prefix)}`,
                 MainGalleryLink: mainGalleryUrl,
                 R2KeyPrefix: prefix,
@@ -422,14 +497,12 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     // Push each booth config to the user's hotfolder so ProBooth picks it up on next sync
     // FIX: Skip pushing to hotfolder if this is a "Community Only" web event
     if (!isOnlyCommunity) {
-        const userHotfolderPrefix = `users/${currentUser.uid}/hotfolder/`;
         await Promise.all(boothResults
             .filter(booth => !booth.isCommunity)
             .map(async booth => {
                 try {
                     const filename = booth.configKey.split('/').pop(); // e.g. Booth1.json
-                    const hotKey = `${userHotfolderPrefix}${eventId}_${filename}`;
-                    await Storage.put(env, hotKey, booth.configText, { httpMetadata: { contentType: 'application/json' } });
+                    await putHotfolderTargets(env, currentUser.uid, `${eventId}_${filename}`, booth.configText);
                 } catch { }
             }));
     }
@@ -570,18 +643,15 @@ async function deleteBoothEvent(env, eventId, currentUser) {
     } while (cursor);
 
     // Purge any existing hotfolder entries for this event (stale booth configs).
-    const hotPrefix = `users/${currentUser.uid}/hotfolder/${eventId}_`;
-    const hotList = await Storage.list(env, { prefix: hotPrefix, limit: 50 });
-    if (hotList.objects.length) await Storage.delete(env, hotList.objects.map(o => o.key));
+    for (const client of ['v3', 'android']) {
+        const hotPrefix = `users/${currentUser.uid}/hotfolder/${client}/${eventId}_`;
+        const hotList = await Storage.list(env, { prefix: hotPrefix, limit: 50 });
+        if (hotList.objects.length) await Storage.delete(env, hotList.objects.map(o => o.key));
+    }
 
     // Write a deletion tombstone so ProBooth removes its local folders on next sync.
     // Pattern: {eventId}_deleted.json — ProBooth's Pass 1 detects and processes these.
-    await Storage.put(
-        env,
-        `${hotPrefix}deleted.json`,
-        JSON.stringify({ deleted: true, eventId }),
-        { httpMetadata: { contentType: 'application/json' } }
-    );
+    await putHotfolderTargets(env, currentUser.uid, `${eventId}_deleted.json`, JSON.stringify({ deleted: true, eventId }));
 
     const serviceToken = await getServiceToken(env);
     const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${currentUser.uid}/events/${eventId}`;
@@ -772,8 +842,6 @@ async function renameEventName(env, body, currentUser) {
     //    We patch all existing booth config files to carry the new EventName.
     const uPrefix = `users/${currentUser.uid}/events/${eventId}/config`;
     const configList = await Storage.list(env, { prefix: uPrefix + '/', limit: 20 });
-    const hotPrefix = `users/${currentUser.uid}/hotfolder/`;
-
     await Promise.all(configList.objects.map(async obj => {
         if (!obj.key.endsWith('.json')) return;
         try {
@@ -794,12 +862,58 @@ async function renameEventName(env, body, currentUser) {
                 await Storage.put(env, obj.key, updated, { httpMetadata: { contentType: 'application/json' } });
                 // Push to hotfolder
                 const filename = obj.key.split('/').pop();
-                await Storage.put(env, `${hotPrefix}${eventId}_${filename}`, updated, { httpMetadata: { contentType: 'application/json' } });
+                await putHotfolderTargets(env, currentUser.uid, `${eventId}_${filename}`, updated);
             }
         } catch { }
     }));
 
     return { success: true };
+}
+
+async function syncConfigTemplates(env, body, currentUser) {
+    const { eventId, templates } = body;
+    if (!eventId || !Array.isArray(templates)) {
+        return { success: false, error: 'eventId and templates array required' };
+    }
+
+    const configPrefix = `users/${currentUser.uid}/events/${eventId}/config/`;
+    let cursor;
+    let updatedCount = 0;
+    let hotfolderCount = 0;
+
+    do {
+        const page = await Storage.list(env, { prefix: configPrefix, limit: 1000, cursor });
+        await Promise.all((page.objects || []).map(async obj => {
+            if (!obj.key.endsWith('.json')) return;
+
+            try {
+                const r2obj = await Storage.get(env, obj.key);
+                if (!r2obj) return;
+
+                const pkg = JSON.parse(await r2obj.text());
+                pkg.Templates = templates;
+
+                const updated = JSON.stringify(pkg, null, 2);
+                await Storage.put(env, obj.key, updated, { httpMetadata: { contentType: 'application/json' } });
+                updatedCount++;
+
+                const eventName = pkg?.Settings?.EventName || '';
+                const r2Prefix = pkg?.Settings?.R2KeyPrefix || '';
+                const isVirtualBooth = eventName.includes('-VirtualBooth') || r2Prefix.includes('/virtual');
+                const isCommunity = r2Prefix.includes('/community');
+                const filename = obj.key.split('/').pop();
+
+                if (!isVirtualBooth && !isCommunity && /^Booth\d+\.json$/i.test(filename)) {
+                    await putHotfolderTargets(env, currentUser.uid, `${eventId}_${filename}`, updated);
+                    hotfolderCount++;
+                }
+            } catch { }
+        }));
+
+        cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+
+    return { success: true, updatedCount, hotfolderCount };
 }
 
 async function saveSystemPinToFirestore(env, pin, currentUser) {
