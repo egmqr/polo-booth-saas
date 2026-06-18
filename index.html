@@ -395,6 +395,35 @@
       padding: 0 20px;
     }
 
+    .overlay-progress-wrap {
+      display: none;
+      width: min(320px, calc(100vw - 48px));
+      margin-top: 10px;
+    }
+
+    .overlay-progress-track {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--border);
+      overflow: hidden;
+    }
+
+    .overlay-progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: #0d9488;
+      transition: width 0.2s ease;
+    }
+
+    .overlay-progress-label {
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
     @keyframes spin {
       0% {
         transform: rotate(0deg);
@@ -1029,7 +1058,13 @@
           style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #ef4444; color: #fff;"
           onclick="deleteSelectedManagePhotos()">Delete Selected</button>
         <button class="action-btn"
-          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #0d9488; color: #fff; margin-left: auto;"
+          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #2563eb; color: #fff; margin-left: auto;"
+          onclick="downloadSelectedManagePhotos()">Download Selected</button>
+        <button class="action-btn"
+          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #7c3aed; color: #fff;"
+          onclick="downloadUnmarkedManagePhotos()">Download Unmarked</button>
+        <button class="action-btn"
+          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #0d9488; color: #fff;"
           onclick="downloadAllManagePhotos()">Download All</button>
       </div>
       <div id="manageGrid"
@@ -1040,6 +1075,12 @@
   <div id="overlay">
     <div class="overlay-spinner"></div>
     <div class="overlay-text" id="overlay-text">Loading...</div>
+    <div id="overlayProgressWrap" class="overlay-progress-wrap">
+      <div class="overlay-progress-track">
+        <div id="overlayProgressBar" class="overlay-progress-bar"></div>
+      </div>
+      <div id="overlayProgressLabel" class="overlay-progress-label"></div>
+    </div>
   </div>
 
   <div class="container" id="mainApp" style="display:none;">
@@ -1241,6 +1282,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script>
     // ==========================================
     // CONFIGURATION & SECRETS
@@ -1778,8 +1820,29 @@
       document.getElementById('overlay').style.display = 'none';
       const spinner = document.querySelector('.overlay-spinner');
       if (spinner) spinner.style.display = 'block';
+      resetOverlayProgress();
     }
     function showToast(msg) { showOverlay(msg, true); }
+
+    function resetOverlayProgress() {
+      const wrap = document.getElementById('overlayProgressWrap');
+      const bar = document.getElementById('overlayProgressBar');
+      const label = document.getElementById('overlayProgressLabel');
+      if (wrap) wrap.style.display = 'none';
+      if (bar) bar.style.width = '0%';
+      if (label) label.innerText = '';
+    }
+
+    function updateOverlayProgress(done, total, labelPrefix = 'Processed') {
+      const wrap = document.getElementById('overlayProgressWrap');
+      const bar = document.getElementById('overlayProgressBar');
+      const label = document.getElementById('overlayProgressLabel');
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      if (wrap) wrap.style.display = 'block';
+      if (bar) bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      if (label) label.innerText = `${labelPrefix} ${done} of ${total} (${pct}%)`;
+    }
 
     function openLightbox(src) {
       let hiResSrc = src.replace('=w400', '=w1000').replace('=w150', '=w1000');
@@ -2473,12 +2536,14 @@
           // Calculate the correct R2 prefix for this specific booth
           const finalPrefix = prefix || (isComm ? `users/${currentUser.uid}/events/${details.id}/community` : `users/${currentUser.uid}/events/${details.id}/booth-${bNum}/prints`);
 
+          const manageEventName = details.pageTitle || details.eventName || 'event';
+          const manageBoothName = isComm ? 'community' : `booth${bNum}`;
           const card = document.createElement('div'); card.className = 'booth-card';
           card.innerHTML = `
                     <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${eventLabel}${bNum}`}</h4>
                     <div class="link-row"><span>Main Gallery</span><div class="link-actions">
                         <button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button>
-                        <button class="mini-btn backup" onclick="openManageModal('${finalPrefix}')">Manage</button>
+                        <button class="mini-btn backup" onclick="openManageModal(decodeURIComponent('${encodeURIComponent(finalPrefix)}'), decodeURIComponent('${encodeURIComponent(manageEventName)}'), decodeURIComponent('${encodeURIComponent(manageBoothName)}'))">Manage</button>
                         <button class="mini-btn" onclick="window.open('${mainUrl}', '_blank')">Go</button>
                     </div></div>
                     <div class="link-row"><span>QR Code</span><div class="link-actions">${qrHtml}</div></div>
@@ -2599,8 +2664,79 @@
     // PHOTO MANAGER (VIEW QR TAB)
     // ==========================================
     let managePhotosData = [];
+    let manageDownloadedPhotoKeys = new Set();
+    let currentManagePrefix = '';
+    let currentManageEventName = 'event';
+    let currentManageBoothName = 'booth';
+    const MANAGE_DOWNLOADED_STORAGE_PREFIX = 'polo_manage_downloaded_photos:';
 
-    async function openManageModal(prefix) {
+    function getManageDownloadedStorageKey() {
+      return `${MANAGE_DOWNLOADED_STORAGE_PREFIX}${currentManagePrefix || 'default'}`;
+    }
+
+    function loadManageDownloadedState() {
+      try {
+        const saved = localStorage.getItem(getManageDownloadedStorageKey());
+        manageDownloadedPhotoKeys = new Set(saved ? JSON.parse(saved) : []);
+      } catch (e) {
+        manageDownloadedPhotoKeys = new Set();
+      }
+    }
+
+    function saveManageDownloadedState() {
+      try {
+        localStorage.setItem(getManageDownloadedStorageKey(), JSON.stringify([...manageDownloadedPhotoKeys]));
+      } catch (e) { }
+    }
+
+    function markManagePhotosDownloaded(photos) {
+      photos.forEach(item => {
+        if (item && item[0]) manageDownloadedPhotoKeys.add(item[0]);
+      });
+      saveManageDownloadedState();
+      renderManageGrid();
+    }
+
+    function unmarkDeletedManagePhoto(key) {
+      if (!manageDownloadedPhotoKeys.has(key)) return;
+      manageDownloadedPhotoKeys.delete(key);
+      saveManageDownloadedState();
+    }
+
+    function getManagePhotoFilename(item, index) {
+      const url = item && item[2] ? item[2] : '';
+      return url.split('/').pop().split('?')[0] || `photo_${index}.jpg`;
+    }
+
+    function getSafeArchivePart(value, fallback) {
+      return String(value || fallback)
+        .trim()
+        .replace(/[^a-z0-9_-]+/gi, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 60) || fallback;
+    }
+
+    function getManageArchiveName() {
+      const eventName = getSafeArchivePart(currentManageEventName, 'event');
+      const boothName = getSafeArchivePart(currentManageBoothName, 'booth');
+      return `${eventName}-${boothName}.zip`;
+    }
+
+    function triggerBlobDownload(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    async function openManageModal(prefix, eventName = 'event', boothName = 'booth') {
+      currentManagePrefix = prefix;
+      currentManageEventName = eventName;
+      currentManageBoothName = boothName;
+      loadManageDownloadedState();
       document.getElementById('manageModal').style.display = 'flex';
       document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;"><div class="overlay-spinner" style="margin: 0 auto 15px auto; border-color: var(--border); border-top-color: var(--btn-bg);"></div>Loading photos...</div>';
       managePhotosData = [];
@@ -2634,11 +2770,16 @@
       managePhotosData.forEach((item, index) => {
         const key = item[0];
         const url = item[2];
+        const isDownloaded = manageDownloadedPhotoKeys.has(key);
         html += `
         <div class="manage-item" style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); aspect-ratio: 1/1; background: #000;">
             <img src="${url}?w=300" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; opacity: 0.9;" onclick="toggleManageSelection(${index})" onload="this.style.opacity=1">
-            <input type="checkbox" id="manage_cb_${index}" data-key="${key}" data-url="${url}" style="position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; cursor: pointer; accent-color: var(--btn-bg);">
-            <button onclick="deleteSingleManagePhoto('${key}')" style="position: absolute; bottom: 8px; right: 8px; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer;"><i class="bi bi-trash"></i></button>
+            <input type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}" style="position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; cursor: pointer; accent-color: var(--btn-bg);">
+            ${isDownloaded ? '<span style="position: absolute; top: 8px; right: 8px; background: rgba(22, 163, 74, 0.94); color: #fff; border-radius: 999px; padding: 4px 7px; font-size: 10px; font-weight: 800; line-height: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.28);"><i class="bi bi-check2-circle" style="font-size: 11px; margin-right: 3px;"></i>Downloaded</span>' : ''}
+            <div style="position: absolute; bottom: 8px; right: 8px; display: flex; gap: 6px;">
+              <button onclick="downloadSingleManagePhoto(${index})" title="Download photo" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: rgba(13, 148, 136, 0.94); color: white; border: none; border-radius: 4px; padding: 0; font-size: 13px; cursor: pointer;"><i class="bi bi-download"></i></button>
+              <button onclick="deleteSingleManagePhoto('${key}')" title="Delete photo" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 4px; padding: 0; font-size: 13px; cursor: pointer;"><i class="bi bi-trash"></i></button>
+            </div>
         </div>`;
       });
       grid.innerHTML = html;
@@ -2667,6 +2808,7 @@
       const res = await callWorkerApi('/api/dashboard/delete-file', { key }, true);
       if (res && res.success) {
         managePhotosData = managePhotosData.filter(item => item[0] !== key);
+        unmarkDeletedManagePhoto(key);
         renderManageGrid();
         showToast('Photo deleted');
       } else {
@@ -2681,41 +2823,118 @@
       if (!confirm(`Permanently delete ${checkboxes.length} selected photos?`)) return;
 
       showOverlay('Deleting files...');
+      updateOverlayProgress(0, checkboxes.length, 'Deleted');
+      let deletedCount = 0;
       for (const cb of checkboxes) {
         const key = cb.getAttribute('data-key');
         await callWorkerApi('/api/dashboard/delete-file', { key }, true);
         managePhotosData = managePhotosData.filter(item => item[0] !== key);
+        unmarkDeletedManagePhoto(key);
+        deletedCount++;
+        document.getElementById('overlay-text').innerText = `Deleting ${deletedCount} of ${checkboxes.length} photos...`;
+        updateOverlayProgress(deletedCount, checkboxes.length, 'Deleted');
       }
       renderManageGrid();
       hideOverlay();
       showToast('Selected photos deleted');
     }
 
-    async function downloadImageSilent(url, f) {
-      try {
-        const r = await fetch(url);
-        const b = await r.blob();
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(b);
-        a.download = f;
-        a.click();
-      } catch (e) {
-        window.open(url, '_blank');
+    async function fetchManagePhotoBlob(item) {
+      const key = item && item[0] ? item[0] : '';
+      if (!key) throw new Error('Missing photo key');
+
+      const response = await fetch(`${WORKER_URL}/api/dashboard/download-file`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getIdTokenCached()}`
+        },
+        body: JSON.stringify({ key })
+      });
+
+      if (!response.ok) throw new Error(`Download failed (${response.status})`);
+      return response.blob();
+    }
+
+    async function downloadImageSilent(item, index) {
+      const blob = await fetchManagePhotoBlob(item);
+      triggerBlobDownload(blob, getManagePhotoFilename(item, index));
+    }
+
+    async function downloadManagePhotos(photos, emptyMessage) {
+      if (!photos || photos.length === 0) return showToast(emptyMessage);
+      const isArchive = photos.length > 1;
+      if (isArchive && typeof JSZip === 'undefined') {
+        return showToast('ZIP download library is still loading. Please try again.');
       }
+
+      showOverlay(isArchive ? `Creating archive for ${photos.length} photos...` : 'Downloading photo...');
+      if (isArchive) updateOverlayProgress(0, photos.length, 'Added');
+
+      try {
+        if (!isArchive) {
+          await downloadImageSilent(photos[0], 0);
+        } else {
+          const zip = new JSZip();
+          const usedNames = new Set();
+
+          for (let i = 0; i < photos.length; i++) {
+            let filename = getManagePhotoFilename(photos[i], i);
+            const dotIndex = filename.lastIndexOf('.');
+            const baseName = dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
+            const extension = dotIndex > 0 ? filename.substring(dotIndex) : '.jpg';
+            let uniqueName = filename;
+            let duplicateCount = 2;
+
+            while (usedNames.has(uniqueName.toLowerCase())) {
+              uniqueName = `${baseName}_${duplicateCount}${extension}`;
+              duplicateCount++;
+            }
+            usedNames.add(uniqueName.toLowerCase());
+
+            document.getElementById('overlay-text').innerText = `Adding photo ${i + 1} of ${photos.length}...`;
+            zip.file(uniqueName, await fetchManagePhotoBlob(photos[i]));
+            updateOverlayProgress(i + 1, photos.length, 'Added');
+          }
+
+          document.getElementById('overlay-text').innerText = 'Compressing ZIP...';
+          updateOverlayProgress(0, 100, 'Zipped');
+          const archiveBlob = await zip.generateAsync({ type: 'blob' }, metadata => {
+            updateOverlayProgress(Math.round(metadata.percent), 100, 'Zipped');
+          });
+          triggerBlobDownload(archiveBlob, getManageArchiveName());
+        }
+      } catch (e) {
+        console.error('Manage download error:', e);
+        hideOverlay();
+        return showToast('Failed to download photos');
+      }
+
+      hideOverlay();
+      markManagePhotosDownloaded(photos);
+      showToast('Downloads complete');
     }
 
     async function downloadAllManagePhotos() {
-      if (!managePhotosData || managePhotosData.length === 0) return showToast('No photos to download');
+      await downloadManagePhotos(managePhotosData, 'No photos to download');
+    }
 
-      showOverlay(`Downloading ${managePhotosData.length} photos...`);
-      for (let i = 0; i < managePhotosData.length; i++) {
-        const url = managePhotosData[i][2];
-        const filename = url.split('/').pop().split('?')[0] || `photo_${i}.jpg`;
-        await downloadImageSilent(url, filename);
-        await new Promise(r => setTimeout(r, 600)); // Sleep to prevent browser blocking
-      }
-      hideOverlay();
-      showToast('Downloads complete');
+    async function downloadSingleManagePhoto(index) {
+      const photo = managePhotosData[index];
+      if (!photo) return showToast('Photo not found');
+      await downloadManagePhotos([photo], 'No photo to download');
+    }
+
+    async function downloadUnmarkedManagePhotos() {
+      const unmarkedPhotos = managePhotosData.filter(item => !manageDownloadedPhotoKeys.has(item[0]));
+      await downloadManagePhotos(unmarkedPhotos, 'No unmarked photos to download');
+    }
+
+    async function downloadSelectedManagePhotos() {
+      const selectedPhotos = [...document.querySelectorAll('input[id^="manage_cb_"]:checked')]
+        .map(cb => managePhotosData[Number(cb.getAttribute('data-index'))])
+        .filter(Boolean);
+      await downloadManagePhotos(selectedPhotos, 'No photos selected');
     }
     // ==========================================
     // EXISTING ASSETS GALLERIES
