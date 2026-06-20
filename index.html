@@ -435,20 +435,82 @@
     .manage-item {
       position: relative;
       width: 100%;
-      aspect-ratio: 1 / 1 !important;
+      aspect-ratio: auto !important;
       min-width: 0;
       min-height: 0;
       overflow: hidden;
-      contain: layout paint;
+    }
+
+    .manage-item::before {
+      content: "";
+      display: block;
+      width: 100%;
+      padding-top: 100%;
+    }
+
+    .manage-item img,
+    .manage-item .manage-select,
+    .manage-item .manage-downloaded-badge,
+    .manage-item .manage-actions {
+      position: absolute;
+      z-index: 2;
     }
 
     .manage-item img {
-      position: absolute;
       inset: 0;
       width: 100% !important;
       height: 100% !important;
       display: block;
       object-fit: cover;
+      z-index: 1;
+    }
+
+    .manage-select {
+      top: 8px;
+      left: 8px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--btn-bg);
+    }
+
+    .manage-downloaded-badge {
+      top: 8px;
+      right: 8px;
+      background: rgba(22, 163, 74, 0.94);
+      color: #fff;
+      border-radius: 999px;
+      padding: 4px 7px;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.28);
+    }
+
+    .manage-downloaded-badge i {
+      font-size: 11px;
+      margin-right: 3px;
+    }
+
+    .manage-actions {
+      right: 8px;
+      bottom: 8px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .manage-actions button {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0;
+      font-size: 13px;
+      cursor: pointer;
     }
 
     @media (min-width: 700px) {
@@ -2816,11 +2878,11 @@
         html += `
         <div class="manage-item" style="border-radius: 8px; border: 1px solid var(--border); background: #000;">
             <img src="${url}?w=300" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; opacity: 0.9;" onclick="toggleManageSelection(${index})" onload="this.style.opacity=1">
-            <input type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}" style="position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; cursor: pointer; accent-color: var(--btn-bg);">
-            ${isDownloaded ? '<span style="position: absolute; top: 8px; right: 8px; background: rgba(22, 163, 74, 0.94); color: #fff; border-radius: 999px; padding: 4px 7px; font-size: 10px; font-weight: 800; line-height: 1; box-shadow: 0 2px 5px rgba(0,0,0,0.28);"><i class="bi bi-check2-circle" style="font-size: 11px; margin-right: 3px;"></i>Downloaded</span>' : ''}
-            <div style="position: absolute; bottom: 8px; right: 8px; display: flex; gap: 6px;">
-              <button onclick="downloadSingleManagePhoto(${index})" title="Download photo" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: rgba(13, 148, 136, 0.94); color: white; border: none; border-radius: 4px; padding: 0; font-size: 13px; cursor: pointer;"><i class="bi bi-download"></i></button>
-              <button onclick="deleteSingleManagePhoto('${key}')" title="Delete photo" style="width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.9); color: white; border: none; border-radius: 4px; padding: 0; font-size: 13px; cursor: pointer;"><i class="bi bi-trash"></i></button>
+            <input class="manage-select" type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}">
+            ${isDownloaded ? '<span class="manage-downloaded-badge"><i class="bi bi-check2-circle"></i>Downloaded</span>' : ''}
+            <div class="manage-actions">
+              <button onclick="downloadSingleManagePhoto(${index})" title="Download photo" style="background: rgba(13, 148, 136, 0.94);"><i class="bi bi-download"></i></button>
+              <button onclick="deleteSingleManagePhoto('${key}')" title="Delete photo" style="background: rgba(239, 68, 68, 0.9);"><i class="bi bi-trash"></i></button>
             </div>
         </div>`;
       });
