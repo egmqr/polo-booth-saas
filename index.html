@@ -428,7 +428,8 @@
       grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
       grid-auto-rows: auto;
       align-items: start;
-      gap: 8px !important;
+      column-gap: 8px !important;
+      row-gap: 26px !important;
       padding: 12px !important;
     }
 
@@ -516,14 +517,16 @@
     @media (min-width: 700px) {
       #manageGrid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-        gap: 10px !important;
+        column-gap: 10px !important;
+        row-gap: 26px !important;
         padding: 15px 20px !important;
       }
     }
 
     @media (max-width: 380px) {
       #manageGrid {
-        gap: 6px !important;
+        column-gap: 6px !important;
+        row-gap: 24px !important;
         padding: 8px !important;
       }
     }
