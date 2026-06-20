@@ -521,6 +521,33 @@
       cursor: pointer;
     }
 
+    .manage-toolbar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card-bg);
+    }
+
+    .manage-toolbar .action-btn {
+      width: 100%;
+      min-width: 0;
+      min-height: 34px;
+      margin: 0;
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .manage-toolbar .manage-download-all {
+      grid-column: 1 / -1;
+    }
+
     @media (min-width: 700px) {
       #manageGrid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
@@ -1163,22 +1190,21 @@
         <button onclick="closeManageModal()"
           style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
       </div>
-      <div
-        style="padding: 10px 20px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; background: var(--card-bg); flex-wrap: wrap;">
+      <div class="manage-toolbar">
         <button class="action-btn"
-          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: var(--btn-outline-bg); color: var(--btn-outline-text); border: 1px solid var(--border);"
+          style="background: var(--btn-outline-bg); color: var(--btn-outline-text); border: 1px solid var(--border);"
           onclick="selectAllManagePhotos()">Select All</button>
         <button class="action-btn"
-          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #ef4444; color: #fff;"
+          style="background: #a94949; color: #fff;"
           onclick="deleteSelectedManagePhotos()">Delete Selected</button>
         <button class="action-btn"
-          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #2563eb; color: #fff; margin-left: auto;"
+          style="background: #2563eb; color: #fff;"
           onclick="downloadSelectedManagePhotos()">Download Selected</button>
         <button class="action-btn"
-          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #7c3aed; color: #fff;"
+          style="background: #7c3aed; color: #fff;"
           onclick="downloadUnmarkedManagePhotos()">Download Unmarked</button>
-        <button class="action-btn"
-          style="width: auto; padding: 6px 12px; margin: 0; font-size: 12px; background: #0d9488; color: #fff;"
+        <button class="action-btn manage-download-all"
+          style="background: #0d9488; color: #fff;"
           onclick="downloadAllManagePhotos()">Download All</button>
       </div>
       <div id="manageGrid"
