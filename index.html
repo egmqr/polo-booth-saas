@@ -434,30 +434,36 @@
     }
 
     .manage-item {
+      width: 100%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: visible;
+    }
+
+    .manage-thumb {
       position: relative;
       width: 100%;
-      aspect-ratio: auto !important;
       min-width: 0;
-      min-height: 0;
       overflow: hidden;
     }
 
-    .manage-item::before {
+    .manage-thumb::before {
       content: "";
       display: block;
       width: 100%;
       padding-top: 100%;
     }
 
-    .manage-item img,
-    .manage-item .manage-select,
-    .manage-item .manage-downloaded-badge,
-    .manage-item .manage-actions {
+    .manage-thumb img,
+    .manage-thumb .manage-select,
+    .manage-thumb .manage-downloaded-badge {
       position: absolute;
       z-index: 2;
     }
 
-    .manage-item img {
+    .manage-thumb img {
       inset: 0;
       width: 100% !important;
       height: 100% !important;
@@ -494,10 +500,11 @@
     }
 
     .manage-actions {
-      right: 8px;
-      bottom: 8px;
       display: flex;
+      justify-content: flex-end;
       gap: 6px;
+      min-height: 30px;
+      padding-right: 2px;
     }
 
     .manage-actions button {
@@ -2879,14 +2886,16 @@
         const url = item[2];
         const isDownloaded = manageDownloadedPhotoKeys.has(key);
         html += `
-        <div class="manage-item" style="border-radius: 8px; border: 1px solid var(--border); background: #000;">
+        <div class="manage-item">
+          <div class="manage-thumb" style="border-radius: 8px; border: 1px solid var(--border); background: #000;">
             <img src="${url}?w=300" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; opacity: 0.9;" onclick="toggleManageSelection(${index})" onload="this.style.opacity=1">
             <input class="manage-select" type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}">
             ${isDownloaded ? '<span class="manage-downloaded-badge"><i class="bi bi-check2-circle"></i>Downloaded</span>' : ''}
-            <div class="manage-actions">
-              <button onclick="downloadSingleManagePhoto(${index})" title="Download photo" style="background: rgba(13, 148, 136, 0.94);"><i class="bi bi-download"></i></button>
-              <button onclick="deleteSingleManagePhoto('${key}')" title="Delete photo" style="background: rgba(239, 68, 68, 0.9);"><i class="bi bi-trash"></i></button>
-            </div>
+          </div>
+          <div class="manage-actions">
+            <button onclick="downloadSingleManagePhoto(${index})" title="Download photo" style="background: rgba(13, 148, 136, 0.94);"><i class="bi bi-download"></i></button>
+            <button onclick="deleteSingleManagePhoto('${key}')" title="Delete photo" style="background: rgba(239, 68, 68, 0.9);"><i class="bi bi-trash"></i></button>
+          </div>
         </div>`;
       });
       grid.innerHTML = html;
