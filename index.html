@@ -522,22 +522,22 @@
     }
 
     .manage-toolbar {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 8px;
-      padding: 8px 12px;
+      padding: 10px 20px;
       border-bottom: 1px solid var(--border);
       background: var(--card-bg);
     }
 
     .manage-toolbar .action-btn {
-      width: 100%;
-      min-width: 0;
-      min-height: 34px;
+      width: auto;
+      min-width: auto;
+      min-height: 0;
       margin: 0;
-      padding: 7px 10px;
+      padding: 6px 12px;
       border-radius: 6px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
       letter-spacing: 0;
       line-height: 1.1;
@@ -545,7 +545,29 @@
     }
 
     .manage-toolbar .manage-download-all {
-      grid-column: 1 / -1;
+      width: auto;
+    }
+
+    @media (max-width: 699px) {
+      .manage-toolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 8px 12px;
+      }
+
+      .manage-toolbar .action-btn {
+        width: 100%;
+        min-width: 0;
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 11px;
+      }
+
+      .manage-toolbar .manage-download-all {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
     }
 
     @media (min-width: 700px) {
