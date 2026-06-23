@@ -2553,13 +2553,20 @@
     // ==========================================
     // DATABASE FETCHING & RENDERING
     // ==========================================
+    function stripInternalBoothSuffix(value) {
+      return String(value || '').replace(/-Booth\d+$/i, '').trim();
+    }
+
     async function fetchBoothEvents(forceRefresh = false) {
       if (!forceRefresh && allFetchedEvents.length > 0) { renderDropdownOptions(allFetchedEvents); return; }
       document.getElementById('eventSelect').innerHTML = '<option value="">Loading...</option>';
       try {
         const snapshot = await db.collection("users").doc(currentUser.uid)
           .collection("events").orderBy("timestamp", "desc").limit(50).get();
-        let events = []; snapshot.forEach(doc => { events.push({ id: doc.id, name: doc.data().eventName || "Unnamed" }); });
+        let events = []; snapshot.forEach(doc => {
+          const rawName = doc.data().eventName || "Unnamed";
+          events.push({ id: doc.id, name: rawName, displayName: stripInternalBoothSuffix(rawName) || rawName });
+        });
         allFetchedEvents = events; renderDropdownOptions(events);
       } catch (err) { console.error(err); }
     }
@@ -2569,14 +2576,18 @@
       const currentVal = select.value;
       select.innerHTML = '<option value="">-- Select a Booth Project --</option>';
       eventsArray.forEach(e => {
-        let opt = document.createElement('option'); opt.value = e.id; opt.innerText = `${e.name} (${e.id})`;
+        let opt = document.createElement('option'); opt.value = e.id; opt.innerText = `${e.displayName || stripInternalBoothSuffix(e.name) || e.name} (${e.id})`;
         if (e.id === currentVal) opt.selected = true; select.appendChild(opt);
       });
     }
 
     function filterBoothEvents() {
       const term = document.getElementById('eventSearch').value.toLowerCase();
-      renderDropdownOptions(allFetchedEvents.filter(e => e.name.toLowerCase().includes(term) || e.id.toLowerCase().includes(term)));
+      renderDropdownOptions(allFetchedEvents.filter(e =>
+        (e.displayName || stripInternalBoothSuffix(e.name) || e.name).toLowerCase().includes(term) ||
+        e.name.toLowerCase().includes(term) ||
+        e.id.toLowerCase().includes(term)
+      ));
     }
 
     function checkEventNameDuplicate() {
@@ -2586,7 +2597,7 @@
       // In edit mode, the current event's own name is not a duplicate
       const currentEventId = document.getElementById('eventId').value;
       const isDuplicate = allFetchedEvents.some(e =>
-        e.name.trim().toLowerCase() === input && e.id !== currentEventId
+        (e.displayName || stripInternalBoothSuffix(e.name) || e.name).trim().toLowerCase() === input && e.id !== currentEventId
       );
       hint.style.display = isDuplicate ? '' : 'none';
     }
@@ -2618,8 +2629,10 @@
         document.getElementById('boothEnableCommunity').checked = details.enableCommunity === true;
         document.getElementById('eventId').value = selectedId;
         document.getElementById('folderName').value = details.folderName || "";
-        document.getElementById('eventName').value = details.eventName || "";
-        document.getElementById('pageTitle').value = details.pageTitle || details.eventName || "";
+        const displayEventName = stripInternalBoothSuffix(details.eventName) || details.eventName || "";
+        const displayPageTitle = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || "";
+        document.getElementById('eventName').value = displayEventName;
+        document.getElementById('pageTitle').value = displayPageTitle;
         document.getElementById('boothCount').value = details.boothCount || "";
         document.getElementById('logoOnMain').checked = details.logoOnMain === true;
         document.getElementById('boothCommunityOnly').checked = details.communityOnly === true;
@@ -2665,14 +2678,15 @@
         if (_lastAssetsEventId !== selectedId) { fetchExistingAssets(true, selectedId); _lastAssetsEventId = selectedId; }
 
       } else if (currentMode === 'view') {
-        document.getElementById('viewEventTitle').innerText = details.pageTitle || details.eventName || "Unnamed Event";
+        const displayEventTitle = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || "Unnamed Event";
+        document.getElementById('viewEventTitle').innerText = displayEventTitle;
         document.getElementById('viewEventId').innerText = "ID: " + details.id;
 
         const boothList = document.getElementById('boothList'); boothList.innerHTML = ''; currentViewBooths = [];
         const boothsArr = details.boothsStr ? details.boothsStr.split('|') : [];
         const qrUrlsArr = details.qrUrlsStr ? details.qrUrlsStr.split('|') : [];
         const prefixesArr = details.boothPrefixesStr ? details.boothPrefixesStr.split('|') : [];
-        const eventLabel = details.eventName || details.folderName || 'Booth ';
+        const eventLabel = stripInternalBoothSuffix(details.eventName || details.folderName) || details.eventName || details.folderName || 'Booth';
         const hadComm = (details.communityOnly || details.enableCommunity);
 
         boothsArr.forEach((link, i) => {
@@ -2698,11 +2712,11 @@
           // Calculate the correct R2 prefix for this specific booth
           const finalPrefix = prefix || (isComm ? `users/${currentUser.uid}/events/${details.id}/community` : `users/${currentUser.uid}/events/${details.id}/booth-${bNum}/prints`);
 
-          const manageEventName = details.pageTitle || details.eventName || 'event';
+          const manageEventName = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || 'event';
           const manageBoothName = isComm ? 'community' : `booth${bNum}`;
           const card = document.createElement('div'); card.className = 'booth-card';
           card.innerHTML = `
-                    <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${eventLabel}${bNum}`}</h4>
+                    <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${eventLabel} Booth ${bNum}`}</h4>
                     <div class="link-row"><span>Main Gallery</span><div class="link-actions">
                         <button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button>
                         <button class="mini-btn backup" onclick="openManageModal(decodeURIComponent('${encodeURIComponent(finalPrefix)}'), decodeURIComponent('${encodeURIComponent(manageEventName)}'), decodeURIComponent('${encodeURIComponent(manageBoothName)}'))">Manage</button>
