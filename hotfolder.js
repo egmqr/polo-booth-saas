@@ -31,6 +31,9 @@ export async function handleHotfolder(request, env) {
         if (!safeKey.startsWith(userHotfolderPrefix)) {
             return json({ success: false, error: 'Invalid hotfolder key' }, 400);
         }
+        if (client === 'android') {
+            return json({ success: true, retained: true });
+        }
         await Storage.delete(env, safeKey);
         return json({ success: true });
     }
