@@ -8,6 +8,9 @@ workers_dev = false
 BUCKET_NAME = "probooth-production"
 PUBLIC_CDN_BASE = "https://cdn.polo-booth.com"
 
+[triggers]
+crons = ["10 16 * * *"]
+
 [[routes]]
 pattern = "api.polo-booth.com"
 zone_name = "polo-booth.com"
