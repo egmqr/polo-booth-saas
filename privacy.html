@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | PoloPro</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #0d9488;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111318;
+        --panel: #1b1f2a;
+        --text: #f3f4f6;
+        --muted: #a8b0c2;
+        --border: #2d3442;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    .policy-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: clamp(22px, 4vw, 40px);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    a { color: var(--accent); font-weight: 700; }
+    h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 42px); line-height: 1.1; }
+    h2 { margin: 32px 0 10px; font-size: 20px; }
+    p { margin: 0 0 14px; }
+    ul { margin: 0 0 18px; padding-left: 22px; }
+    li { margin: 6px 0; }
+    .muted { color: var(--muted); }
+    .back-link { display: inline-block; margin-bottom: 18px; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="index.html">&larr; Back to PoloPro</a>
+    <article class="policy-card">
+      <h1>Privacy Policy</h1>
+      <p class="muted">Last updated: June 28, 2026</p>
+
+      <p>
+        This Privacy Policy explains how PoloPro and Polo Booth collect, use, store, and protect information when you use the web dashboard, gallery, upload tools, and related photo booth services.
+      </p>
+
+      <h2>Information We Collect</h2>
+      <ul>
+        <li>Account information, such as your email address, authentication status, account tier, invite code, and basic user settings.</li>
+        <li>Event and booth setup information, such as event names, booth counts, gallery settings, QR links, templates, background images, logos, and sticker settings.</li>
+        <li>Uploaded media, including event photos, user-uploaded gallery photos, logos, backgrounds, QR assets, templates, and stickers.</li>
+        <li>Technical information needed to run the service, such as request metadata, storage keys, session counters, error logs, and device/browser information.</li>
+      </ul>
+
+      <h2>How We Use Information</h2>
+      <ul>
+        <li>To create and manage photo booth events, galleries, QR codes, templates, and upload workflows.</li>
+        <li>To authenticate users and restrict dashboard access to authorized accounts.</li>
+        <li>To store, display, download, and delete event media and configuration files.</li>
+        <li>To maintain reliability, troubleshoot issues, prevent abuse, and improve the service.</li>
+      </ul>
+
+      <h2>Storage and Processing</h2>
+      <p>
+        PoloPro uses third-party infrastructure providers to operate the service. Account and event metadata may be processed with Firebase/Google services. Photos, templates, and media assets may be stored in Cloudflare R2 and served through a CDN. These providers process data on our behalf to deliver the service.
+      </p>
+
+      <h2>Sharing</h2>
+      <p>
+        We do not sell personal information. Information may be shared only when needed to provide the service, comply with legal obligations, protect users or the service, or with your direction, such as when you share a gallery link or QR code.
+      </p>
+
+      <h2>Public Gallery Links</h2>
+      <p>
+        Galleries and QR links may be accessible to anyone who has the link, depending on your event settings. Avoid sharing gallery links publicly unless you intend for others to access the photos or upload experience.
+      </p>
+
+      <h2>Data Retention and Deletion</h2>
+      <p>
+        Event data and uploaded media are retained while needed for active galleries, booth operations, customer support, backups, or account management. Dashboard users may delete photos, assets, or booth setups from available management tools. Some cached or backup copies may remain for a limited time as part of normal service operation.
+      </p>
+
+      <h2>Security</h2>
+      <p>
+        We use authentication, scoped storage paths, access controls, and provider security features to protect information. No online service can guarantee absolute security, so users should keep account credentials private and share gallery links carefully.
+      </p>
+
+      <h2>Your Choices</h2>
+      <ul>
+        <li>You may manage or delete photos and assets from the dashboard where those controls are available.</li>
+        <li>You may request account or event data assistance from the Polo Booth team.</li>
+        <li>You may choose not to share gallery or QR links publicly.</li>
+      </ul>
+
+      <h2>Changes to This Policy</h2>
+      <p>
+        We may update this Privacy Policy when the service changes or when legal, operational, or security requirements change. The updated date above will reflect the latest version.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        For privacy questions or requests, contact the Polo Booth team through your usual support channel or dashboard administrator.
+      </p>
+    </article>
+  </main>
+</body>
+</html>
