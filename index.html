@@ -14,21 +14,42 @@
     .download-app-btn {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 6px;
       background: var(--btn-bg);
       color: #fff;
       text-decoration: none;
       font-size: 12px;
       font-weight: bold;
-      padding: 6px 12px;
+      padding: 7px 10px;
       border-radius: 6px;
       transition: background-color 0.2s, transform 0.2s;
+      line-height: 1;
+      white-space: nowrap;
     }
 
     .download-app-btn:hover {
       background: var(--btn-hover);
       color: #fff;
       text-decoration: none;
+    }
+
+    .download-links {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 3px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+
+    .download-app-btn.android {
+      background: #16a34a;
+    }
+
+    .download-app-btn.android:hover {
+      background: #15803d;
     }
 
     /* New Gallery Wrappers */
@@ -147,6 +168,27 @@
     .top-controls-right {
       display: flex;
       align-items: center;
+    }
+
+    @media (max-width: 520px) {
+      .top-navbar {
+        align-items: center;
+      }
+
+      .top-controls-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .download-links {
+        flex: 1;
+      }
+
+      .download-app-btn {
+        flex: 1;
+        padding: 8px 8px;
+        font-size: 11px;
+      }
     }
 
     .pin-wrapper {
@@ -1130,13 +1172,17 @@
   <div class="top-navbar">
     <div class="top-controls-left">
       <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
-      <a href="https://cdn.polo-booth.com/PoloPro.exe" id="downloadAppBtn" class="download-app-btn"
-        style="display:none;">
-        <i class="bi bi-windows"></i> Download PoloPro
-      </a>
     </div>
 
     <div class="top-controls-right" style="gap: 8px;">
+      <div class="download-links" id="appDownloadLinks">
+        <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" download>
+          <i class="bi bi-windows"></i> Windows
+        </a>
+        <a href="https://cdn.polo-booth.com/PoloPro-1.0.2-release.apk" class="download-app-btn android" download>
+          <i class="bi bi-android2"></i> Android
+        </a>
+      </div>
       <!-- Moon/Sun pill — each icon is its own button and the active one is highlighted -->
       <div class="theme-toggle" title="Toggle theme">
         <button class="theme-toggle-btn" id="btnMoon" onclick="setTheme(true)" title="Dark mode"><i
@@ -1705,8 +1751,8 @@
         document.getElementById('settingsBtn').style.display = 'none';
 
         // Add this line to hide it when logged out
-        const dlBtn = document.getElementById('downloadAppBtn');
-        if (dlBtn) dlBtn.style.display = 'none';
+        const appLinks = document.getElementById('appDownloadLinks');
+        if (appLinks) appLinks.style.display = 'none';
 
         // Reset the button and clear the password field when logging out
         const authBtn = document.getElementById('authBtn');
@@ -1736,8 +1782,8 @@
         document.getElementById('settingsBtn').style.display = 'flex';
 
         // Add this line to show it when logged in
-        const dlBtn = document.getElementById('downloadAppBtn');
-        if (dlBtn) dlBtn.style.display = 'flex';
+        const appLinks = document.getElementById('appDownloadLinks');
+        if (appLinks) appLinks.style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
 
         // 🟢 THE FIX: Force the UI to reset upon login to unlock fields for Paid accounts!
