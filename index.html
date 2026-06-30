@@ -1256,7 +1256,10 @@
       style="background: var(--bg-container); border-radius: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; display: flex; flex-direction: column; border: none; box-shadow: none;">
       <div
         style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0; color: var(--text-main); font-size: 18px;">Manage Photos</h3>
+        <div>
+          <h3 style="margin: 0; color: var(--text-main); font-size: 18px;">Manage Photos</h3>
+          <div id="manageRefreshStatus" style="margin-top: 3px; color: var(--text-muted); font-size: 11px; font-weight: 700;">Auto-refreshing</div>
+        </div>
         <button onclick="closeManageModal()"
           style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
       </div>
@@ -2892,6 +2895,9 @@
     let currentManagePrefix = '';
     let currentManageEventName = 'event';
     let currentManageBoothName = 'booth';
+    let manageRefreshTimer = null;
+    let manageRefreshInFlight = false;
+    const MANAGE_REFRESH_INTERVAL_MS = 7000;
     const MANAGE_DOWNLOADED_STORAGE_PREFIX = 'polo_manage_downloaded_photos:';
 
     function getManageDownloadedStorageKey() {
@@ -2956,34 +2962,97 @@
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }
 
+    function getSelectedManagePhotoKeys() {
+      return new Set([...document.querySelectorAll('input[id^="manage_cb_"]:checked')]
+        .map(cb => cb.getAttribute('data-key'))
+        .filter(Boolean));
+    }
+
+    function getManagePhotoSignature(photos) {
+      return (photos || []).map(item => item && item[0]).filter(Boolean).join('|');
+    }
+
+    function updateManageRefreshStatus(message) {
+      const status = document.getElementById('manageRefreshStatus');
+      if (status) status.textContent = message;
+    }
+
+    async function refreshManagePhotos({ showLoading = false, preserveSelection = true } = {}) {
+      if (!currentManagePrefix || manageRefreshInFlight) return;
+      manageRefreshInFlight = true;
+      const selectedKeys = preserveSelection ? getSelectedManagePhotoKeys() : new Set();
+      const grid = document.getElementById('manageGrid');
+      const previousCount = managePhotosData.length;
+
+      if (showLoading) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;"><div class="overlay-spinner" style="margin: 0 auto 15px auto; border-color: var(--border); border-top-color: var(--btn-bg);"></div>Loading photos...</div>';
+      }
+      updateManageRefreshStatus(showLoading ? 'Loading photos...' : 'Checking for new photos...');
+
+      try {
+        const tok = await getIdTokenCached();
+        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=${encodeURIComponent(currentManagePrefix)}&t=${Date.now()}`, {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
+        const result = await res.json();
+
+        if (result.status === 'success') {
+          const nextPhotos = result.data || [];
+          const hasChanged = getManagePhotoSignature(nextPhotos) !== getManagePhotoSignature(managePhotosData);
+          managePhotosData = nextPhotos;
+
+          if (hasChanged || showLoading) {
+            renderManageGrid(selectedKeys);
+            if (!showLoading && nextPhotos.length > previousCount) {
+              showToast(`${nextPhotos.length - previousCount} new photo${nextPhotos.length - previousCount === 1 ? '' : 's'} loaded`);
+            }
+          }
+          updateManageRefreshStatus(`Auto-refreshing - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+        } else if (showLoading) {
+          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
+          updateManageRefreshStatus('Refresh failed');
+        }
+      } catch (e) {
+        console.error('Manage photos refresh error:', e);
+        if (showLoading) {
+          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to storage.</div>';
+        }
+        updateManageRefreshStatus('Refresh paused - connection issue');
+      } finally {
+        manageRefreshInFlight = false;
+      }
+    }
+
+    function startManageAutoRefresh() {
+      stopManageAutoRefresh();
+      manageRefreshTimer = setInterval(() => {
+        if (document.getElementById('manageModal').style.display === 'flex') {
+          refreshManagePhotos();
+        }
+      }, MANAGE_REFRESH_INTERVAL_MS);
+    }
+
+    function stopManageAutoRefresh() {
+      if (manageRefreshTimer) {
+        clearInterval(manageRefreshTimer);
+        manageRefreshTimer = null;
+      }
+      manageRefreshInFlight = false;
+    }
+
     async function openManageModal(prefix, eventName = 'event', boothName = 'booth') {
       currentManagePrefix = prefix;
       currentManageEventName = eventName;
       currentManageBoothName = boothName;
       loadManageDownloadedState();
       document.getElementById('manageModal').style.display = 'flex';
-      document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;"><div class="overlay-spinner" style="margin: 0 auto 15px auto; border-color: var(--border); border-top-color: var(--btn-bg);"></div>Loading photos...</div>';
       managePhotosData = [];
-
-      try {
-        const tok = await currentUser.getIdToken();
-        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=${encodeURIComponent(prefix)}`, {
-          headers: { 'Authorization': `Bearer ${tok}` }
-        });
-        const result = await res.json();
-
-        if (result.status === 'success') {
-          managePhotosData = result.data;
-          renderManageGrid();
-        } else {
-          document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
-        }
-      } catch (e) {
-        document.getElementById('manageGrid').innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to storage.</div>';
-      }
+      updateManageRefreshStatus('Auto-refreshing');
+      await refreshManagePhotos({ showLoading: true, preserveSelection: false });
+      startManageAutoRefresh();
     }
 
-    function renderManageGrid() {
+    function renderManageGrid(selectedKeys = getSelectedManagePhotoKeys()) {
       const grid = document.getElementById('manageGrid');
       if (!managePhotosData || managePhotosData.length === 0) {
         grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;">No photos found in this booth.</div>';
@@ -2995,11 +3064,12 @@
         const key = item[0];
         const url = item[2];
         const isDownloaded = manageDownloadedPhotoKeys.has(key);
+        const isSelected = selectedKeys.has(key);
         html += `
         <div class="manage-item">
           <div class="manage-thumb" style="border-radius: 8px; border: 1px solid var(--border); background: #000;">
             <img src="${url}?w=300" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; opacity: 0.9;" onclick="toggleManageSelection(${index})" onload="this.style.opacity=1">
-            <input class="manage-select" type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}">
+            <input class="manage-select" type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}" ${isSelected ? 'checked' : ''}>
             ${isDownloaded ? '<span class="manage-downloaded-badge"><i class="bi bi-check2-circle"></i>Downloaded</span>' : ''}
           </div>
           <div class="manage-actions">
@@ -3012,6 +3082,7 @@
     }
 
     function closeManageModal() {
+      stopManageAutoRefresh();
       document.getElementById('manageModal').style.display = 'none';
     }
 
