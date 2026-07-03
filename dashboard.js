@@ -159,6 +159,7 @@ export async function handleUserRoutes(request, env) {
                     email: { stringValue: user.email },
                     tier: { stringValue: 'paid' },
                     createdAt: { timestampValue: new Date().toISOString() },
+                    pin: { stringValue: '0000' },
                     note: { stringValue: '' }
                 }
             })
