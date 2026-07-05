@@ -1,0 +1,3526 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PoloPro Management</title>
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+  <style>
+    .download-app-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--btn-bg);
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 7px 10px;
+      border-radius: 6px;
+      transition: background-color 0.2s, transform 0.2s;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .download-app-btn:hover {
+      background: var(--btn-hover);
+      color: #fff;
+      text-decoration: none;
+    }
+
+    .download-links {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 3px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+    }
+
+    .download-app-btn.android {
+      background: #16a34a;
+    }
+
+    .download-app-btn.android:hover {
+      background: #15803d;
+    }
+
+    /* New Gallery Wrappers */
+    .gallery-item-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .gallery-item-delete {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+    }
+
+    .gallery-item-delete:hover {
+      background: #dc2626;
+      transform: scale(1.1);
+    }
+
+    /* --- CSS VARIABLES FOR THEMING --- */
+    :root {
+      --bg-body: #f4f5f7;
+      --bg-container: #ffffff;
+      --text-main: #222222;
+      --text-muted: #777777;
+      --border: #cccccc;
+      --input-bg: #ffffff;
+      --btn-bg: #0d9488;
+      --btn-hover: #0f766e;
+      --btn-text: #ffffff;
+      --btn-outline-bg: #ffffff;
+      --btn-outline-text: #333333;
+      --overlay-bg: rgba(255, 255, 255, 0.85);
+      --shadow: rgba(0, 0, 0, 0.1);
+      --card-bg: #f8fafc;
+    }
+
+    body.dark-mode {
+      --bg-body: #111318;
+      --bg-container: #1c1f26;
+      --text-main: #eeeeee;
+      --text-muted: #94a3b8;
+      --border: #2e3340;
+      --input-bg: #161920;
+      --btn-bg: #0d9488;
+      --btn-hover: #0f766e;
+      --btn-text: #ffffff;
+      --btn-outline-bg: #252831;
+      --btn-outline-text: #cbd5e1;
+      --overlay-bg: rgba(10, 11, 15, 0.92);
+      --shadow: rgba(0, 0, 0, 0.3);
+      --card-bg: #252831;
+    }
+
+    /* Layout Reset & Mobile Base */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 15px;
+      /* Removed 60px top padding so it flows naturally */
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--bg-container);
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px var(--shadow);
+      margin: 0 auto;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    /* Theme, PIN & Logout Controls */
+    .top-navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      /* Allows items to stack on narrow phone screens */
+      gap: 12px;
+      max-width: 600px;
+      margin: 0 auto 20px auto;
+      z-index: 9999;
+      position: relative;
+    }
+
+    .top-controls-left {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .top-controls-right {
+      display: flex;
+      align-items: center;
+    }
+
+    @media (max-width: 520px) {
+      .top-navbar {
+        align-items: center;
+      }
+
+      .top-controls-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .download-links {
+        flex: 1;
+      }
+
+      .download-app-btn {
+        flex: 1;
+        padding: 8px 8px;
+        font-size: 11px;
+      }
+    }
+
+    .pin-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg);
+      padding: 4px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      /* margin-left: 10px; REMOVED to rely on flex gap instead */
+    }
+
+    .pin-wrapper button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+
+    .pin-wrapper button:hover {
+      color: var(--btn-bg);
+    }
+
+    /* pin-modal styles moved to settingsModal */
+
+    .logout-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+      display: none;
+    }
+
+    .logout-btn:hover {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    /* ── Theme toggle pill ── */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 2px;
+      cursor: pointer;
+    }
+
+    .theme-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 13px;
+      transition: background .2s, color .2s;
+    }
+
+    .theme-toggle-btn.active {
+      background: var(--btn-bg);
+      color: #fff;
+    }
+
+    /* ── Settings button ── */
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      font-size: 15px;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+
+    .settings-btn:hover {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    /* ── Settings modal ── */
+    #settingsModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .85);
+      z-index: 10005;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .settings-modal-content {
+      background: var(--bg-container);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 360px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .settings-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .settings-pin-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .settings-pin-display {
+      flex: 1;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: var(--text-main);
+    }
+
+    .settings-icon-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 7px 10px;
+      font-size: 14px;
+      transition: .2s;
+    }
+
+    .settings-icon-btn:hover {
+      background: var(--border);
+      color: var(--text-main);
+    }
+
+    .settings-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    .settings-field-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    #settingsPassError {
+      color: #ef4444;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    #settingsPassSuccess {
+      color: #0d9488;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    /* Full Screen Login Overlay */
+    #loginOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-body);
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+    .auth-mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      margin: 0 0 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .auth-mode-tab {
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 10px 8px;
+      cursor: pointer;
+    }
+
+    .auth-mode-tab.active {
+      background: var(--btn-bg);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(13, 148, 136, 0.22);
+    }
+
+    .signup-contact-hint {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: -2px 0 14px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .signup-contact-icon {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg);
+      color: var(--text-main);
+      text-decoration: none;
+      transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+    }
+
+    .signup-contact-icon:hover {
+      border-color: var(--btn-bg);
+      background: rgba(13, 148, 136, 0.14);
+      color: var(--btn-bg);
+    }
+
+    .auth-divider {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      margin: 14px 0;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      height: 1px;
+      background: var(--border);
+    }
+
+    .google-auth-btn {
+      width: 100%;
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+      color: var(--text-main);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .google-auth-btn:hover:not(:disabled) {
+      border-color: var(--btn-bg);
+      background: var(--card-bg);
+    }
+
+    .google-auth-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.68;
+    }
+
+    /* Loading Overlay */
+    #overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--overlay-bg);
+      z-index: 10010;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .overlay-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--border);
+      border-top: 4px solid var(--btn-bg);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    .overlay-text {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--text-main);
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .overlay-progress-wrap {
+      display: none;
+      width: min(320px, calc(100vw - 48px));
+      margin-top: 10px;
+    }
+
+    .overlay-progress-track {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--border);
+      overflow: hidden;
+    }
+
+    .overlay-progress-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: #0d9488;
+      transition: width 0.2s ease;
+    }
+
+    .overlay-progress-label {
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    #manageGrid {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      grid-auto-rows: auto;
+      align-items: start;
+      column-gap: 8px !important;
+      row-gap: 26px !important;
+      padding: 12px !important;
+    }
+
+    .manage-item {
+      width: 100%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow: visible;
+    }
+
+    .manage-thumb {
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .manage-thumb::before {
+      content: "";
+      display: block;
+      width: 100%;
+      padding-top: 100%;
+    }
+
+    .manage-thumb img,
+    .manage-thumb .manage-select,
+    .manage-thumb .manage-downloaded-badge {
+      position: absolute;
+      z-index: 2;
+    }
+
+    .manage-thumb img {
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    .manage-select {
+      top: 8px;
+      left: 8px;
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--btn-bg);
+    }
+
+    .manage-downloaded-badge {
+      top: 8px;
+      right: 8px;
+      background: rgba(22, 163, 74, 0.94);
+      color: #fff;
+      border-radius: 999px;
+      padding: 4px 7px;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.28);
+    }
+
+    .manage-downloaded-badge i {
+      font-size: 11px;
+      margin-right: 3px;
+    }
+
+    .manage-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      min-height: 30px;
+      padding-right: 2px;
+    }
+
+    .manage-actions button {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .manage-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card-bg);
+    }
+
+    .manage-toolbar .action-btn {
+      width: auto;
+      min-width: auto;
+      min-height: 0;
+      margin: 0;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .manage-toolbar .manage-download-all {
+      width: auto;
+    }
+
+    @media (max-width: 699px) {
+      .manage-toolbar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 8px 12px;
+      }
+
+      .manage-toolbar .action-btn {
+        width: 100%;
+        min-width: 0;
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 11px;
+      }
+
+      .manage-toolbar .manage-download-all {
+        grid-column: 1 / -1;
+        width: 100%;
+      }
+    }
+
+    @media (min-width: 700px) {
+      #manageGrid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+        column-gap: 10px !important;
+        row-gap: 26px !important;
+        padding: 15px 20px !important;
+      }
+    }
+
+    @media (max-width: 380px) {
+      #manageGrid {
+        column-gap: 6px !important;
+        row-gap: 24px !important;
+        padding: 8px !important;
+      }
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Image Cropper Modal */
+    #cropModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      z-index: 10005;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .crop-container {
+      width: 100%;
+      max-width: 400px;
+      height: 60vh;
+      max-height: 400px;
+      background: #222;
+      border-radius: 8px;
+      overflow: hidden;
+      background-image: linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    }
+
+    #imageToCrop {
+      display: block;
+      max-width: 100%;
+    }
+
+    .crop-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .crop-btn-cancel {
+      background: #555 !important;
+      flex: 1;
+      color: white !important;
+    }
+
+    /* UI Elements */
+    .mode-toggle {
+      display: flex;
+      margin-bottom: 25px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px 5px;
+      background: var(--btn-outline-bg);
+      color: var(--btn-outline-text);
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      transition: 0.2s;
+      border-right: 1px solid var(--border);
+    }
+
+    .mode-btn:last-child {
+      border-right: none;
+    }
+
+    .mode-btn.active {
+      background: var(--btn-bg);
+      color: #fff;
+      border-color: var(--btn-bg);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .color-group {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 18px;
+    }
+
+    .color-group .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      background: var(--input-bg);
+      font-weight: 600;
+      color: var(--text-main);
+      transition: 0.2s;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--btn-bg);
+    }
+
+    ::placeholder {
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    input:disabled,
+    select:disabled,
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Checkbox & Switch UI */
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .checkbox-wrapper label {
+      margin-bottom: 0;
+      text-transform: none;
+      font-size: 13px;
+      color: var(--text-main);
+      cursor: pointer;
+      flex-grow: 1;
+    }
+
+    .checkbox-wrapper input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--btn-bg);
+      margin: 0;
+    }
+
+    /* Custom Hex + Color Picker UI */
+    .color-input-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input[type="color"] {
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      background: none;
+      flex-shrink: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 7px;
+    }
+
+    /* Custom File Upload UI */
+    .custom-file-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-btn {
+      background: var(--btn-outline-bg);
+      color: var(--btn-outline-text);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: 0.2s;
+    }
+
+    .file-btn:hover {
+      background: var(--border);
+    }
+
+    .file-name {
+      font-size: 13px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Templates & Logos Grids */
+    .template-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .template-actions button {
+      flex: 1;
+      padding: 6px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .logo-gallery {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 10px 0;
+    }
+
+    .logo-gallery-item {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      object-fit: contain;
+      background: #fff;
+      padding: 2px;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .logo-gallery-item.selected {
+      border-color: var(--btn-bg);
+    }
+
+    .sticker-manager-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      border: 1px dashed var(--border);
+      margin-top: 10px;
+    }
+
+    .sticker-manager-item {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 4px;
+    }
+
+    .sticker-manager-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .sticker-manager-delete {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hint-text {
+      display: block;
+      font-size: 11px;
+      color: #ef4444;
+      margin-top: 6px;
+      font-weight: bold;
+    }
+
+    /* Action Buttons */
+    button.action-btn {
+      background-color: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      padding: 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      width: 100%;
+      margin-top: 10px;
+      font-weight: bold;
+      transition: 0.2s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    button.action-btn:hover:not(:disabled) {
+      background-color: var(--btn-hover);
+      transform: translateY(-1px);
+    }
+
+    #deleteBtn {
+      background-color: transparent;
+      color: #ef4444;
+      border: 1px solid #ef4444;
+      margin-top: 10px;
+    }
+
+    #deleteBtn:hover:not(:disabled) {
+      background-color: #ef4444;
+      color: #fff;
+    }
+
+    /* --- VIEW MODE CSS --- */
+    .booth-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      background: var(--bg-container);
+    }
+
+    .booth-card h4 {
+      margin: 0 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      color: var(--text-main);
+    }
+
+    .link-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .link-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .mini-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--btn-outline-bg);
+      color: var(--btn-outline-text);
+      border-radius: 6px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    .mini-btn:hover {
+      background: var(--border);
+    }
+
+    .mini-btn.backup {
+      background: #475569;
+      color: #fff;
+      border: none;
+    }
+
+    .mini-btn.backup:hover {
+      background: #334155;
+    }
+
+    .badge-community {
+      background: rgba(13, 148, 136, 0.1);
+      color: #0d9488;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      border: 1px solid #0d9488;
+    }
+
+    /* Thumbnail Modals */
+    .booth-thumbnail-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-left: 10px;
+    }
+
+    .booth-thumbnail {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .booth-lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 10500;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .booth-lightbox img {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+    }
+
+    .booth-lightbox-close {
+      position: absolute;
+      top: 0;
+      right: 50px;
+      color: white;
+      font-size: 35px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body class="dark-mode">
+  <div id="initialAuthLoader"
+    style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #111; z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white;">
+    <div
+      style="width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #0d9488; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;">
+    </div>
+    <h3 style="font-family: sans-serif; font-weight: 600;">Authenticating...</h3>
+  </div>
+  <div id="loginOverlay">
+    <div class="container" style="max-width:380px; text-align:center; padding:40px 30px;">
+      <h2 style="margin-top:0; font-size:22px; margin-bottom:8px;">PoloPro</h2>
+      <p style="color:var(--text-muted); font-size:13px; margin-bottom:28px;" id="authSubtitle">Sign in to your account
+      </p>
+      <div class="auth-mode-tabs" id="authModeTabs" aria-label="Choose authentication mode">
+        <button type="button" class="auth-mode-tab active" id="authModeSignin" onclick="setAuthMode(false)">Sign in</button>
+        <button type="button" class="auth-mode-tab" id="authModeSignup" onclick="setAuthMode(true)">Sign up</button>
+      </div>
+
+      <input type="text" id="inviteCodeInput" placeholder="Invite Code"
+        style="margin-bottom:12px; text-align:center; display:none; text-transform:uppercase;">
+      <div class="signup-contact-hint" id="signupContactHint">
+        <span>Contact me for invite code</span>
+        <a class="signup-contact-icon" href="mailto:lamzonjophet@gmail.com" title="Email Jophet" aria-label="Email Jophet">
+          <i class="bi bi-envelope-fill"></i>
+        </a>
+        <a class="signup-contact-icon" href="https://www.facebook.com/jopslamzon" target="_blank" rel="noopener" title="Message on Facebook" aria-label="Message on Facebook">
+          <i class="bi bi-facebook"></i>
+        </a>
+      </div>
+
+      <input type="email" id="emailInput" placeholder="Email address" style="margin-bottom:12px; text-align:center;">
+      <input type="password" id="passwordInput" placeholder="Password" style="margin-bottom:20px; text-align:center;"
+        onkeypress="if(event.key==='Enter') submitAuth()">
+
+      <button class="action-btn" id="authBtn" onclick="submitAuth()" style="margin-top:0;">Sign In</button>
+      <div class="auth-divider" id="authDivider"><span>or</span></div>
+      <button type="button" class="google-auth-btn" id="googleAuthBtn" onclick="submitGoogleAuth()">
+        <i class="bi bi-google"></i>
+        <span id="googleAuthText">Continue with Google</span>
+      </button>
+      <button onclick="toggleAuthMode()"
+        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;display:block;width:100%;text-align:center;"
+        id="authToggleBtn">Don't have an account? Sign up</button>
+      <button onclick="enterResetMode()" id="forgotBtn"
+        style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;text-decoration:underline;display:block;width:100%;text-align:center;">
+        Forgot password?
+      </button>
+      <a href="/privacy.html" target="_blank" rel="noopener"
+        style="display:inline-block;margin-top:18px;color:var(--text-muted);font-size:12px;text-decoration:underline;">Privacy Policy</a>
+      <p id="authError" style="color:#ef4444;font-size:12px;margin-top:12px;display:none;"></p>
+      <p id="resetSuccess" style="color:#0d9488;font-size:12px;margin-top:12px;display:none;">
+        Reset link sent — check your email.
+      </p>
+    </div>
+  </div>
+
+  <div id="cropModal">
+    <h3 style="color: #fff; margin-top: 0; margin-bottom: 15px;">Crop Custom Logo</h3>
+    <div class="crop-container">
+      <img id="imageToCrop" src="">
+    </div>
+    <div class="crop-actions">
+      <button class="action-btn crop-btn-cancel" onclick="cancelCrop()">Cancel</button>
+      <button class="action-btn crop-btn-save" onclick="applyCrop()">Apply (250x250)</button>
+    </div>
+  </div>
+
+  <div id="boothLightbox" class="booth-lightbox" onclick="closeLightbox()">
+    <span class="booth-lightbox-close" onclick="closeLightbox()">×</span>
+    <img id="boothLightboxImg" src="" onclick="event.stopPropagation()">
+  </div>
+
+  <div class="top-navbar">
+    <div class="top-controls-left">
+      <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="top-controls-right" style="gap: 8px;">
+      <div class="download-links" id="appDownloadLinks">
+        <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" download>
+          <i class="bi bi-windows"></i> Windows
+        </a>
+        <a href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" class="download-app-btn android" download>
+          <i class="bi bi-android2"></i> Android
+        </a>
+      </div>
+      <!-- Moon/Sun pill — each icon is its own button and the active one is highlighted -->
+      <div class="theme-toggle" title="Toggle theme">
+        <button class="theme-toggle-btn" id="btnMoon" onclick="setTheme(true)" title="Dark mode"><i
+            class="bi bi-moon-fill"></i></button>
+        <button class="theme-toggle-btn" id="btnSun" onclick="setTheme(false)" title="Light mode"><i
+            class="bi bi-sun-fill"></i></button>
+      </div>
+      <!-- Settings gear — hidden until logged in, same as logoutBtn -->
+      <button class="settings-btn" id="settingsBtn" onclick="openSettingsModal()" title="Settings"
+        style="display:none;">
+        <i class="bi bi-gear-fill"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Unified Settings Modal (replaces pinModal) -->
+  <div id="settingsModal">
+    <div class="settings-modal-content">
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <h3 style="margin:0; font-size:17px; color:var(--text-main);">Settings</h3>
+        <button onclick="closeSettingsModal()"
+          style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+      </div>
+
+      <!-- Booth PIN section -->
+      <div>
+        <p class="settings-section-title">Booth PIN</p>
+        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">Secures all offline desktop booths.</p>
+        <div class="settings-pin-row">
+          <div class="settings-pin-display" id="displayPin">••••</div>
+          <button class="settings-icon-btn" onclick="togglePinVisibility()" title="Show/Hide PIN">
+            <i class="bi bi-eye" id="pinEyeIcon"></i>
+          </button>
+          <button class="settings-icon-btn" onclick="focusPinEdit()" title="Edit PIN">
+            <i class="bi bi-pencil-square"></i>
+          </button>
+        </div>
+        <div id="pinEditRow" style="display:none; margin-top:10px; display:none;">
+          <input type="text" id="newPinInput" maxlength="8" placeholder="Enter new PIN"
+            style="text-align:center; font-size:20px; letter-spacing:6px; font-weight:700; margin-bottom:10px;"
+            onkeypress="if(event.key==='Enter') submitNewPin()">
+          <div style="display:flex; gap:8px;">
+            <button class="action-btn crop-btn-cancel" style="flex:1;" onclick="cancelPinEdit()">Cancel</button>
+            <button class="action-btn" style="flex:1;" onclick="submitNewPin()">Save PIN</button>
+          </div>
+        </div>
+      </div>
+
+      <hr class="settings-divider">
+
+      <!-- Change Password section -->
+      <div>
+        <p class="settings-section-title">Change Password</p>
+        <p class="settings-field-label">Current Password</p>
+        <input type="password" id="currentPasswordInput" placeholder="Current password" style="margin-bottom:10px;">
+        <p class="settings-field-label">New Password</p>
+        <input type="password" id="newPasswordInput" placeholder="New password" style="margin-bottom:10px;">
+        <p class="settings-field-label">Confirm New Password</p>
+        <input type="password" id="confirmPasswordInput" placeholder="Re-type new password" style="margin-bottom:10px;">
+        <button class="action-btn" onclick="submitChangePassword()" style="margin-top:4px;">Update Password</button>
+        <p id="settingsPassError"></p>
+        <p id="settingsPassSuccess"></p>
+      </div>
+
+    </div>
+  </div>
+  <div id="manageModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); z-index: 10005; justify-content: center; align-items: center; padding: 0; box-sizing: border-box;">
+    <div
+      style="background: var(--bg-container); border-radius: 0; width: 100%; max-width: 100%; height: 100%; max-height: 100%; display: flex; flex-direction: column; border: none; box-shadow: none;">
+      <div
+        style="padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="margin: 0; color: var(--text-main); font-size: 18px;">Manage Photos</h3>
+          <div id="manageRefreshStatus" style="margin-top: 3px; color: var(--text-muted); font-size: 11px; font-weight: 700;">Auto-refreshing</div>
+        </div>
+        <button onclick="closeManageModal()"
+          style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+      <div class="manage-toolbar">
+        <button class="action-btn"
+          style="background: var(--btn-outline-bg); color: var(--btn-outline-text); border: 1px solid var(--border);"
+          onclick="selectAllManagePhotos()">Select All</button>
+        <button class="action-btn"
+          style="background: #a94949; color: #fff;"
+          onclick="deleteSelectedManagePhotos()">Delete Selected</button>
+        <button class="action-btn"
+          style="background: #2563eb; color: #fff;"
+          onclick="downloadSelectedManagePhotos()">Download Selected</button>
+        <button class="action-btn"
+          style="background: #7c3aed; color: #fff;"
+          onclick="downloadUnmarkedManagePhotos()">Download Unmarked</button>
+        <button class="action-btn manage-download-all"
+          style="background: #0d9488; color: #fff;"
+          onclick="downloadAllManagePhotos()">Download All</button>
+      </div>
+      <div id="manageGrid"
+        style="flex-grow: 1; overflow-y: auto; padding: 15px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; align-content: start;">
+      </div>
+    </div>
+  </div>
+  <div id="overlay">
+    <div class="overlay-spinner"></div>
+    <div class="overlay-text" id="overlay-text">Loading...</div>
+    <div id="overlayProgressWrap" class="overlay-progress-wrap">
+      <div class="overlay-progress-track">
+        <div id="overlayProgressBar" class="overlay-progress-bar"></div>
+      </div>
+      <div id="overlayProgressLabel" class="overlay-progress-label"></div>
+    </div>
+  </div>
+
+  <div class="container" id="mainApp" style="display:none;">
+    <div class="mode-toggle">
+      <button type="button" id="btnModeNew" class="mode-btn active" onclick="setMode('new')">New Setup</button>
+      <button type="button" id="btnModeEdit" class="mode-btn" onclick="setMode('edit')">Edit Setup</button>
+      <button type="button" id="btnModeView" class="mode-btn" onclick="setMode('view')">View Setup</button>
+    </div>
+
+    <div class="form-group" id="editSelectContainer" style="display: none;">
+      <label for="eventSearch" style="display:none;">Search Generated Event</label>
+      <input type="text" id="eventSearch" placeholder="Type name or ID..." onkeyup="filterBoothEvents()"
+        style="display:none;">
+      <select id="eventSelect" onchange="loadBoothEventDetails()">
+        <option value="">-- Loading Booths... --</option>
+      </select>
+    </div>
+
+    <div id="editFormFields">
+      <!-- eventId is hidden from UI but kept in DOM for backend use -->
+      <input type="hidden" id="eventId">
+
+      <div class="color-group">
+        <div class="form-group">
+          <label for="eventName">Event Name</label>
+          <input type="text" id="eventName" placeholder="e.g., PoloBday" required oninput="checkEventNameDuplicate()">
+          <span class="hint-text" id="eventNameHint" style="display:none; color: var(--danger, #e53935);">An event with
+            this name already exists.</span>
+        </div>
+        <div class="form-group">
+          <label for="pageTitle">Web Gallery Page Title</label>
+          <input type="text" id="pageTitle" placeholder="e.g., Polo's Birthday Celebration 🎉">
+        </div>
+      </div>
+
+      <input type="hidden" id="folderName">
+
+      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <label for="boothCount">Number of Booths</label>
+        <input type="number" id="boothCount" min="1" placeholder="e.g., 2" required>
+        <span class="hint-text" id="boothHint" style="display:none;">Booth count is locked during edits.</span>
+      </div>
+
+      <div class="form-group" id="templatesGroup" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <label>Print Templates</label>
+        <select id="boothTemplateList" size="3" onchange="handleTemplateSelection()"></select>
+        <div id="templateLockNotice"
+          style="display:none; margin:8px 0; padding:10px 12px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; font-size:12px; color:var(--text-muted);">
+          <i class="bi bi-lock-fill"></i> Templates can only be edited in the PoloPro desktop app. Web gallery settings
+          below remain editable.
+        </div>
+        <div class="template-actions" id="templateActions">
+          <button type="button" class="file-btn" onclick="openNewTemplate()"><i class="bi bi-plus-lg"></i> New</button>
+          <button type="button" class="file-btn" id="btnEditTemplate" style="display:none;" onclick="editTemplate()"><i
+              class="bi bi-pencil"></i> Edit</button>
+          <button type="button" class="file-btn" id="btnRemoveTemplate" style="display:none;"
+            onclick="removeTemplate()"><i class="bi bi-trash"></i> Remove</button>
+
+          <button type="button" class="file-btn" id="btnExportTemplate" style="display:none;"
+            onclick="exportTemplate()"><i class="bi bi-box-arrow-up"></i> Export</button>
+
+          <button type="button" class="file-btn" onclick="document.getElementById('importTemplateFile').click()"><i
+              class="bi bi-box-arrow-in-down"></i> Import</button>
+          <input type="file" id="importTemplateFile" style="display:none;" accept=".json"
+            onchange="importTemplateFile(event)">
+        </div>
+      </div>
+
+      <div class="form-group" id="communityGroup" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <div class="checkbox-wrapper" id="communityEnableRow">
+          <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
+          <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Virtual Booth</label>
+        </div>
+        <div class="checkbox-wrapper" id="communityOnlyRow" style="margin-top: 5px; display:none;">
+          <input type="checkbox" id="boothCommunityOnly" disabled onchange="handleCommunityOnlyToggle()">
+          <label for="boothCommunityOnly" id="boothCommunityOnlyLabel" style="color: var(--text-muted);">Virtual Booth
+            Only (No Studio)</label>
+        </div>
+        <div class="checkbox-wrapper" id="userStickersRow" style="margin-top: 5px; display:none;">
+          <input type="checkbox" id="boothUserStickers" onchange="handleUserStickersToggle()">
+          <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers</label>
+        </div>
+
+        <!-- Prop Stickers — Edit Setup only (needs eventId for R2 path) -->
+        <div id="userStickersManager"
+          style="display:none; padding: 10px; background: var(--input-bg); border-radius: 8px; margin-top: 8px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="margin:0;"><i class="bi bi-stars"></i> Prop Stickers</label>
+            <input type="file" id="userStickerUploadInput" accept="image/png, image/jpeg" style="display:none;"
+              onchange="uploadUserSticker(event)">
+            <button type="button" class="file-btn" style="padding: 4px 8px; font-size: 10px;"
+              onclick="document.getElementById('userStickerUploadInput').click()">Upload Sticker</button>
+          </div>
+          <div id="userStickersGrid" class="sticker-manager-grid"></div>
+        </div>
+
+        <span class="hint-text" id="communityEditHint" style="display:none; margin-top:10px;">Community settings are
+          locked during edits.</span>
+      </div>
+
+      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="boothShowSearchBar" checked>
+          <label for="boothShowSearchBar"><i class="bi bi-search"></i> Show Search Bar</label>
+        </div>
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="boothShowTime" checked>
+          <label for="boothShowTime"><i class="bi bi-clock"></i> Show Time</label>
+        </div>
+        <div class="form-group" style="margin-top: 14px; margin-bottom: 0;">
+          <label for="boothCustomTerm">Custom Term for "Photobooth"</label>
+          <input type="text" id="boothCustomTerm" placeholder='Leave blank to use default: "Photobooth"'>
+          <span class="hint-text" style="display:block; margin-top:8px;">Renames the label "Photobooth" across the gallery view.</span>
+        </div>
+      </div>
+
+      <div class="color-group">
+        <div class="form-group">
+          <label>Font Color</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="fontColorPicker" value="#ffffff"
+              oninput="syncColor('fontColorPicker', 'fontColor')">
+            <input type="text" id="fontColor" value="#ffffff" maxlength="7"
+              oninput="syncColor('fontColor', 'fontColorPicker')">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Background</label>
+          <div class="color-input-wrapper">
+            <input type="color" id="bgColorPicker" value="#000000" oninput="syncColor('bgColorPicker', 'bgColor')">
+            <input type="text" id="bgColor" value="#000000" maxlength="7"
+              oninput="syncColor('bgColor', 'bgColorPicker')">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Background Image (1000x676)</label>
+        <div class="custom-file-row">
+          <input type="file" id="bgFile" accept="image/*" style="display: none;"
+            onchange="updateFileName('bgFile', 'bgFileName')">
+          <button type="button" class="file-btn" onclick="document.getElementById('bgFile').click()">Choose
+            Image</button>
+          <span class="file-name" id="bgFileName" style="flex-grow: 1;">No file</span>
+          <div class="booth-thumbnail-container" id="boothBgPreviewContainer" style="display:none;">
+            <img id="boothBgPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
+          </div>
+        </div>
+        <div id="existingBgGalleryContainer"
+          style="display:none; margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+          <label style="margin-bottom: 4px;">Recently Uploaded Backgrounds</label>
+          <div id="existingBgGallery" class="logo-gallery"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Custom Logo (250x250)</label>
+        <div class="custom-file-row">
+          <input type="file" id="logoFile" accept="image/*" style="display: none;" onchange="handleLogoSelect(event)">
+          <button type="button" class="file-btn" onclick="document.getElementById('logoFile').click()">Upload
+            New</button>
+          <span class="file-name" id="logoFileName" style="flex-grow: 1;">No file</span>
+          <div class="booth-thumbnail-container" id="boothLogoPreviewContainer" style="display:none;">
+            <img id="boothLogoPreview" class="booth-thumbnail" src="" onclick="openLightbox(this.src)">
+          </div>
+        </div>
+        <div id="existingLogoGalleryContainer"
+          style="display:none; margin-top: 10px; padding: 10px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+          <label style="margin-bottom: 4px;">Recently Uploaded Logos</label>
+          <div id="existingLogoGallery" class="logo-gallery"></div>
+        </div>
+
+        <div class="checkbox-wrapper">
+          <input type="checkbox" id="logoOnMain">
+          <label for="logoOnMain">Show logo as custom branding</label>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="viewContainer" style="display: none;">
+      <div
+        style="padding: 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
+        <h3 id="viewEventTitle" style="margin: 0 0 5px 0;">Select an event above</h3>
+        <p id="viewEventId" style="font-family: monospace; color: var(--text-muted); font-size: 12px; margin: 0;"></p>
+      </div>
+      <div id="boothList"></div>
+      <button id="downloadAllQRsBtn" class="action-btn" style="display:none;" onclick="downloadAllQRs()">Download All QR
+        Codes</button>
+    </div>
+
+    <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
+    <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;"
+      onclick="runUpdate()">Save Changes</button>
+    <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
+
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    // ==========================================
+    // CONFIGURATION & SECRETS
+    // ==========================================
+    const WORKER_URL = "https://api.polo-booth.com";
+
+    // Client-side ID token cache — Firebase tokens are valid for 1h, we cache for 50 min
+    let _cachedIdToken = null;
+    let _cachedIdTokenExp = 0;
+    async function getIdTokenCached() {
+      const now = Date.now();
+      if (_cachedIdToken && now < _cachedIdTokenExp) return _cachedIdToken;
+      _cachedIdToken = await currentUser.getIdToken();
+      _cachedIdTokenExp = now + 50 * 60 * 1000; // 50 minutes
+      return _cachedIdToken;
+    }
+    const NETLIFY_BASE_URL = "https://gallery.polo-booth.com/main.html";
+    let systemPin = "••••";
+    let pinVisible = false;
+    // INSERT YOUR FIREBASE CONFIG HERE to fetch the list of events
+    const firebaseConfig = {
+      apiKey: "AIzaSyBPZ-xvICeT52ftMRiYJ_N89k6g8kVRE5Y",
+      authDomain: "probooth-production.firebaseapp.com",
+      projectId: "probooth-production",
+      storageBucket: "probooth-production.appspot.com",
+      messagingSenderId: "415004603008",
+      appId: "1:415004603008:web:2a4b7b033cd94cc388ac65"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ==========================================
+    // STATE VARIABLES
+    // ==========================================
+    let currentMode = 'new';
+    let _lastAssetsEventId = null; // skip re-fetching assets when just switching tabs
+    let allFetchedEvents = [];
+    let currentViewBooths = [];
+    let boothDetailsCache = {};
+
+    let cropper = null;
+    let croppedLogoPayload = null;
+    let croppedQrLogoPayload = null;
+    let originalLogoFilename = "";
+    let currentBoothBgId = null;
+    let currentBoothBgKey = null;
+    let selectedExistingLogoKey = null;
+    let selectedExistingQrLogoKey = null;
+
+    const defaultBoothTemplates = [
+      {
+        "Name": "landscape",
+        "CanvasWidth": 1800,
+        "CanvasHeight": 1200,
+        "Layers": [{
+          "LayerType": "PhotoSlot",
+          "X": 0, "Y": 0,
+          "Width": 1800, "Height": 1200,
+          "ImagePath": null, "Rotation": 0,
+          "DisplayName": "Photo Slot 1"
+        }]
+      },
+      {
+        "Name": "portrait",
+        "CanvasWidth": 1200,
+        "CanvasHeight": 1800,
+        "Layers": [{
+          "LayerType": "PhotoSlot",
+          "X": 0, "Y": 0,
+          "Width": 1200, "Height": 1800,
+          "ImagePath": null, "Rotation": 0,
+          "DisplayName": "Photo Slot 1"
+        }]
+      }
+    ];
+    let boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates));
+
+    // ==========================================
+    // UI & AUTH LOGIC
+    // ==========================================
+    let currentUser = null;
+
+    // ── SESSION TIMEOUT ────────────────────────────────────────────────
+    // Auto-logout after 1 hour of being logged in. The timer resets each
+    // time the user logs in (or the page reloads while already logged in).
+    const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+    let _sessionTimer = null;
+
+    function startSessionTimer() {
+      clearSessionTimer();
+      sessionStorage.setItem('sessionStart', Date.now().toString());
+      _sessionTimer = setTimeout(() => {
+        // Time's up — sign out and show a friendly re-login message
+        auth.signOut().then(() => {
+          showSessionExpiredBanner();
+        });
+      }, SESSION_DURATION_MS);
+    }
+
+    function clearSessionTimer() {
+      if (_sessionTimer) { clearTimeout(_sessionTimer); _sessionTimer = null; }
+      sessionStorage.removeItem('sessionStart');
+    }
+
+    function showSessionExpiredBanner() {
+      // Re-use the authError element to surface the message after the login
+      // overlay reappears (checkLogin() will have already shown it by then).
+      const errEl = document.getElementById('authError');
+      if (errEl) {
+        errEl.textContent = 'Your session expired after 1 hour. Please sign in again.';
+        errEl.style.display = 'block';
+      }
+    }
+    let userTier = 'free';
+    let isSignUpMode = false;
+    let isProvisioning = false; // NEW: Prevents UI flashing during sign up
+    const auth = firebase.auth();
+
+    let isResetMode = false;
+
+    function _applyAuthUI() {
+      const resetSuccess = document.getElementById('resetSuccess');
+      if (resetSuccess) resetSuccess.style.display = 'none';
+      document.getElementById('authError').style.display = 'none';
+      document.getElementById('authError').textContent = '';
+      document.getElementById('inviteCodeInput').style.display = isSignUpMode && !isResetMode ? 'block' : 'none';
+      document.getElementById('passwordInput').style.display = isResetMode ? 'none' : 'block';
+      document.getElementById('forgotBtn').style.display = isResetMode || isSignUpMode ? 'none' : 'block';
+      document.getElementById('authToggleBtn').style.display = 'none';
+      document.getElementById('authModeTabs').style.display = isResetMode ? 'none' : 'grid';
+      document.getElementById('authDivider').style.display = isResetMode ? 'none' : 'grid';
+      document.getElementById('googleAuthBtn').style.display = isResetMode ? 'none' : 'flex';
+      document.getElementById('signupContactHint').style.display = isSignUpMode && !isResetMode ? 'flex' : 'none';
+      document.getElementById('authModeSignin').classList.toggle('active', !isSignUpMode);
+      document.getElementById('authModeSignup').classList.toggle('active', isSignUpMode);
+
+      if (isResetMode) {
+        document.getElementById('authBtn').textContent = 'Send Reset Link';
+        document.getElementById('authSubtitle').textContent = 'Enter your email to reset your password';
+        // Back to sign-in link
+        document.getElementById('authToggleBtn').style.display = 'block';
+        document.getElementById('authToggleBtn').textContent = '← Back to sign in';
+        document.getElementById('authToggleBtn').onclick = exitResetMode;
+      } else {
+        document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+        document.getElementById('googleAuthText').textContent = isSignUpMode ? 'Sign up with Google' : 'Sign in with Google';
+        document.getElementById('authSubtitle').textContent = isSignUpMode ? 'Create a new account' : 'Sign in to your account';
+        document.getElementById('authToggleBtn').textContent = isSignUpMode ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
+        document.getElementById('authToggleBtn').onclick = toggleAuthMode;
+      }
+    }
+
+    function setAuthMode(signup) {
+      isSignUpMode = signup;
+      isResetMode = false;
+      _applyAuthUI();
+    }
+
+    function toggleAuthMode() {
+      setAuthMode(!isSignUpMode);
+    }
+
+    function enterResetMode() {
+      isResetMode = true;
+      isSignUpMode = false;
+      _applyAuthUI();
+    }
+
+    function exitResetMode() {
+      isResetMode = false;
+      _applyAuthUI();
+    }
+
+    async function submitGoogleAuth() {
+      const inviteCode = document.getElementById('inviteCodeInput').value.trim();
+      const errEl = document.getElementById('authError');
+      const googleBtn = document.getElementById('googleAuthBtn');
+      const authBtn = document.getElementById('authBtn');
+      errEl.style.display = 'none';
+
+      if (isSignUpMode && !inviteCode) {
+        errEl.textContent = 'An invite code is required to sign up.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      googleBtn.disabled = true;
+      authBtn.disabled = true;
+      document.getElementById('googleAuthText').textContent = isSignUpMode ? 'Creating...' : 'Signing in...';
+
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        if (isSignUpMode) isProvisioning = true;
+
+        const cred = await auth.signInWithPopup(provider);
+        if (isSignUpMode) {
+          const tok = await cred.user.getIdToken();
+          const provisionRes = await fetch(`${WORKER_URL}/api/auth/provision-user`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inviteCode: inviteCode })
+          });
+          const result = await provisionRes.json();
+
+          if (!provisionRes.ok || result.success === false) {
+            if (cred.additionalUserInfo && cred.additionalUserInfo.isNewUser) {
+              await cred.user.delete();
+            }
+            await auth.signOut();
+            throw new Error(result.error || 'Invalid or expired invite code.');
+          }
+
+          isProvisioning = false;
+          await checkLogin();
+        }
+      } catch (err) {
+        isProvisioning = false;
+        errEl.textContent = err.message || 'Google sign-in failed.';
+        errEl.style.display = 'block';
+      } finally {
+        googleBtn.disabled = false;
+        authBtn.disabled = false;
+        document.getElementById('googleAuthText').textContent = isSignUpMode ? 'Sign up with Google' : 'Sign in with Google';
+      }
+    }
+
+    async function submitAuth() {
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value;
+      const inviteCode = document.getElementById('inviteCodeInput').value.trim();
+      const errEl = document.getElementById('authError');
+      errEl.style.display = 'none';
+
+      // ── Password reset path ───────────────────────────────────────────────
+      if (isResetMode) {
+        if (!email) { errEl.textContent = 'Please enter your email address.'; errEl.style.display = 'block'; return; }
+        document.getElementById('authBtn').disabled = true;
+        document.getElementById('authBtn').textContent = 'Sending…';
+        try {
+          await auth.sendPasswordResetEmail(email);
+          document.getElementById('resetSuccess').style.display = 'block';
+          document.getElementById('emailInput').value = '';
+        } catch (err) {
+          errEl.textContent = err.message || 'Could not send reset email.';
+          errEl.style.display = 'block';
+        } finally {
+          document.getElementById('authBtn').disabled = false;
+          document.getElementById('authBtn').textContent = 'Send Reset Link';
+        }
+        return;
+      }
+      // ─────────────────────────────────────────────────────────────────────
+
+      if (!email || !password) { errEl.textContent = 'Please enter email and password.'; errEl.style.display = 'block'; return; }
+      if (isSignUpMode && !inviteCode) { errEl.textContent = 'An invite code is required to sign up.'; errEl.style.display = 'block'; return; }
+
+      document.getElementById('authBtn').disabled = true;
+      document.getElementById('authBtn').textContent = isSignUpMode ? 'Creating…' : 'Signing in…';
+
+      try {
+        let cred;
+        if (isSignUpMode) {
+          isProvisioning = true; // LOCK UI: Stop Firebase from showing the dashboard yet
+          cred = await auth.createUserWithEmailAndPassword(email, password);
+          const tok = await cred.user.getIdToken();
+
+          const provisionRes = await fetch(`${WORKER_URL}/api/auth/provision-user`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ inviteCode: inviteCode })
+          });
+
+          const result = await provisionRes.json();
+
+          if (!provisionRes.ok || result.success === false) {
+            // Destroy the account if the code is invalid
+            await cred.user.delete();
+            await auth.signOut(); // Ensure local session is completely wiped
+            throw new Error(result.error || "Invalid or expired invite code.");
+          }
+
+          // SUCCESS! Unlock the UI and manually load them in
+          isProvisioning = false;
+          await loadUserProfile();
+          checkLogin();
+
+        } else {
+          cred = await auth.signInWithEmailAndPassword(email, password);
+          // Normal sign-in lets onAuthStateChanged handle the UI naturally
+        }
+      } catch (err) {
+        isProvisioning = false; // UNLOCK UI on error
+        errEl.textContent = err.message || 'Authentication failed.';
+        errEl.style.display = 'block';
+        document.getElementById('authBtn').disabled = false;
+        document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+      }
+    }
+
+    async function loadUserProfile() {
+      try {
+        const tok = await currentUser.getIdToken();
+        const res = await fetch(`${WORKER_URL}/api/user/profile`, { headers: { 'Authorization': `Bearer ${tok}` } });
+        const data = await res.json();
+        userTier = data.tier || 'free';
+        systemPin = data.pin || "1234"; // Loads the PIN from your worker
+        updatePinDisplay();
+      } catch { userTier = 'free'; systemPin = "1234"; }
+    }
+
+    function checkLogin() {
+      const authLoader = document.getElementById('initialAuthLoader');
+      if (authLoader) authLoader.style.display = 'none';
+
+      if (!currentUser) {
+        // Show login screen, hide app
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('settingsBtn').style.display = 'none';
+
+        // Add this line to hide it when logged out
+        const appLinks = document.getElementById('appDownloadLinks');
+        if (appLinks) appLinks.style.display = 'none';
+
+        // Reset the button and clear the password field when logging out
+        const authBtn = document.getElementById('authBtn');
+        if (authBtn) {
+          authBtn.disabled = false;
+          authBtn.textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+        }
+        const passInput = document.getElementById('passwordInput');
+        if (passInput) passInput.value = '';
+
+        // Scrub all memory and reset the UI so data doesn't leak between accounts
+        allFetchedEvents = [];
+        boothDetailsCache = {};
+        currentViewBooths = [];
+        const eventSelectDropdown = document.getElementById('eventSelect');
+        if (eventSelectDropdown) {
+          eventSelectDropdown.innerHTML = '<option value="">-- Loading Booths... --</option>';
+          eventSelectDropdown.value = '';
+        }
+        setMode('new');
+
+      } else {
+        // Show app, hide login screen
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('logoutBtn').style.display = 'block';
+        document.getElementById('settingsBtn').style.display = 'flex';
+
+        // Add this line to show it when logged in
+        const appLinks = document.getElementById('appDownloadLinks');
+        if (appLinks) appLinks.style.display = 'flex';
+        document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
+
+        // 🟢 THE FIX: Force the UI to reset upon login to unlock fields for Paid accounts!
+        setMode('new');
+
+        applyTierRestrictions();
+        fetchBoothEvents(true);
+        fetchExistingAssets(true);
+        renderTemplateList();
+      }
+    }
+    // --- PIN Management ---
+    function updatePinDisplay() {
+      document.getElementById('displayPin').innerText = pinVisible ? systemPin : "••••";
+      document.getElementById('pinEyeIcon').className = pinVisible ? "bi bi-eye-slash" : "bi bi-eye";
+    }
+
+    function togglePinVisibility() {
+      pinVisible = !pinVisible;
+      updatePinDisplay();
+    }
+
+    // ── Settings modal ────────────────────────────────────────────────────────
+    function openSettingsModal() {
+      updatePinDisplay();
+      // Reset password fields and messages
+      ['currentPasswordInput', 'newPasswordInput', 'confirmPasswordInput'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('settingsPassError').style.display = 'none';
+      document.getElementById('settingsPassSuccess').style.display = 'none';
+      cancelPinEdit();
+      document.getElementById('settingsModal').style.display = 'flex';
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').style.display = 'none';
+    }
+
+    function focusPinEdit() {
+      const row = document.getElementById('pinEditRow');
+      row.style.display = 'block';
+      document.getElementById('newPinInput').value = systemPin;
+      setTimeout(() => document.getElementById('newPinInput').focus(), 50);
+    }
+
+    function cancelPinEdit() {
+      document.getElementById('pinEditRow').style.display = 'none';
+    }
+
+    // Legacy alias used by old call sites (now unused but kept for safety)
+    function openPinModal() { openSettingsModal(); setTimeout(focusPinEdit, 100); }
+    function closePinModal() { closeSettingsModal(); }
+
+    async function submitNewPin() {
+      const newPin = document.getElementById('newPinInput').value.trim();
+      if (!newPin) return showToast("PIN cannot be empty");
+
+      const res = await callWorkerApi('/api/dashboard/update-pin', { pin: newPin });
+      if (res && res.success) {
+        systemPin = newPin;
+        updatePinDisplay();
+        cancelPinEdit();
+        showToast("PIN updated!");
+      }
+    }
+
+    // ── Change password ───────────────────────────────────────────────────────
+    async function submitChangePassword() {
+      const currentPwd = document.getElementById('currentPasswordInput').value;
+      const newPwd = document.getElementById('newPasswordInput').value;
+      const confirmPwd = document.getElementById('confirmPasswordInput').value;
+      const errEl = document.getElementById('settingsPassError');
+      const okEl = document.getElementById('settingsPassSuccess');
+      errEl.style.display = 'none';
+      okEl.style.display = 'none';
+
+      if (!currentPwd || !newPwd || !confirmPwd) {
+        errEl.textContent = 'Please fill in all password fields.';
+        errEl.style.display = 'block'; return;
+      }
+      if (newPwd !== confirmPwd) {
+        errEl.textContent = 'New passwords do not match.';
+        errEl.style.display = 'block'; return;
+      }
+      if (newPwd.length < 6) {
+        errEl.textContent = 'New password must be at least 6 characters.';
+        errEl.style.display = 'block'; return;
+      }
+
+      try {
+        // Reauthenticate first — Firebase requires it for sensitive operations
+        const credential = firebase.auth.EmailAuthProvider.credential(currentUser.email, currentPwd);
+        await currentUser.reauthenticateWithCredential(credential);
+        await currentUser.updatePassword(newPwd);
+        ['currentPasswordInput', 'newPasswordInput', 'confirmPasswordInput'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        okEl.textContent = 'Password updated successfully!';
+        okEl.style.display = 'block';
+      } catch (err) {
+        const msg = err.code === 'auth/wrong-password' ? 'Current password is incorrect.'
+          : err.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.'
+            : err.message || 'Password update failed.';
+        errEl.textContent = msg;
+        errEl.style.display = 'block';
+      }
+    }
+    function logout() { clearSessionTimer(); auth.signOut(); }
+
+    function applyTierRestrictions() {
+      // 🟢 THE FIX: Scrub existing tags first so they don't carry over from previous logouts
+      document.querySelectorAll('.pro-tag').forEach(el => el.remove());
+
+      if (userTier === 'paid') {
+        // Ensure Booth Count isn't stuck disabled from a previous Free session
+        if (currentMode === 'new') {
+          const boothCountEl = document.getElementById('boothCount');
+          if (boothCountEl) boothCountEl.disabled = false;
+        }
+        return; // Paid users see everything unlocked, so stop here
+      }
+
+      const proTag = '<span class="pro-tag" style="color:#ef4444;font-size:10px;font-weight:bold;vertical-align:middle;margin-left:4px;">PRO</span>';
+
+      function lockField(fieldId, labelFor) {
+        const el = document.getElementById(fieldId);
+        if (el) el.disabled = true;
+        if (labelFor) {
+          const lbl = document.querySelector(`label[for="${labelFor}"]`);
+          if (lbl) lbl.insertAdjacentHTML('beforeend', proTag);
+        }
+      }
+
+      function lockBtn(selector) {
+        const els = document.querySelectorAll(selector);
+        els.forEach(el => el.disabled = true);
+      }
+
+      // 1. Custom background
+      lockField('bgFile', 'bgFile');
+      lockBtn('.file-btn[onclick*="bgFile"]');
+
+      // 2. Custom logo
+      lockField('logoFile', 'logoFile');
+      lockBtn('.file-btn[onclick*="logoFile"]');
+
+      // 3. Community booth
+      lockField('boothEnableCommunity', 'boothEnableCommunity');
+      lockField('boothCommunityOnly', 'boothCommunityOnly');
+      lockField('boothUserStickers', 'boothUserStickers');
+
+      // 4. Font color
+      lockField('fontColor');
+      lockField('fontColorPicker', 'fontColor');
+
+      // 5. Background color
+      lockField('bgColor');
+      lockField('bgColorPicker', 'bgColor');
+
+      // 6. Number of booths — fixed to 1
+      const boothCountEl = document.getElementById('boothCount');
+      if (boothCountEl) {
+        boothCountEl.disabled = true;
+        if (!boothCountEl.value) boothCountEl.value = '1';
+        const lbl = document.querySelector('label[for="boothCount"]');
+        if (lbl) lbl.insertAdjacentHTML('beforeend', proTag);
+      }
+
+      // 7. Show logo as custom branding
+      lockField('logoOnMain', 'logoOnMain');
+    }
+
+    auth.onAuthStateChanged(async user => {
+      if (user) {
+        currentUser = user;
+        // Only auto-load the UI if we aren't in the middle of verifying an invite code
+        if (!isProvisioning) {
+          await loadUserProfile();
+          checkLogin();
+          startSessionTimer(); // ← begin 1-hour countdown
+        }
+      } else {
+        currentUser = null;
+        userTier = 'free';
+        clearSessionTimer(); // ← cancel any running timer on sign-out
+        if (!isProvisioning) {
+          checkLogin();
+        }
+      }
+    });
+
+    function setTheme(dark) {
+      if (dark) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
+      }
+      document.getElementById('btnMoon').classList.toggle('active', dark);
+      document.getElementById('btnSun').classList.toggle('active', !dark);
+    }
+    // Initialize pill state on load (body starts with dark-mode class)
+    document.addEventListener('DOMContentLoaded', () => setTheme(document.body.classList.contains('dark-mode')));
+
+    function syncColor(sourceId, targetId) {
+      let val = document.getElementById(sourceId).value;
+      if (sourceId.includes('Picker')) { document.getElementById(targetId).value = val; }
+      else {
+        if (!val.startsWith('#')) val = '#' + val;
+        document.getElementById(sourceId).value = val;
+        if (val.length === 7) document.getElementById(targetId).value = val;
+      }
+    }
+
+    function updateFileName(inputId, textId) {
+      const fileInput = document.getElementById(inputId);
+      const textSpan = document.getElementById(textId);
+      if (fileInput.files.length > 0) {
+        textSpan.innerText = fileInput.files[0].name;
+        textSpan.style.color = "var(--text-main)";
+
+        // Reset existing selection if they upload a new BG
+        if (inputId === 'bgFile') {
+          currentBoothBgId = null;
+          document.getElementById('boothBgPreviewContainer').style.display = "none";
+          document.querySelectorAll('#existingBgGallery .logo-gallery-item').forEach(el => el.classList.remove('selected'));
+        }
+      } else {
+        textSpan.innerText = "No file chosen";
+        textSpan.style.color = "var(--text-muted)";
+      }
+    }
+
+    let overlayTimer = null;
+    function showOverlay(message, isToast = false) {
+      clearTimeout(overlayTimer);
+      document.getElementById('overlay-text').innerText = message;
+      document.getElementById('overlay').style.display = 'flex';
+      const spinner = document.querySelector('.overlay-spinner');
+      if (spinner) spinner.style.display = isToast ? 'none' : 'block';
+      if (isToast) overlayTimer = setTimeout(() => { hideOverlay(); }, 2000);
+    }
+    function hideOverlay() {
+      document.getElementById('overlay').style.display = 'none';
+      const spinner = document.querySelector('.overlay-spinner');
+      if (spinner) spinner.style.display = 'block';
+      resetOverlayProgress();
+    }
+    function showToast(msg) { showOverlay(msg, true); }
+
+    function resetOverlayProgress() {
+      const wrap = document.getElementById('overlayProgressWrap');
+      const bar = document.getElementById('overlayProgressBar');
+      const label = document.getElementById('overlayProgressLabel');
+      if (wrap) wrap.style.display = 'none';
+      if (bar) bar.style.width = '0%';
+      if (label) label.innerText = '';
+    }
+
+    function updateOverlayProgress(done, total, labelPrefix = 'Processed') {
+      const wrap = document.getElementById('overlayProgressWrap');
+      const bar = document.getElementById('overlayProgressBar');
+      const label = document.getElementById('overlayProgressLabel');
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      if (wrap) wrap.style.display = 'block';
+      if (bar) bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      if (label) label.innerText = `${labelPrefix} ${done} of ${total} (${pct}%)`;
+    }
+
+    function openLightbox(src) {
+      let hiResSrc = src.replace('=w400', '=w1000').replace('=w150', '=w1000');
+      document.getElementById('boothLightboxImg').src = hiResSrc;
+      document.getElementById('boothLightbox').style.display = 'flex';
+    }
+    function closeLightbox() {
+      document.getElementById('boothLightbox').style.display = 'none';
+      document.getElementById('boothLightboxImg').src = "";
+    }
+
+    // ==========================================
+    // API WRAPPERS
+    // ==========================================
+    async function callWorkerApi(route, payload, isSilent = false) {
+      // 🟢 THE FIX: Prevent any API calls if logged out
+      if (!currentUser) return null;
+
+      if (!isSilent) showOverlay("Processing...");
+      try {
+        const response = await fetch(`${WORKER_URL}${route}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json();
+        if (!isSilent) hideOverlay();
+        if (result.success === false) {
+          if (!isSilent) showToast('Error: ' + (result.error || 'Unknown error'));
+          return null;
+        }
+        return result;
+      } catch (error) {
+        if (!isSilent) hideOverlay();
+        if (!isSilent) showToast('Network Error: ' + error.message);
+        return null;
+      }
+    }
+
+    // Add eventId as the second parameter
+    async function uploadBgDirect(file, eventId) {
+      const blob = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const MAX_W = 1800, MAX_H = 1200;
+            let w = img.width, h = img.height;
+            if (w > MAX_W || h > MAX_H) {
+              const ratio = Math.min(MAX_W / w, MAX_H / h);
+              w = Math.round(w * ratio); h = Math.round(h * ratio);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', 0.8);
+          };
+          img.onerror = reject; img.src = e.target.result;
+        };
+        reader.onerror = reject; reader.readAsDataURL(file);
+      });
+
+      const bgId = 'bg_' + Date.now();
+
+      // 1. FIX: Define the correct prefix containing the user's UID
+      const r2Prefix = `users/${currentUser.uid}/events/${eventId}/assets/backgrounds`;
+
+      const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}` },
+        // 2. FIX: Pass the corrected prefix here
+        body: JSON.stringify({ prefix: r2Prefix, filename: bgId + '.jpg' })
+      });
+
+      if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
+
+      const responseData = await signRes.json();
+
+      // 3. FIX: Throw an error immediately if the Worker rejects the request
+      if (responseData.error) {
+        throw new Error(responseData.error);
+      }
+
+      const { uploadUrl } = responseData;
+      const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+      if (!putRes.ok) throw new Error('R2 upload failed');
+
+      return bgId;
+    }
+
+    async function getNextEventId() {
+      const minted = await callWorkerApi('/api/next-event-id', {}, true);
+      if (minted?.eventId) return minted.eventId;
+
+      const snapshot = await db.collection("users").doc(currentUser.uid).collection("events").orderBy("timestamp", "desc").limit(1).get();
+      if (snapshot.empty) return "evt0001";
+      const lastId = snapshot.docs[0].id;
+      // Handle legacy 'egm' safely and step into 'evt'
+      const num = parseInt(lastId.replace('evt', '').replace('egm', ''), 10);
+      return 'evt' + ('0000' + (num + 1)).slice(-4);
+    }
+
+    // ==========================================
+    // MODES & TOGGLES
+    // ==========================================
+    function setMode(mode) {
+      // 1. FIX: Cache the active event selection before clearing any fields
+      const savedSelectedId = document.getElementById('eventSelect')?.value || "";
+
+      currentMode = mode;
+      document.getElementById('boothEnableCommunity').checked = true;
+
+      document.getElementById('folderName').value = ""; document.getElementById('eventName').value = ""; document.getElementById('pageTitle').value = "";
+      document.getElementById('eventId').value = "";
+      document.getElementById('eventNameHint').style.display = 'none';
+      if (mode !== 'new') document.getElementById('boothCount').value = "";
+
+      document.getElementById('fontColor').value = "#ffffff"; document.getElementById('fontColorPicker').value = "#ffffff";
+      document.getElementById('bgColor').value = "#000000"; document.getElementById('bgColorPicker').value = "#000000";
+      document.getElementById('bgFile').value = ""; document.getElementById('bgFileName').innerText = "No file";
+      currentBoothBgId = null;
+      currentBoothBgKey = null;
+      document.getElementById('logoFile').value = ""; document.getElementById('logoFileName').innerText = "No file";
+
+      document.getElementById('boothBgPreviewContainer').style.display = "none";
+      document.getElementById('boothLogoPreviewContainer').style.display = "none";
+      selectedExistingLogoId = ""; selectedExistingQrLogoId = "";
+      selectedExistingLogoKey = null; selectedExistingQrLogoKey = null;
+      document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
+
+      if (mode === 'new') _lastAssetsEventId = null; // reset global/event asset scope for a fresh setup
+      document.getElementById('logoOnMain').checked = false; document.getElementById('eventSearch').value = "";
+      document.getElementById('boothEnableCommunity').checked = false;
+      document.getElementById('boothCommunityOnly').checked = false;
+      document.getElementById('boothUserStickers').checked = false;
+      document.getElementById('boothShowSearchBar').checked = true;
+      document.getElementById('boothShowTime').checked = true;
+      document.getElementById('boothCustomTerm').value = "";
+
+      handleCommunityToggle(); handleUserStickersToggle();
+
+      const eventSelectDropdown = document.getElementById('eventSelect');
+
+      // 2. FIX: Only blank out the dropdown if we are moving to the 'New Setup' tab
+      if (mode === 'new') {
+        if (eventSelectDropdown) eventSelectDropdown.value = "";
+      } else {
+        if (eventSelectDropdown) eventSelectDropdown.value = savedSelectedId;
+      }
+
+      document.getElementById('btnModeNew').classList.remove('active');
+      document.getElementById('btnModeEdit').classList.remove('active');
+      document.getElementById('btnModeView').classList.remove('active');
+
+      if (mode === 'new') {
+        document.getElementById('btnModeNew').classList.add('active');
+        document.getElementById('editSelectContainer').style.display = 'none';
+        document.getElementById('editFormFields').style.display = 'block';
+        document.getElementById('viewContainer').style.display = 'none';
+        document.getElementById('generateBtn').style.display = 'block';
+        document.getElementById('saveBtn').style.display = 'none';
+        document.getElementById('deleteBtn').style.display = 'none';
+
+        document.getElementById('boothCount').disabled = false;
+        document.getElementById('boothHint').style.display = 'none';
+        document.getElementById('boothCount').closest('.form-group').style.display = 'block';
+        document.getElementById('templatesGroup').style.display = 'block';
+        document.getElementById('communityEnableRow').style.display = 'flex';
+        document.getElementById('communityOnlyRow').style.display = 'none';
+        document.getElementById('userStickersRow').style.display = 'none';
+        document.getElementById('communityEditHint').style.display = 'none';
+        toggleEditFields(true);
+        lockTemplatesForEdit(false);
+        boothTemplates = JSON.parse(JSON.stringify(defaultBoothTemplates)); renderTemplateList();
+
+        // Fetch Global Assets for New Setup
+        fetchExistingAssets(true);
+
+      } else if (mode === 'edit' || mode === 'view') {
+        document.getElementById('btnModeEdit').classList.toggle('active', mode === 'edit');
+        document.getElementById('btnModeView').classList.toggle('active', mode === 'view');
+
+        // Hide the galleries immediately to prevent global assets from showing before an event is selected
+        document.getElementById('existingBgGalleryContainer').style.display = 'none';
+        document.getElementById('existingLogoGalleryContainer').style.display = 'none';
+
+        document.getElementById('editSelectContainer').style.display = 'block';
+        document.getElementById('editFormFields').style.display = mode === 'edit' ? 'block' : 'none';
+        document.getElementById('viewContainer').style.display = mode === 'view' ? 'block' : 'none';
+
+        document.getElementById('generateBtn').style.display = 'none';
+        document.getElementById('saveBtn').style.display = mode === 'edit' ? 'block' : 'none';
+        document.getElementById('deleteBtn').style.display = mode === 'edit' ? 'block' : 'none';
+
+        if (mode === 'edit') {
+          document.getElementById('boothCount').disabled = true;
+          document.getElementById('boothHint').style.display = 'block';
+          document.getElementById('boothCount').closest('.form-group').style.display = 'none';
+          document.getElementById('templatesGroup').style.display = 'none';
+          document.getElementById('communityEnableRow').style.display = 'none';
+          document.getElementById('communityOnlyRow').style.display = 'none';
+          document.getElementById('userStickersRow').style.display = 'none';
+          document.getElementById('communityEditHint').style.display = 'none';
+          toggleEditFields(false);
+          lockTemplatesForEdit(true);
+        }
+
+        if (mode === 'view') {
+          document.getElementById('viewEventTitle').innerText = "Select an event above";
+          document.getElementById('viewEventId').innerText = "";
+          document.getElementById('boothList').innerHTML = "";
+          document.getElementById('downloadAllQRsBtn').style.display = 'none';
+        }
+
+        if (allFetchedEvents.length > 0) renderDropdownOptions(allFetchedEvents);
+        else fetchBoothEvents();
+
+        // 3. FIX: If an event was selected, re-apply it and trigger the layout build
+        if (savedSelectedId && mode !== 'new') {
+          eventSelectDropdown.value = savedSelectedId;
+          loadBoothEventDetails();
+        }
+      }
+    }
+    function lockTemplatesForEdit(lock) {
+      const notice = document.getElementById('templateLockNotice');
+      const actions = document.getElementById('templateActions');
+      const list = document.getElementById('boothTemplateList');
+      if (notice) notice.style.display = lock ? 'block' : 'none';
+      if (list) list.disabled = !!lock;
+      if (actions) {
+        actions.querySelectorAll('button').forEach(b => {
+          b.disabled = !!lock;
+          b.style.opacity = lock ? '0.4' : '';
+          b.style.pointerEvents = lock ? 'none' : '';
+        });
+      }
+      const imp = document.getElementById('importTemplateFile');
+      if (imp) imp.disabled = !!lock;
+    }
+
+    function toggleEditFields(isEnabled) {
+      const isEditMode = (currentMode === 'edit');
+      document.getElementById('boothEnableCommunity').disabled = isEditMode;
+      document.getElementById('boothCommunityOnly').disabled = isEditMode || !document.getElementById('boothEnableCommunity').checked;
+
+      // FIX: Keep the User Stickers checkbox disabled if it's already checked in Edit mode
+      const stickersEl = document.getElementById('boothUserStickers');
+      if (isEditMode && stickersEl.checked) {
+        stickersEl.disabled = true;
+      } else {
+        stickersEl.disabled = !isEnabled || !document.getElementById('boothEnableCommunity').checked;
+      }
+
+      // hint is managed by setMode; keep it hidden in edit mode always
+      if (!isEditMode) document.getElementById('communityEditHint').style.display = 'none';
+
+      document.getElementById('eventName').disabled = !isEnabled;
+      document.getElementById('pageTitle').disabled = !isEnabled;
+      document.getElementById('boothShowSearchBar').disabled = !isEnabled;
+      document.getElementById('boothShowTime').disabled = !isEnabled;
+      document.getElementById('boothCustomTerm').disabled = !isEnabled;
+      document.getElementById('fontColorPicker').disabled = !isEnabled; document.getElementById('fontColor').disabled = !isEnabled;
+      document.getElementById('bgColorPicker').disabled = !isEnabled; document.getElementById('bgColor').disabled = !isEnabled;
+      document.getElementById('logoOnMain').disabled = !isEnabled;
+
+      document.getElementById('bgFile').disabled = !isEnabled; document.getElementById('logoFile').disabled = !isEnabled;
+      document.querySelectorAll('.file-btn').forEach(btn => btn.disabled = !isEnabled);
+
+      document.getElementById('saveBtn').disabled = !isEnabled;
+      document.getElementById('deleteBtn').disabled = !isEnabled;
+
+      // Always reapply free-tier locks after any field toggle
+      applyTierRestrictions();
+    }
+
+    function handleCommunityToggle() {
+      const isEnabled = document.getElementById('boothEnableCommunity').checked;
+      const onlyToggle = document.getElementById('boothCommunityOnly');
+      const stickersToggle = document.getElementById('boothUserStickers');
+      const onlyRow = document.getElementById('communityOnlyRow');
+      const stickersRow = document.getElementById('userStickersRow');
+
+      if (isEnabled) {
+        if (currentMode !== 'edit') onlyRow.style.display = '';
+        if (currentMode !== 'edit') stickersRow.style.display = '';
+        onlyToggle.disabled = false;
+
+        // FIX: Don't unlock the stickers toggle if we are in Edit mode and it is already checked
+        if (currentMode === 'edit' && stickersToggle.checked) {
+          stickersToggle.disabled = true;
+        } else {
+          stickersToggle.disabled = false;
+        }
+      } else {
+        onlyToggle.checked = false; onlyToggle.disabled = true;
+        stickersToggle.checked = false; stickersToggle.disabled = true;
+        onlyRow.style.display = 'none';
+        stickersRow.style.display = 'none';
+        if (currentMode === 'new') document.getElementById('boothCount').disabled = false;
+      }
+      applyTierRestrictions();
+    }
+
+    function handleCommunityOnlyToggle() {
+      const isOnly = document.getElementById('boothCommunityOnly').checked;
+      const countInput = document.getElementById('boothCount');
+      if (isOnly) { countInput.value = ""; countInput.disabled = true; }
+      else { countInput.disabled = false; countInput.value = 1; }
+    }
+
+    // ==========================================
+    // CROPPER & LOGOS
+    // ==========================================
+    function handleLogoSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      originalLogoFilename = file.name;
+
+      // Reset existing logo selections
+      selectedExistingLogoId = "";
+      selectedExistingQrLogoId = "";
+      document.getElementById('boothLogoPreviewContainer').style.display = 'none';
+      document.querySelectorAll('#existingLogoGallery .logo-gallery-item').forEach(el => el.classList.remove('selected'));
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const image = document.getElementById('imageToCrop');
+        if (cropper) cropper.destroy();
+        document.getElementById('cropModal').style.display = 'flex';
+        image.onload = () => { cropper = new Cropper(image, { aspectRatio: 1, viewMode: 0, autoCropArea: 0.9, background: false }); };
+        image.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    function cancelCrop() {
+      document.getElementById('cropModal').style.display = 'none';
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
+      // Reset the file input so the user can select the same file again if they want
+      document.getElementById('logoFile').value = "";
+    }
+    async function applyCrop() {
+      if (!cropper) return;
+      let baseName = originalLogoFilename.substring(0, originalLogoFilename.lastIndexOf('.')) || originalLogoFilename;
+
+      const canvasTrans = cropper.getCroppedCanvas({ width: 250, height: 250, fillColor: 'transparent' });
+      const base64Trans = canvasTrans.toDataURL('image/png').split(',')[1];
+
+      const canvasWhite = document.createElement('canvas');
+      canvasWhite.width = 250; canvasWhite.height = 250;
+      const ctx = canvasWhite.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 250, 250);
+      ctx.drawImage(canvasTrans, 0, 0);
+      const base64White = canvasWhite.toDataURL('image/jpeg', 0.95).split(',')[1];
+
+      document.getElementById('cropModal').style.display = 'none';
+      cropper.destroy(); cropper = null;
+
+      // Upload both variants to the global gallery immediately.
+      // Generate will then copy from global → event-local, keeping the two stores independent.
+      document.getElementById('logoFileName').innerText = "Uploading...";
+      document.getElementById('logoFileName').style.color = "var(--text-muted, #888)";
+
+      try {
+        const [logoRes, qrRes] = await Promise.all([
+          callWorkerApi('/api/dashboard/upload-asset', {
+            kind: 'logo', filename: baseName + '_transparent.png',
+            mimeType: 'image/png', base64Data: base64Trans
+          }),
+          callWorkerApi('/api/dashboard/upload-asset', {
+            kind: 'qr-logo', filename: baseName + '_qr_whitebg.jpg',
+            mimeType: 'image/jpeg', base64Data: base64White
+          })
+        ]);
+
+        if (logoRes?.success) {
+          selectedExistingLogoId = logoRes.id;
+          selectedExistingLogoKey = logoRes.key;
+          // Derive the QR logo key/id from the qr-logo upload result
+          selectedExistingQrLogoId = qrRes?.success ? qrRes.id : logoRes.id;
+          selectedExistingQrLogoKey = qrRes?.success ? qrRes.key : logoRes.key;
+          // Keep croppedLogoPayload null — generate now uses existingLogoKey path
+          croppedLogoPayload = null;
+          croppedQrLogoPayload = null;
+          document.getElementById('logoFileName').innerText = baseName + "_cropped";
+          document.getElementById('logoFileName').style.color = "var(--btn-bg)";
+          document.getElementById('boothLogoPreview').src = logoRes.url;
+          document.getElementById('boothLogoPreviewContainer').style.display = "flex";
+          document.querySelectorAll('.logo-gallery-item').forEach(el => el.classList.remove('selected'));
+          // Refresh global gallery to show the newly uploaded logo
+          await fetchExistingAssets(true);
+        } else {
+          throw new Error('Upload failed');
+        }
+      } catch (e) {
+        showToast("Logo upload failed. Please try again.");
+        document.getElementById('logoFileName').innerText = "No file";
+        document.getElementById('logoFileName').style.color = "";
+        selectedExistingLogoId = ""; selectedExistingLogoKey = null;
+        selectedExistingQrLogoId = ""; selectedExistingQrLogoKey = null;
+      }
+    }
+
+
+    // ==========================================
+    // TEMPLATES & STICKERS
+    // ==========================================
+    function renderTemplateList() {
+      const list = document.getElementById('boothTemplateList');
+      list.innerHTML = '';
+      boothTemplates.forEach((t, i) => {
+        let opt = document.createElement('option');
+        opt.value = i; opt.innerText = t.Name || `Template ${i + 1}`;
+        list.appendChild(opt);
+      });
+      handleTemplateSelection();
+    }
+
+    function handleTemplateSelection() {
+      const hasSel = document.getElementById('boothTemplateList').selectedIndex !== -1;
+      document.getElementById('btnEditTemplate').style.display = hasSel ? 'block' : 'none';
+      document.getElementById('btnRemoveTemplate').style.display = hasSel ? 'block' : 'none';
+      document.getElementById('btnExportTemplate').style.display = hasSel ? 'block' : 'none';
+    }
+
+    function openNewTemplate() { window.templateToEdit = null; window.open('/template-editor.html', '_blank', 'width=1200,height=800'); }
+    function editTemplate() { const idx = document.getElementById('boothTemplateList').value; if (idx === "") return; window.templateToEdit = boothTemplates[idx]; window.open('/template-editor.html', '_blank', 'width=1200,height=800'); }
+    function removeTemplate() { const idx = document.getElementById('boothTemplateList').value; if (idx === "") return; boothTemplates.splice(idx, 1); renderTemplateList(); }
+    function exportTemplate() {
+      const idx = document.getElementById('boothTemplateList').value;
+      if (idx === "") return;
+      const t = boothTemplates[idx];
+      const blob = new Blob([JSON.stringify(t, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${t.Name.replace(/[^a-zA-Z0-9]/g, '_')}.json`;
+      a.click();
+    }
+    window.receiveTemplateFromEditor = function (newTemplate) {
+      if (newTemplate) {
+        const existingIdx = boothTemplates.findIndex(t => t.Name === newTemplate.Name);
+        if (existingIdx >= 0) boothTemplates[existingIdx] = newTemplate; else boothTemplates.push(newTemplate);
+        renderTemplateList(); showToast("Template loaded.");
+      }
+    };
+
+    function importTemplateFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.Templates && Array.isArray(data.Templates)) {
+            data.Templates.forEach(t => { if (t.Name) { const idx = boothTemplates.findIndex(x => x.Name === t.Name); if (idx >= 0) boothTemplates[idx] = t; else boothTemplates.push(t); } });
+          } else if (data.Name && Array.isArray(data.Layers)) {
+            const idx = boothTemplates.findIndex(x => x.Name === data.Name); if (idx >= 0) boothTemplates[idx] = data; else boothTemplates.push(data);
+          }
+          renderTemplateList(); showToast("Template(s) imported.");
+        } catch (err) { showToast("Invalid format."); }
+      };
+      reader.readAsText(file); event.target.value = '';
+    }
+
+    function handleUserStickersToggle() {
+      const isEnabled = document.getElementById('boothUserStickers').checked;
+      const manager = document.getElementById('userStickersManager');
+      // Sticker manager only available in Edit mode (needs existing eventId)
+      if (isEnabled && currentMode === 'edit') {
+        manager.style.display = 'block';
+        loadUserStickers();
+      } else {
+        manager.style.display = 'none';
+      }
+    }
+
+    async function loadUserStickers() {
+      const grid = document.getElementById('userStickersGrid');
+      const eventId = document.getElementById('eventSelect').value; // Edit mode only
+      if (!eventId) { grid.innerHTML = '<span class="hint-text">Select an event first.</span>'; return; }
+
+      const r2Prefix = `users/${currentUser.uid}/events/${eventId}/user-stickers`;
+      grid.innerHTML = '<span class="hint-text">Loading...</span>';
+      try {
+        const tok = await currentUser.getIdToken();
+        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=${encodeURIComponent(r2Prefix)}`, {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
+        const result = await res.json();
+        if (result.status === 'success' && result.data.length > 0) {
+          let html = '';
+          result.data.forEach(item => {
+            html += `<div class="sticker-manager-item"><img src="${item[2]}"><button type="button" class="sticker-manager-delete" onclick="deleteUserSticker('${item[0]}')">✕</button></div>`;
+          });
+          grid.innerHTML = html;
+        } else { grid.innerHTML = '<span class="hint-text">No stickers uploaded.</span>'; }
+      } catch (e) { grid.innerHTML = '<span class="hint-text">Error loading.</span>'; }
+    }
+
+    async function uploadUserSticker(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const eventId = document.getElementById('eventSelect').value;
+      if (!eventId) { showToast("Select an event first."); event.target.value = ''; return; }
+
+      showOverlay("Uploading...");
+      try {
+        const blob = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image(); img.onload = () => {
+              let w = img.width, h = img.height; if (w > 500 || h > 500) { const r = Math.min(500 / w, 500 / h); w *= r; h *= r; }
+              const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              canvas.toBlob(b => b ? res(b) : rej(), 'image/png');
+            }; img.src = e.target.result;
+          }; reader.readAsDataURL(file);
+        });
+
+        const r2Prefix = `users/${currentUser.uid}/events/${eventId}/user-stickers`;
+        const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}` },
+          body: JSON.stringify({ prefix: r2Prefix, filename: `sticker_${Date.now()}.png` })
+        });
+        const { uploadUrl } = await signRes.json();
+        await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: blob });
+        await loadUserStickers(); hideOverlay(); showToast("Sticker added.");
+      } catch (e) { hideOverlay(); showToast("Error uploading."); }
+      event.target.value = '';
+    }
+
+    async function deleteUserSticker(key) {
+      if (!confirm("Delete sticker?")) return;
+      showOverlay("Deleting...");
+      await callWorkerApi('/api/dashboard/delete-file', { key: key });
+      await loadUserStickers(); hideOverlay();
+    }
+
+    // ==========================================
+    // DATABASE FETCHING & RENDERING
+    // ==========================================
+    function stripInternalBoothSuffix(value) {
+      return String(value || '').replace(/-Booth\d+$/i, '').trim();
+    }
+
+    async function fetchBoothEvents(forceRefresh = false) {
+      if (!forceRefresh && allFetchedEvents.length > 0) { renderDropdownOptions(allFetchedEvents); return; }
+      document.getElementById('eventSelect').innerHTML = '<option value="">Loading...</option>';
+      try {
+        const snapshot = await db.collection("users").doc(currentUser.uid)
+          .collection("events").orderBy("timestamp", "desc").limit(50).get();
+        let events = []; snapshot.forEach(doc => {
+          const rawName = doc.data().eventName || "Unnamed";
+          events.push({ id: doc.id, name: rawName, displayName: stripInternalBoothSuffix(rawName) || rawName });
+        });
+        allFetchedEvents = events; renderDropdownOptions(events);
+      } catch (err) { console.error(err); }
+    }
+
+    function renderDropdownOptions(eventsArray) {
+      const select = document.getElementById('eventSelect');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">-- Select a Booth Project --</option>';
+      eventsArray.forEach(e => {
+        let opt = document.createElement('option'); opt.value = e.id; opt.innerText = `${e.displayName || stripInternalBoothSuffix(e.name) || e.name} (${e.id})`;
+        if (e.id === currentVal) opt.selected = true; select.appendChild(opt);
+      });
+    }
+
+    function filterBoothEvents() {
+      const term = document.getElementById('eventSearch').value.toLowerCase();
+      renderDropdownOptions(allFetchedEvents.filter(e =>
+        (e.displayName || stripInternalBoothSuffix(e.name) || e.name).toLowerCase().includes(term) ||
+        e.name.toLowerCase().includes(term) ||
+        e.id.toLowerCase().includes(term)
+      ));
+    }
+
+    function checkEventNameDuplicate() {
+      const input = document.getElementById('eventName').value.trim().toLowerCase();
+      const hint = document.getElementById('eventNameHint');
+      if (!input) { hint.style.display = 'none'; return; }
+      // In edit mode, the current event's own name is not a duplicate
+      const currentEventId = document.getElementById('eventId').value;
+      const isDuplicate = allFetchedEvents.some(e =>
+        (e.displayName || stripInternalBoothSuffix(e.name) || e.name).trim().toLowerCase() === input && e.id !== currentEventId
+      );
+      hint.style.display = isDuplicate ? '' : 'none';
+    }
+
+    async function loadBoothEventDetails() {
+      const selectedId = document.getElementById('eventSelect').value;
+      if (!selectedId) { setMode(currentMode); return; }
+
+      // Always fetch fresh from the backend in edit mode so we get the latest
+      // templates from R2 (PoloPro may have updated them since last load).
+      // Use the cache only in view mode where templates aren't editable.
+      let details;
+      // Cache is only invalidated after a successful save (executeAction deletes it).
+      // Do NOT delete here — switching between Edit/View tabs should use the cache.
+      details = boothDetailsCache[selectedId];
+      if (!details) {
+        details = await callWorkerApi('/api/dashboard/booth-details', { eventId: selectedId, includeTemplates: false });
+        if (details && details.success !== false) boothDetailsCache[selectedId] = details;
+      }
+      if (!details || details.success === false) return;
+
+      try { boothTemplates = JSON.parse(details.templatesStr || "[]"); } catch (e) { boothTemplates = []; }
+      renderTemplateList();
+
+      // Templates are owned by PoloPro and are always locked in Edit Setup.
+      // The whole form is no longer forced to View — web gallery settings stay editable.
+      if (currentMode === 'edit') {
+        lockTemplatesForEdit(true);
+        document.getElementById('boothEnableCommunity').checked = details.enableCommunity === true;
+        document.getElementById('eventId').value = selectedId;
+        document.getElementById('folderName').value = details.folderName || "";
+        const displayEventName = stripInternalBoothSuffix(details.eventName) || details.eventName || "";
+        const displayPageTitle = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || "";
+        document.getElementById('eventName').value = displayEventName;
+        document.getElementById('pageTitle').value = displayPageTitle;
+        document.getElementById('boothCount').value = details.boothCount || "";
+        document.getElementById('logoOnMain').checked = details.logoOnMain === true;
+        document.getElementById('boothCommunityOnly').checked = details.communityOnly === true;
+        document.getElementById('boothShowSearchBar').checked = details.showSearchBar !== false;
+        document.getElementById('boothShowTime').checked = details.showTime !== false;
+        document.getElementById('boothCustomTerm').value = details.customTerm || "";
+
+        const stickersEl = document.getElementById('boothUserStickers');
+        stickersEl.checked = details.userStickers === true;
+        // Lock sticker checkbox if already enabled — can't disable after generation
+        if (details.userStickers === true) {
+          stickersEl.disabled = true;
+        } else {
+          stickersEl.disabled = false;
+        }
+
+        handleCommunityToggle(); handleUserStickersToggle();
+
+        document.getElementById('fontColor').value = details.fontColor || "#ffffff"; document.getElementById('fontColorPicker').value = details.fontColor || "#ffffff";
+        document.getElementById('bgColor').value = details.bgColor || "#000000"; document.getElementById('bgColorPicker').value = details.bgColor || "#000000";
+
+        currentBoothBgId = details.bgId || null;
+        selectedExistingLogoId = details.logoId || "";
+        selectedExistingQrLogoId = details.qrLogoId || details.logoId || "";
+
+        if (details.bgId) {
+          document.getElementById('boothBgPreview').src = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${selectedId}/assets/backgrounds/${details.bgId}.jpg`;
+          document.getElementById('boothBgPreviewContainer').style.display = "flex";
+        } else {
+          document.getElementById('boothBgPreviewContainer').style.display = "none";
+        }
+
+        if (details.logoId) {
+          document.getElementById('boothLogoPreview').src = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${selectedId}/assets/logos/${details.logoId}.png`;
+          document.getElementById('boothLogoPreviewContainer').style.display = "flex";
+        } else {
+          document.getElementById('boothLogoPreviewContainer').style.display = "none";
+        }
+
+        toggleEditFields(true);
+
+        // Only fetch assets if we haven't already loaded them for this event
+        if (_lastAssetsEventId !== selectedId) { fetchExistingAssets(true, selectedId); _lastAssetsEventId = selectedId; }
+
+      } else if (currentMode === 'view') {
+        const displayEventTitle = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || "Unnamed Event";
+        document.getElementById('viewEventTitle').innerText = displayEventTitle;
+        document.getElementById('viewEventId').innerText = "ID: " + details.id;
+
+        const boothList = document.getElementById('boothList'); boothList.innerHTML = ''; currentViewBooths = [];
+        const boothsArr = details.boothsStr ? details.boothsStr.split('|') : [];
+        const qrUrlsArr = details.qrUrlsStr ? details.qrUrlsStr.split('|') : [];
+        const prefixesArr = details.boothPrefixesStr ? details.boothPrefixesStr.split('|') : [];
+        const eventLabel = stripInternalBoothSuffix(details.eventName || details.folderName) || details.eventName || details.folderName || 'Booth';
+        const hadComm = (details.communityOnly || details.enableCommunity);
+
+        boothsArr.forEach((link, i) => {
+          const isComm = hadComm && (i === boothsArr.length - 1);
+          const bNum = isComm ? 'Community' : (i + 1);
+          const stickerParam = details.userStickers ? '&userStickers=true' : '';
+          const searchParam = details.showSearchBar === false ? '&showSearchBar=false' : '';
+          const timeParam = details.showTime === false ? '&showTime=false' : '';
+          const customTermParam = details.customTerm ? `&customTerm=${encodeURIComponent(details.customTerm)}` : '';
+
+          const mainUrl = `${NETLIFY_BASE_URL}?id=${details.id}&uid=${currentUser.uid}&tab=${i + 1}${isComm ? '&isCommunity=true' : ''}${stickerParam}${searchParam}${timeParam}${customTermParam}`;
+          const backupUrl = mainUrl;
+          const prefix = prefixesArr[i] || '';
+          const qrUrl = qrUrlsArr[i] || "";
+          const fileName = isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QR.png`;
+
+          // FIX: Calculate exact R2 path dynamically instead of falling back to QuickChart
+          const r2QrUrl = `https://cdn.polo-booth.com/users/${currentUser.uid}/events/${details.id}/qr/${isComm ? 'Community_QRCode.png' : `Booth_${bNum}_QRCode.png`}?v=${Date.now()}`;
+
+          currentViewBooths.push({ boothNum: bNum, url: r2QrUrl, filename: fileName });
+          let qrHtml = `<button class="mini-btn" onclick="copyText('${r2QrUrl}')">Copy link</button><button class="mini-btn" onclick="downloadImage('${r2QrUrl}', '${fileName}')">Download</button>`;
+
+          // Calculate the correct R2 prefix for this specific booth
+          const finalPrefix = prefix || (isComm ? `users/${currentUser.uid}/events/${details.id}/community` : `users/${currentUser.uid}/events/${details.id}/booth-${bNum}/prints`);
+
+          const manageEventName = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || 'event';
+          const manageBoothName = isComm ? 'community' : `booth${bNum}`;
+          const card = document.createElement('div'); card.className = 'booth-card';
+          card.innerHTML = `
+                    <h4>${isComm ? `<span class="badge-community">Virtual Booth</span>` : `${eventLabel} Booth ${bNum}`}</h4>
+                    <div class="link-row"><span>Main Gallery</span><div class="link-actions">
+                        <button class="mini-btn" onclick="copyText('${mainUrl}')">Copy</button>
+                        <button class="mini-btn backup" onclick="openManageModal(decodeURIComponent('${encodeURIComponent(finalPrefix)}'), decodeURIComponent('${encodeURIComponent(manageEventName)}'), decodeURIComponent('${encodeURIComponent(manageBoothName)}'))">Manage</button>
+                        <button class="mini-btn" onclick="window.open('${mainUrl}', '_blank')">Go</button>
+                    </div></div>
+                    <div class="link-row"><span>QR Code</span><div class="link-actions">${qrHtml}</div></div>
+                `;
+          boothList.appendChild(card);
+        });
+        document.getElementById('downloadAllQRsBtn').style.display = boothsArr.length > 1 ? 'block' : 'none';
+      }
+    }
+
+    function copyText(t) { navigator.clipboard.writeText(t).then(() => showToast("Copied!")); }
+    function downloadImage(url, f) {
+      showOverlay("Downloading..."); fetch(url).then(r => r.blob()).then(b => {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = f; a.click(); hideOverlay();
+      }).catch(() => { hideOverlay(); window.open(url, '_blank'); });
+    }
+    async function downloadAllQRs() {
+      showOverlay("Downloading...");
+      for (let i = 0; i < currentViewBooths.length; i++) { downloadImage(currentViewBooths[i].url, currentViewBooths[i].filename); await new Promise(r => setTimeout(r, 800)); }
+      hideOverlay();
+    }
+
+    // ==========================================
+    // EXECUTION ROUTERS
+    // ==========================================
+    async function executeAction(actionName) {
+      let eventId = actionName === 'generateBoothSetup' ? document.getElementById('eventId').value : document.getElementById('eventSelect').value;
+
+      const eventName = document.getElementById('eventName').value.trim();
+      const folderName = eventName;
+      const pageTitle = document.getElementById('pageTitle').value.trim() || eventName;
+      const communityOnly = document.getElementById('boothCommunityOnly').checked;
+      let boothCount = document.getElementById('boothCount').value || "1";
+
+      if (!eventName) return showToast("Event Name required!");
+
+      // ── Duplicate-name guard ──────────────────────────────────────────
+      // For new events: block any existing name. For edits: block collisions with OTHER events.
+      const normalizedInput = eventName.trim().toLowerCase();
+      const duplicate = allFetchedEvents.find(e => {
+        const nameMatch = e.name.trim().toLowerCase() === normalizedInput;
+        if (actionName === 'generateBoothSetup') return nameMatch; // new: no duplicates at all
+        return nameMatch && e.id !== eventId;                      // edit: allow same event, block others
+      });
+      if (duplicate) {
+        document.getElementById('eventNameHint').style.display = '';
+        return showToast("An event with this name already exists.");
+      }
+      document.getElementById('eventNameHint').style.display = 'none';
+
+      if (actionName === 'generateBoothSetup' && !eventId) {
+        eventId = await getNextEventId();
+        document.getElementById('eventId').value = eventId;
+      }
+
+      showOverlay("Processing...");
+      const bgFile = document.getElementById('bgFile').files[0];
+      let uploadedBgId = null;
+      if (bgFile) { try { uploadedBgId = await uploadBgDirect(bgFile, eventId); } catch (e) { hideOverlay(); console.error(e); return showToast('BG Upload Failed: ' + e.message); } }
+
+      const payload = {
+        action: actionName, eventId, folderName, eventName, pageTitle, boothCount,
+        isNewBgUpload: !!uploadedBgId, // Tells backend to backup the new image
+        existingBgId: uploadedBgId || currentBoothBgId || '',
+        existingBgKey: currentBoothBgKey || '',
+        logoData: croppedLogoPayload, qrLogoData: croppedQrLogoPayload, logoOnMain: document.getElementById('logoOnMain').checked,
+        fontColor: document.getElementById('fontColor').value, bgColor: document.getElementById('bgColor').value,
+        existingLogoId: selectedExistingLogoId || '', existingQrLogoId: selectedExistingQrLogoId || '',
+        existingLogoKey: selectedExistingLogoKey || '', existingQrLogoKey: selectedExistingQrLogoKey || '',
+        templates: boothTemplates, enableCommunity: document.getElementById('boothEnableCommunity').checked,
+        communityOnly,
+        userStickers: document.getElementById('boothUserStickers').checked,
+        showSearchBar: document.getElementById('boothShowSearchBar').checked,
+        showTime: document.getElementById('boothShowTime').checked,
+        customTerm: document.getElementById('boothCustomTerm').value.trim()
+      };
+
+      const res = await callWorkerApi(actionName === 'generateBoothSetup' ? '/api/dashboard/generate-booth' : '/api/dashboard/update-booth', payload);
+
+      if (res && res.success) {
+        if (uploadedBgId) currentBoothBgId = uploadedBgId;
+        if (res.details) boothDetailsCache[eventId] = res.details;
+        else delete boothDetailsCache[eventId];
+
+        const existingEvent = allFetchedEvents.find(e => e.id === eventId);
+        if (existingEvent) existingEvent.name = eventName;
+        else allFetchedEvents.unshift({ id: eventId, name: eventName });
+        if (uploadedBgId) _lastAssetsEventId = null;
+
+        const needsViewLoad = document.getElementById('eventSelect').value !== eventId;
+        setMode('view');
+        document.getElementById('eventSelect').value = eventId;
+        if (needsViewLoad) loadBoothEventDetails();
+      }
+    }
+
+    function runGeneration() { executeAction("generateBoothSetup"); }
+    function runUpdate() { executeAction("updateBoothSetup"); }
+    async function runDelete() {
+      const id = document.getElementById('eventSelect').value; if (!id || !confirm("Delete setup forever?")) return;
+      const res = await callWorkerApi('/api/dashboard/delete-booth', { eventId: id });
+      if (res && res.success) { delete boothDetailsCache[id]; fetchBoothEvents(true); setMode('edit'); showToast("Deleted."); }
+    }
+    // ==========================================
+    // URL ROUTING
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('signup') === 'true') {
+        // Automatically switch to Sign Up mode if ?signup=true is in the URL
+        setAuthMode(true);
+      }
+    });
+
+    // ==========================================
+    // PHOTO MANAGER (VIEW QR TAB)
+    // ==========================================
+    let managePhotosData = [];
+    let manageDownloadedPhotoKeys = new Set();
+    let currentManagePrefix = '';
+    let currentManageEventName = 'event';
+    let currentManageBoothName = 'booth';
+    let manageRefreshTimer = null;
+    let manageRefreshInFlight = false;
+    const MANAGE_REFRESH_INTERVAL_MS = 7000;
+    const MANAGE_DOWNLOADED_STORAGE_PREFIX = 'polo_manage_downloaded_photos:';
+
+    function getManageDownloadedStorageKey() {
+      return `${MANAGE_DOWNLOADED_STORAGE_PREFIX}${currentManagePrefix || 'default'}`;
+    }
+
+    function loadManageDownloadedState() {
+      try {
+        const saved = localStorage.getItem(getManageDownloadedStorageKey());
+        manageDownloadedPhotoKeys = new Set(saved ? JSON.parse(saved) : []);
+      } catch (e) {
+        manageDownloadedPhotoKeys = new Set();
+      }
+    }
+
+    function saveManageDownloadedState() {
+      try {
+        localStorage.setItem(getManageDownloadedStorageKey(), JSON.stringify([...manageDownloadedPhotoKeys]));
+      } catch (e) { }
+    }
+
+    function markManagePhotosDownloaded(photos) {
+      photos.forEach(item => {
+        if (item && item[0]) manageDownloadedPhotoKeys.add(item[0]);
+      });
+      saveManageDownloadedState();
+      renderManageGrid();
+    }
+
+    function unmarkDeletedManagePhoto(key) {
+      if (!manageDownloadedPhotoKeys.has(key)) return;
+      manageDownloadedPhotoKeys.delete(key);
+      saveManageDownloadedState();
+    }
+
+    function getManagePhotoFilename(item, index) {
+      const url = item && item[2] ? item[2] : '';
+      return url.split('/').pop().split('?')[0] || `photo_${index}.jpg`;
+    }
+
+    function getSafeArchivePart(value, fallback) {
+      return String(value || fallback)
+        .trim()
+        .replace(/[^a-z0-9_-]+/gi, '_')
+        .replace(/^_+|_+$/g, '')
+        .substring(0, 60) || fallback;
+    }
+
+    function getManageArchiveName() {
+      const eventName = getSafeArchivePart(currentManageEventName, 'event');
+      const boothName = getSafeArchivePart(currentManageBoothName, 'booth');
+      return `${eventName}-${boothName}.zip`;
+    }
+
+    function triggerBlobDownload(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    function getSelectedManagePhotoKeys() {
+      return new Set([...document.querySelectorAll('input[id^="manage_cb_"]:checked')]
+        .map(cb => cb.getAttribute('data-key'))
+        .filter(Boolean));
+    }
+
+    function getManagePhotoSignature(photos) {
+      return (photos || []).map(item => item && item[0]).filter(Boolean).join('|');
+    }
+
+    function updateManageRefreshStatus(message) {
+      const status = document.getElementById('manageRefreshStatus');
+      if (status) status.textContent = message;
+    }
+
+    async function refreshManagePhotos({ showLoading = false, preserveSelection = true } = {}) {
+      if (!currentManagePrefix || manageRefreshInFlight) return;
+      manageRefreshInFlight = true;
+      const selectedKeys = preserveSelection ? getSelectedManagePhotoKeys() : new Set();
+      const grid = document.getElementById('manageGrid');
+      const previousCount = managePhotosData.length;
+
+      if (showLoading) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;"><div class="overlay-spinner" style="margin: 0 auto 15px auto; border-color: var(--border); border-top-color: var(--btn-bg);"></div>Loading photos...</div>';
+      }
+      updateManageRefreshStatus(showLoading ? 'Loading photos...' : 'Checking for new photos...');
+
+      try {
+        const tok = await getIdTokenCached();
+        const res = await fetch(`${WORKER_URL}/api/gallery?prefix=${encodeURIComponent(currentManagePrefix)}&t=${Date.now()}`, {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
+        const result = await res.json();
+
+        if (result.status === 'success') {
+          const nextPhotos = result.data || [];
+          const hasChanged = getManagePhotoSignature(nextPhotos) !== getManagePhotoSignature(managePhotosData);
+          managePhotosData = nextPhotos;
+
+          if (hasChanged || showLoading) {
+            renderManageGrid(selectedKeys);
+            if (!showLoading && nextPhotos.length > previousCount) {
+              showToast(`${nextPhotos.length - previousCount} new photo${nextPhotos.length - previousCount === 1 ? '' : 's'} loaded`);
+            }
+          }
+          updateManageRefreshStatus(`Auto-refreshing - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+        } else if (showLoading) {
+          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
+          updateManageRefreshStatus('Refresh failed');
+        }
+      } catch (e) {
+        console.error('Manage photos refresh error:', e);
+        if (showLoading) {
+          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Error connecting to storage.</div>';
+        }
+        updateManageRefreshStatus('Refresh paused - connection issue');
+      } finally {
+        manageRefreshInFlight = false;
+      }
+    }
+
+    function startManageAutoRefresh() {
+      stopManageAutoRefresh();
+      manageRefreshTimer = setInterval(() => {
+        if (document.getElementById('manageModal').style.display === 'flex') {
+          refreshManagePhotos();
+        }
+      }, MANAGE_REFRESH_INTERVAL_MS);
+    }
+
+    function stopManageAutoRefresh() {
+      if (manageRefreshTimer) {
+        clearInterval(manageRefreshTimer);
+        manageRefreshTimer = null;
+      }
+      manageRefreshInFlight = false;
+    }
+
+    async function openManageModal(prefix, eventName = 'event', boothName = 'booth') {
+      currentManagePrefix = prefix;
+      currentManageEventName = eventName;
+      currentManageBoothName = boothName;
+      loadManageDownloadedState();
+      document.getElementById('manageModal').style.display = 'flex';
+      managePhotosData = [];
+      updateManageRefreshStatus('Auto-refreshing');
+      await refreshManagePhotos({ showLoading: true, preserveSelection: false });
+      startManageAutoRefresh();
+    }
+
+    function renderManageGrid(selectedKeys = getSelectedManagePhotoKeys()) {
+      const grid = document.getElementById('manageGrid');
+      if (!managePhotosData || managePhotosData.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px 0;">No photos found in this booth.</div>';
+        return;
+      }
+
+      let html = '';
+      managePhotosData.forEach((item, index) => {
+        const key = item[0];
+        const url = item[2];
+        const isDownloaded = manageDownloadedPhotoKeys.has(key);
+        const isSelected = selectedKeys.has(key);
+        html += `
+        <div class="manage-item">
+          <div class="manage-thumb" style="border-radius: 8px; border: 1px solid var(--border); background: #000;">
+            <img src="${url}?w=300" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer; opacity: 0.9;" onclick="toggleManageSelection(${index})" onload="this.style.opacity=1">
+            <input class="manage-select" type="checkbox" id="manage_cb_${index}" data-index="${index}" data-key="${key}" data-url="${url}" ${isSelected ? 'checked' : ''}>
+            ${isDownloaded ? '<span class="manage-downloaded-badge"><i class="bi bi-check2-circle"></i>Downloaded</span>' : ''}
+          </div>
+          <div class="manage-actions">
+            <button onclick="downloadSingleManagePhoto(${index})" title="Download photo" style="background: rgba(13, 148, 136, 0.94);"><i class="bi bi-download"></i></button>
+            <button onclick="deleteSingleManagePhoto('${key}')" title="Delete photo" style="background: rgba(239, 68, 68, 0.9);"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>`;
+      });
+      grid.innerHTML = html;
+    }
+
+    function closeManageModal() {
+      stopManageAutoRefresh();
+      document.getElementById('manageModal').style.display = 'none';
+    }
+
+    function selectAllManagePhotos() {
+      const checkboxes = document.querySelectorAll('input[id^="manage_cb_"]');
+      let allChecked = true;
+      checkboxes.forEach(cb => { if (!cb.checked) allChecked = false; });
+      checkboxes.forEach(cb => { cb.checked = !allChecked; });
+    }
+
+    function toggleManageSelection(index) {
+      const cb = document.getElementById(`manage_cb_${index}`);
+      cb.checked = !cb.checked;
+    }
+
+    async function deleteSingleManagePhoto(key) {
+      if (!confirm('Permanently delete this photo?')) return;
+      showOverlay('Deleting...');
+
+      const res = await callWorkerApi('/api/dashboard/delete-file', { key }, true);
+      if (res && res.success) {
+        managePhotosData = managePhotosData.filter(item => item[0] !== key);
+        unmarkDeletedManagePhoto(key);
+        renderManageGrid();
+        showToast('Photo deleted');
+      } else {
+        showToast('Failed to delete photo');
+      }
+      hideOverlay();
+    }
+
+    async function deleteSelectedManagePhotos() {
+      const checkboxes = document.querySelectorAll('input[id^="manage_cb_"]:checked');
+      if (checkboxes.length === 0) return showToast('No photos selected');
+      if (!confirm(`Permanently delete ${checkboxes.length} selected photos?`)) return;
+
+      showOverlay('Deleting files...');
+      updateOverlayProgress(0, checkboxes.length, 'Deleted');
+      let deletedCount = 0;
+      for (const cb of checkboxes) {
+        const key = cb.getAttribute('data-key');
+        await callWorkerApi('/api/dashboard/delete-file', { key }, true);
+        managePhotosData = managePhotosData.filter(item => item[0] !== key);
+        unmarkDeletedManagePhoto(key);
+        deletedCount++;
+        document.getElementById('overlay-text').innerText = `Deleting ${deletedCount} of ${checkboxes.length} photos...`;
+        updateOverlayProgress(deletedCount, checkboxes.length, 'Deleted');
+      }
+      renderManageGrid();
+      hideOverlay();
+      showToast('Selected photos deleted');
+    }
+
+    async function fetchManagePhotoBlob(item) {
+      const key = item && item[0] ? item[0] : '';
+      if (!key) throw new Error('Missing photo key');
+
+      const response = await fetch(`${WORKER_URL}/api/dashboard/download-file`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await getIdTokenCached()}`
+        },
+        body: JSON.stringify({ key })
+      });
+
+      if (!response.ok) throw new Error(`Download failed (${response.status})`);
+      return response.blob();
+    }
+
+    async function downloadImageSilent(item, index) {
+      const blob = await fetchManagePhotoBlob(item);
+      triggerBlobDownload(blob, getManagePhotoFilename(item, index));
+    }
+
+    async function downloadManagePhotos(photos, emptyMessage) {
+      if (!photos || photos.length === 0) return showToast(emptyMessage);
+      const isArchive = photos.length > 1;
+      if (isArchive && typeof JSZip === 'undefined') {
+        return showToast('ZIP download library is still loading. Please try again.');
+      }
+
+      showOverlay(isArchive ? `Creating archive for ${photos.length} photos...` : 'Downloading photo...');
+      if (isArchive) updateOverlayProgress(0, photos.length, 'Added');
+
+      try {
+        if (!isArchive) {
+          await downloadImageSilent(photos[0], 0);
+        } else {
+          const zip = new JSZip();
+          const usedNames = new Set();
+
+          for (let i = 0; i < photos.length; i++) {
+            let filename = getManagePhotoFilename(photos[i], i);
+            const dotIndex = filename.lastIndexOf('.');
+            const baseName = dotIndex > 0 ? filename.substring(0, dotIndex) : filename;
+            const extension = dotIndex > 0 ? filename.substring(dotIndex) : '.jpg';
+            let uniqueName = filename;
+            let duplicateCount = 2;
+
+            while (usedNames.has(uniqueName.toLowerCase())) {
+              uniqueName = `${baseName}_${duplicateCount}${extension}`;
+              duplicateCount++;
+            }
+            usedNames.add(uniqueName.toLowerCase());
+
+            document.getElementById('overlay-text').innerText = `Adding photo ${i + 1} of ${photos.length}...`;
+            zip.file(uniqueName, await fetchManagePhotoBlob(photos[i]));
+            updateOverlayProgress(i + 1, photos.length, 'Added');
+          }
+
+          document.getElementById('overlay-text').innerText = 'Compressing ZIP...';
+          updateOverlayProgress(0, 100, 'Zipped');
+          const archiveBlob = await zip.generateAsync({ type: 'blob' }, metadata => {
+            updateOverlayProgress(Math.round(metadata.percent), 100, 'Zipped');
+          });
+          triggerBlobDownload(archiveBlob, getManageArchiveName());
+        }
+      } catch (e) {
+        console.error('Manage download error:', e);
+        hideOverlay();
+        return showToast('Failed to download photos');
+      }
+
+      hideOverlay();
+      markManagePhotosDownloaded(photos);
+      showToast('Downloads complete');
+    }
+
+    async function downloadAllManagePhotos() {
+      await downloadManagePhotos(managePhotosData, 'No photos to download');
+    }
+
+    async function downloadSingleManagePhoto(index) {
+      const photo = managePhotosData[index];
+      if (!photo) return showToast('Photo not found');
+      await downloadManagePhotos([photo], 'No photo to download');
+    }
+
+    async function downloadUnmarkedManagePhotos() {
+      const unmarkedPhotos = managePhotosData.filter(item => !manageDownloadedPhotoKeys.has(item[0]));
+      await downloadManagePhotos(unmarkedPhotos, 'No unmarked photos to download');
+    }
+
+    async function downloadSelectedManagePhotos() {
+      const selectedPhotos = [...document.querySelectorAll('input[id^="manage_cb_"]:checked')]
+        .map(cb => managePhotosData[Number(cb.getAttribute('data-index'))])
+        .filter(Boolean);
+      await downloadManagePhotos(selectedPhotos, 'No photos selected');
+    }
+    // ==========================================
+    // EXISTING ASSETS GALLERIES
+    // ==========================================
+    async function fetchExistingAssets(forceRefresh = false, eventId = null) {
+      if (!currentUser) return;
+
+      // Scope rules:
+      //   New Setup  → global gallery only (no eventId)
+      //   Edit Setup → local event gallery only (requires an event to be selected)
+      const resolvedEventId = (currentMode === 'edit')
+        ? (eventId || document.getElementById('eventSelect').value || null)
+        : null;
+
+      // In edit mode with no event selected yet, keep galleries hidden.
+      if (currentMode === 'edit' && !resolvedEventId) {
+        document.getElementById('existingBgGalleryContainer').style.display = 'none';
+        document.getElementById('existingLogoGalleryContainer').style.display = 'none';
+        return;
+      }
+
+      // Single request fetches both bg + logo assets in parallel on the worker side
+      const payload = resolvedEventId ? { eventId: resolvedEventId } : {};
+      const res = await callWorkerApi('/api/dashboard/existing-assets-both', payload, true);
+      if (!res || !res.success) return;
+
+      if (res.bg && res.bg.length > 0) {
+        document.getElementById('existingBgGalleryContainer').style.display = 'block';
+        renderExistingGallery(res.bg, 'existingBgGallery', 'bg', resolvedEventId);
+      } else {
+        document.getElementById('existingBgGalleryContainer').style.display = 'none';
+      }
+
+      if (res.logo && res.logo.length > 0) {
+        document.getElementById('existingLogoGalleryContainer').style.display = 'block';
+        renderExistingGallery(res.logo, 'existingLogoGallery', 'logo', resolvedEventId);
+      } else {
+        document.getElementById('existingLogoGalleryContainer').style.display = 'none';
+      }
+    }
+
+    function renderExistingGallery(assets, containerId, type, scopedEventId) {
+      const container = document.getElementById(containerId);
+      const scopeArg = scopedEventId ? `'${scopedEventId}'` : 'null';
+      let html = '';
+      assets.forEach(asset => {
+        html += `<div class="gallery-item-wrapper">
+              <img src="${asset.url}" class="logo-gallery-item" title="${asset.name}" onclick="selectExistingAsset('${asset.id}', '${asset.key}', '${asset.url}', '${type}', this)">
+              <button type="button" class="gallery-item-delete" title="Delete" onclick="deleteExistingAsset('${asset.key}', '${type}', ${scopeArg}, event)">✕</button>
+          </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function selectExistingAsset(id, key, url, type, el) {
+      const gallery = el.closest('.logo-gallery');
+      gallery.querySelectorAll('.logo-gallery-item').forEach(img => img.classList.remove('selected'));
+      el.classList.add('selected');
+
+      if (type === 'bg') {
+        currentBoothBgId = id; // FIX: Keep the ID so the backend can use it if isolated
+        currentBoothBgKey = key;
+        document.getElementById('bgFile').value = "";
+        document.getElementById('bgFileName').innerText = "Using existing background";
+        document.getElementById('bgFileName').style.color = "var(--btn-bg)";
+        document.getElementById('boothBgPreview').src = url;
+        document.getElementById('boothBgPreviewContainer').style.display = "flex";
+      } else if (type === 'logo') {
+        selectedExistingLogoId = id; // FIX: Keep the ID so the backend can use it if isolated
+        selectedExistingQrLogoId = id.replace('logo_', 'qrlogo_');
+        selectedExistingLogoKey = key;
+        selectedExistingQrLogoKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
+        document.getElementById('logoFile').value = "";
+        document.getElementById('logoFileName').innerText = "Using existing logo";
+        document.getElementById('logoFileName').style.color = "var(--btn-bg)";
+        croppedLogoPayload = null; croppedQrLogoPayload = null;
+        document.getElementById('boothLogoPreview').src = url;
+        document.getElementById('boothLogoPreviewContainer').style.display = "flex";
+      }
+    }
+
+    async function deleteExistingAsset(key, type, scopedEventId, event) {
+      event.stopPropagation();
+      if (!confirm("Permanently delete this asset?")) return;
+      showOverlay("Deleting...");
+
+      const res = await callWorkerApi('/api/dashboard/delete-file', { key: key });
+      if (res && res.success) {
+        // If deleting a logo, also attempt to delete its QR counterpart
+        if (type === 'logo') {
+          const qrKey = key.replace('/logos/logo_', '/qr-logos/qrlogo_');
+          await callWorkerApi('/api/dashboard/delete-file', { key: qrKey }, true);
+        }
+        // Re-fetch in the same scope the delete came from (global or local event).
+        await fetchExistingAssets(true, scopedEventId || null);
+        showToast("Deleted successfully.");
+      } else {
+        showToast("Error deleting file.");
+      }
+      hideOverlay();
+    }
+  </script>
+</body>
+
+</html>
