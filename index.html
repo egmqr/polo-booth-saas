@@ -482,15 +482,27 @@
     @media (max-width: 620px) {
       .nav {
         min-height: 62px;
+        gap: 12px;
       }
 
-      .nav-actions .btn.secondary {
-        display: none;
+      .brand {
+        min-width: 0;
+      }
+
+      .brand span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .nav-actions {
+        gap: 6px;
+        flex-shrink: 0;
       }
 
       .btn {
         min-height: 40px;
-        padding: 0 13px;
+        padding: 0 11px;
+        font-size: 13px;
       }
 
       .hero {
