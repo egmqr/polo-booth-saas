@@ -1642,7 +1642,7 @@
     // INSERT YOUR FIREBASE CONFIG HERE to fetch the list of events
     const firebaseConfig = {
       apiKey: "AIzaSyBPZ-xvICeT52ftMRiYJ_N89k6g8kVRE5Y",
-      authDomain: "probooth-production.firebaseapp.com",
+      authDomain: "auth.polo-booth.com",
       projectId: "probooth-production",
       storageBucket: "probooth-production.appspot.com",
       messagingSenderId: "415004603008",
@@ -1793,6 +1793,51 @@
       _applyAuthUI();
     }
 
+    function getFriendlyAuthError(err, fallback = 'Something went wrong. Please try again.') {
+      const code = err && err.code ? err.code : '';
+      const message = err && err.message ? err.message : '';
+      const text = `${code} ${message}`.toLowerCase();
+
+      if (code === 'auth/unauthorized-domain' || text.includes('unauthorized-domain')) {
+        return 'Google sign-in is not ready for this website yet. Please contact support.';
+      }
+      if (code === 'auth/popup-closed-by-user' || text.includes('popup-closed-by-user')) {
+        return 'Sign-in was cancelled. Please try again when you are ready.';
+      }
+      if (code === 'auth/popup-blocked' || text.includes('popup-blocked')) {
+        return 'Your browser blocked the Google sign-in window. Please allow pop-ups and try again.';
+      }
+      if (code === 'auth/account-exists-with-different-credential') {
+        return 'This email is already linked to another sign-in method. Please sign in using your existing method.';
+      }
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        return 'The email or password is incorrect.';
+      }
+      if (code === 'auth/email-already-in-use') {
+        return 'An account already exists for this email. Please sign in instead.';
+      }
+      if (code === 'auth/invalid-email') {
+        return 'Please enter a valid email address.';
+      }
+      if (code === 'auth/weak-password') {
+        return 'Please choose a stronger password with at least 6 characters.';
+      }
+      if (code === 'auth/too-many-requests') {
+        return 'Too many attempts. Please wait a moment and try again.';
+      }
+      if (code === 'auth/network-request-failed' || text.includes('network')) {
+        return 'Could not connect. Please check your internet connection and try again.';
+      }
+      if (text.includes('sign up with an invite code')) {
+        return 'Please sign up with an invite code before using Google sign-in.';
+      }
+      if (text.includes('invite code')) {
+        return 'That invite code is invalid or expired. Please contact me for a new invite code.';
+      }
+
+      return fallback;
+    }
+
     async function submitGoogleAuth() {
       const inviteCode = document.getElementById('inviteCodeInput').value.trim();
       const errEl = document.getElementById('authError');
@@ -1816,6 +1861,11 @@
         if (isSignUpMode) isProvisioning = true;
 
         const cred = await auth.signInWithPopup(provider);
+        if (!isSignUpMode && cred.additionalUserInfo && cred.additionalUserInfo.isNewUser) {
+          await cred.user.delete();
+          await auth.signOut();
+          throw new Error('Please sign up with an invite code before using Google sign-in.');
+        }
         if (isSignUpMode) {
           const tok = await cred.user.getIdToken();
           const provisionRes = await fetch(`${WORKER_URL}/api/auth/provision-user`, {
@@ -1836,9 +1886,9 @@
           isProvisioning = false;
           await checkLogin();
         }
-      } catch (err) {
+        } catch (err) {
         isProvisioning = false;
-        errEl.textContent = err.message || 'Google sign-in failed.';
+        errEl.textContent = getFriendlyAuthError(err, 'We could not complete Google sign-in. Please try again.');
         errEl.style.display = 'block';
       } finally {
         googleBtn.disabled = false;
@@ -1864,7 +1914,7 @@
           document.getElementById('resetSuccess').style.display = 'block';
           document.getElementById('emailInput').value = '';
         } catch (err) {
-          errEl.textContent = err.message || 'Could not send reset email.';
+          errEl.textContent = getFriendlyAuthError(err, 'We could not send the reset email. Please try again.');
           errEl.style.display = 'block';
         } finally {
           document.getElementById('authBtn').disabled = false;
@@ -1913,7 +1963,7 @@
         }
       } catch (err) {
         isProvisioning = false; // UNLOCK UI on error
-        errEl.textContent = err.message || 'Authentication failed.';
+        errEl.textContent = getFriendlyAuthError(err, 'We could not sign you in. Please try again.');
         errEl.style.display = 'block';
         document.getElementById('authBtn').disabled = false;
         document.getElementById('authBtn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
@@ -2077,10 +2127,7 @@
         okEl.textContent = 'Password updated successfully!';
         okEl.style.display = 'block';
       } catch (err) {
-        const msg = err.code === 'auth/wrong-password' ? 'Current password is incorrect.'
-          : err.code === 'auth/too-many-requests' ? 'Too many attempts. Try again later.'
-            : err.message || 'Password update failed.';
-        errEl.textContent = msg;
+        errEl.textContent = getFriendlyAuthError(err, 'We could not update your password. Please try again.');
         errEl.style.display = 'block';
       }
     }
