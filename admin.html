@@ -527,6 +527,292 @@
                 grid-column: span 1;
             }
         }
+
+        @media (max-width: 760px) {
+            body {
+                font-size: 13px;
+            }
+
+            button,
+            input,
+            select,
+            textarea {
+                min-height: 42px;
+            }
+
+            .screen {
+                width: 100%;
+                padding: 12px 10px 28px;
+            }
+
+            #loginSection {
+                align-items: flex-start;
+                padding: 18px 12px;
+            }
+
+            .login-card {
+                margin-top: 10vh;
+                padding: 18px;
+            }
+
+            .app-head {
+                display: grid;
+                gap: 12px;
+                margin-bottom: 12px;
+            }
+
+            .head-actions,
+            .toolbar .row-actions,
+            .inline-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                width: 100%;
+            }
+
+            .head-actions button,
+            .toolbar .row-actions button,
+            .inline-actions button {
+                width: 100%;
+            }
+
+            .sub {
+                margin-bottom: 12px;
+                overflow-wrap: anywhere;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .stat {
+                padding: 11px;
+            }
+
+            .stat-v {
+                font-size: 21px;
+            }
+
+            .toolbar {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .tabs {
+                width: 100%;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                margin-top: 0;
+            }
+
+            .tab-btn {
+                width: 100%;
+            }
+
+            .filters {
+                grid-template-columns: 1fr !important;
+                gap: 7px;
+            }
+
+            .bulkbar {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .bulkbar select,
+            .bulkbar input,
+            .bulkbar button {
+                grid-column: 1 / -1;
+                width: 100%;
+                max-width: none;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                padding: 9px;
+            }
+
+            .table-shell {
+                overflow: visible;
+                border: 0;
+                background: transparent;
+            }
+
+            table,
+            thead,
+            tbody,
+            tr,
+            th,
+            td {
+                display: block;
+                width: 100%;
+            }
+
+            table {
+                min-width: 0;
+                border-collapse: separate;
+            }
+
+            thead {
+                display: none;
+            }
+
+            tbody {
+                display: grid;
+                gap: 10px;
+            }
+
+            tbody tr {
+                position: relative;
+                display: grid;
+                gap: 8px;
+                padding: 12px;
+                border: 1px solid var(--line-soft);
+                border-radius: 8px;
+                background: var(--panel);
+            }
+
+            tbody tr:hover td {
+                background: transparent;
+            }
+
+            tbody td {
+                display: grid;
+                grid-template-columns: minmax(82px, 34%) minmax(0, 1fr);
+                align-items: center;
+                gap: 10px;
+                padding: 0;
+                border: 0;
+                min-width: 0;
+            }
+
+            tbody td::before {
+                content: attr(data-label);
+                color: var(--dim);
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: .06em;
+                text-transform: uppercase;
+            }
+
+            tbody td.check-cell {
+                position: absolute;
+                top: 12px;
+                right: 12px;
+                width: auto;
+                display: block;
+            }
+
+            tbody td.check-cell::before {
+                content: "";
+            }
+
+            tbody td.check-cell input {
+                width: 20px;
+                min-height: 20px;
+            }
+
+            tbody td.check-cell + td {
+                padding-right: 30px;
+            }
+
+            .email-main,
+            .mono,
+            .muted,
+            .dim {
+                min-width: 0;
+                overflow-wrap: anywhere;
+            }
+
+            .compact-input,
+            .compact-select {
+                min-height: 38px;
+                width: 100%;
+            }
+
+            .note-cell,
+            .expires-cell {
+                min-width: 0;
+            }
+
+            tbody td.note-cell,
+            tbody td.expires-cell,
+            tbody td:last-child {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+            }
+
+            tbody td.note-cell::before,
+            tbody td.expires-cell::before,
+            tbody td:last-child::before {
+                margin-bottom: -2px;
+            }
+
+            .row-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                width: 100%;
+            }
+
+            .row-actions button {
+                width: 100%;
+            }
+
+            .drawer {
+                width: 100vw;
+                padding: 14px 12px 22px;
+                border-left: 0;
+            }
+
+            .drawer-head {
+                align-items: flex-start;
+            }
+
+            .drawer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .event-row {
+                grid-template-columns: 1fr;
+            }
+
+            .toast {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 420px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .stat-l {
+                font-size: 10px;
+            }
+
+            tbody td {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+
+            .head-actions,
+            .toolbar .row-actions,
+            .row-actions,
+            .inline-actions {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -974,23 +1260,23 @@
                 const tr = document.createElement('tr');
                 const expired = user.tier === 'paid' && user.effectiveTier !== 'paid';
                 tr.innerHTML = `
-                    <td class="check-cell"><input type="checkbox" data-uid="${escAttr(user.uid)}" ${selectedUsers.has(user.uid) ? 'checked' : ''} onchange="toggleUserSelection('${escAttr(user.uid)}', this.checked)"></td>
-                    <td>
+                    <td class="check-cell" data-label="Select"><input type="checkbox" data-uid="${escAttr(user.uid)}" ${selectedUsers.has(user.uid) ? 'checked' : ''} onchange="toggleUserSelection('${escAttr(user.uid)}', this.checked)"></td>
+                    <td data-label="User">
                         <div class="email-main">${esc(user.email || '(no email)')}</div>
                         <div class="mono dim">${esc(user.uid)}</div>
                         ${user.accountName ? `<div class="muted">${esc(user.accountName)}</div>` : ''}
                     </td>
-                    <td>${badge(user.status, user.status)}</td>
-                    <td>
+                    <td data-label="Status">${badge(user.status, user.status)}</td>
+                    <td data-label="Tier">
                         ${badge(expired ? 'expired' : user.tier, expired ? 'expired' : user.tier)}
                         ${user.tier === 'paid' && user.effectiveTier === 'paid' && daysUntil(user.expiresAt) <= 30 ? badge('expiring', 'expiring') : ''}
                     </td>
-                    <td>${badge(user.role, user.role)}</td>
-                    <td class="expires-cell"><input class="compact-input" id="exp-${escAttr(user.uid)}" type="datetime-local" value="${toLocalDateTime(user.expiresAt)}"></td>
-                    <td class="muted">${user.eventCount ?? '-'}</td>
-                    <td class="muted">${formatDate(user.createdAt)}</td>
-                    <td class="note-cell"><input class="compact-input" id="note-${escAttr(user.uid)}" value="${escAttr(user.note || '')}" placeholder="Admin note"></td>
-                    <td>
+                    <td data-label="Role">${badge(user.role, user.role)}</td>
+                    <td class="expires-cell" data-label="Expires"><input class="compact-input" id="exp-${escAttr(user.uid)}" type="datetime-local" value="${toLocalDateTime(user.expiresAt)}"></td>
+                    <td class="muted" data-label="Events">${user.eventCount ?? '-'}</td>
+                    <td class="muted" data-label="Joined">${formatDate(user.createdAt)}</td>
+                    <td class="note-cell" data-label="Note"><input class="compact-input" id="note-${escAttr(user.uid)}" value="${escAttr(user.note || '')}" placeholder="Admin note"></td>
+                    <td data-label="Actions">
                         <div class="row-actions">
                             <button class="btn-small" onclick="openUserDrawer('${escAttr(user.uid)}')">Detail</button>
                             <button class="btn-small btn-primary" onclick="saveInlineUser('${escAttr(user.uid)}')">Save</button>
@@ -1028,16 +1314,16 @@
                 const usage = invite.isMultiUse ? `${invite.useCount || 0}${invite.maxUses ? ` / ${invite.maxUses}` : ''}` : (invite.used ? '1 / 1' : '0 / 1');
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="mono"><strong>${esc(invite.code)}</strong></td>
-                    <td>${badge(state, state)}</td>
-                    <td>${badge(invite.isMultiUse ? 'multi' : 'single', invite.isMultiUse ? 'multi' : 'single')}</td>
-                    <td>${badge(invite.tier, invite.tier)}</td>
-                    <td class="mono muted">${esc(invite.isMultiUse ? (invite.lastUsedBy || 'multiple') : (invite.usedBy || '-'))}</td>
-                    <td class="muted">${esc(usage)}</td>
-                    <td class="muted">${formatDateTime(invite.expiresAt) || 'Never'}</td>
-                    <td class="muted">${formatDate(invite.createdAt)}</td>
-                    <td class="muted">${esc(invite.note || '')}</td>
-                    <td>
+                    <td class="mono" data-label="Code"><strong>${esc(invite.code)}</strong></td>
+                    <td data-label="State">${badge(state, state)}</td>
+                    <td data-label="Type">${badge(invite.isMultiUse ? 'multi' : 'single', invite.isMultiUse ? 'multi' : 'single')}</td>
+                    <td data-label="Tier">${badge(invite.tier, invite.tier)}</td>
+                    <td class="mono muted" data-label="Used By">${esc(invite.isMultiUse ? (invite.lastUsedBy || 'multiple') : (invite.usedBy || '-'))}</td>
+                    <td class="muted" data-label="Usage">${esc(usage)}</td>
+                    <td class="muted" data-label="Expires">${formatDateTime(invite.expiresAt) || 'Never'}</td>
+                    <td class="muted" data-label="Created">${formatDate(invite.createdAt)}</td>
+                    <td class="muted" data-label="Note">${esc(invite.note || '')}</td>
+                    <td data-label="Actions">
                         <div class="row-actions">
                             <button class="btn-small" onclick="copyCode('${escAttr(invite.code)}')">Copy</button>
                             <button class="btn-small btn-danger" onclick="revokeInvite('${escAttr(invite.code)}')" ${invite.revoked ? 'disabled' : ''}>Revoke</button>
