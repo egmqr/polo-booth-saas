@@ -36,23 +36,22 @@
 
     .download-links {
       display: none;
-      align-items: center;
-      gap: 6px;
-      padding: 3px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 9px;
+      gap: 12px;
     }
 
     .download-app-item {
       display: grid;
-      gap: 3px;
-      min-width: 92px;
+      gap: 8px;
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card-bg);
     }
 
     .download-version-subtext {
       color: var(--text-muted);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       line-height: 1.2;
       text-align: center;
@@ -65,6 +64,38 @@
 
     .download-app-btn.android:hover {
       background: #15803d;
+    }
+
+    .download-menu-btn {
+      display: none;
+    }
+
+    #downloadAppsModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .85);
+      z-index: 10005;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .download-modal-content {
+      width: 100%;
+      max-width: 380px;
+      background: var(--bg-container);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 22px 70px rgba(0, 0, 0, .42);
+    }
+
+    .download-modal-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
     }
 
     /* New Gallery Wrappers */
@@ -183,6 +214,9 @@
     .top-controls-right {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-left: auto;
     }
 
     @media (max-width: 520px) {
@@ -190,22 +224,7 @@
         align-items: center;
       }
 
-      .top-controls-right {
-        width: 100%;
-        justify-content: space-between;
-      }
-
-      .download-links {
-        flex: 1;
-      }
-
-      .download-app-item {
-        flex: 1;
-        min-width: 0;
-      }
-
       .download-app-btn {
-        flex: 1;
         padding: 8px 8px;
         font-size: 11px;
       }
@@ -1318,8 +1337,19 @@
       <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
     </div>
 
-    <div class="top-controls-right" style="gap: 8px;">
-      <div class="download-links" id="appDownloadLinks">
+    <div class="top-controls-right">
+      <button class="settings-btn download-menu-btn" id="downloadAppsBtn" onclick="openDownloadAppsModal()" title="Download apps"
+        style="display:none;">
+        <i class="bi bi-download"></i>
+      </button>
+      <div id="downloadAppsModal">
+        <div class="download-modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <h3 style="margin:0; font-size:17px; color:var(--text-main);">Download Apps</h3>
+            <button onclick="closeDownloadAppsModal()"
+              style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;">&times;</button>
+          </div>
+      <div class="download-links download-modal-grid" id="appDownloadLinks">
         <div class="download-app-item">
           <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" download>
             <i class="bi bi-windows"></i> Windows
@@ -1334,6 +1364,8 @@
         </div>
       </div>
       <!-- Moon/Sun pill — each icon is its own button and the active one is highlighted -->
+        </div>
+      </div>
       <div class="theme-toggle" title="Toggle theme">
         <button class="theme-toggle-btn" id="btnMoon" onclick="setTheme(true)" title="Dark mode"><i
             class="bi bi-moon-fill"></i></button>
@@ -2047,9 +2079,9 @@
         document.getElementById('logoutBtn').style.display = 'none';
         document.getElementById('settingsBtn').style.display = 'none';
 
-        // Add this line to hide it when logged out
-        const appLinks = document.getElementById('appDownloadLinks');
-        if (appLinks) appLinks.style.display = 'none';
+        const downloadBtn = document.getElementById('downloadAppsBtn');
+        if (downloadBtn) downloadBtn.style.display = 'none';
+        closeDownloadAppsModal();
 
         // Reset the button and clear the password field when logging out
         const authBtn = document.getElementById('authBtn');
@@ -2078,9 +2110,8 @@
         document.getElementById('logoutBtn').style.display = 'block';
         document.getElementById('settingsBtn').style.display = 'flex';
 
-        // Add this line to show it when logged in
-        const appLinks = document.getElementById('appDownloadLinks');
-        if (appLinks) appLinks.style.display = 'flex';
+        const downloadBtn = document.getElementById('downloadAppsBtn');
+        if (downloadBtn) downloadBtn.style.display = 'flex';
         document.getElementById('logoutBtn').textContent = `${currentUser.email.split('@')[0]} · Logout`;
 
         // 🟢 THE FIX: Force the UI to reset upon login to unlock fields for Paid accounts!
@@ -2104,6 +2135,15 @@
     }
 
     // ── Settings modal ────────────────────────────────────────────────────────
+    function openDownloadAppsModal() {
+      document.getElementById('downloadAppsModal').style.display = 'flex';
+    }
+
+    function closeDownloadAppsModal() {
+      const modal = document.getElementById('downloadAppsModal');
+      if (modal) modal.style.display = 'none';
+    }
+
     function openSettingsModal() {
       updatePinDisplay();
       // Reset password fields and messages
