@@ -4,6 +4,11 @@ import { getServiceToken } from './auth.js';
 import { json } from './util.js';
 
 const ADMIN_PAGE_LIMIT = 500;
+const APP_VERSION_DOC = 'app_settings/downloads';
+const DEFAULT_APP_VERSIONS = {
+    windows: { version: '1.0.0', releaseDate: '2026-07-06' },
+    android: { version: '1.0.3', releaseDate: '2026-07-06' }
+};
 
 function docId(doc) {
     return decodeURIComponent((doc.name || '').split('/').pop() || '');
@@ -30,6 +35,30 @@ function readInt(fields, key, fallback = 0) {
     const raw = value.integerValue ?? value.stringValue;
     const parsed = parseInt(raw, 10);
     return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function cleanSetting(value, fallback = '') {
+    return String(value ?? fallback).trim().slice(0, 80);
+}
+
+function appVersionsFromDoc(doc) {
+    const f = doc?.fields || {};
+    return {
+        windows: {
+            version: readString(f, 'windowsVersion', DEFAULT_APP_VERSIONS.windows.version),
+            releaseDate: readString(f, 'windowsReleaseDate', DEFAULT_APP_VERSIONS.windows.releaseDate)
+        },
+        android: {
+            version: readString(f, 'androidVersion', DEFAULT_APP_VERSIONS.android.version),
+            releaseDate: readString(f, 'androidReleaseDate', DEFAULT_APP_VERSIONS.android.releaseDate)
+        },
+        updatedAt: readString(f, 'updatedAt', '')
+    };
+}
+
+async function readAppVersions(fsBase, serviceToken) {
+    const doc = await getFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC);
+    return appVersionsFromDoc(doc);
 }
 
 function cleanStatus(status) {
@@ -223,6 +252,15 @@ function buildUserFields(body, now) {
     return fields;
 }
 
+export async function handleAppVersionsPublic(request, env) {
+    if (request.method !== 'GET') return json({ success: false, error: 'Method not allowed' }, 405);
+
+    const serviceToken = await getServiceToken(env);
+    const fsBase = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+    const appVersions = await readAppVersions(fsBase, serviceToken);
+    return json({ success: true, appVersions });
+}
+
 export async function handleAdminRoutes(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -244,6 +282,25 @@ export async function handleAdminRoutes(request, env) {
 
     const serviceToken = await getServiceToken(env);
     const fsBase = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+
+    if (path === '/api/admin/app-versions' && request.method === 'GET') {
+        return json({ success: true, appVersions: await readAppVersions(fsBase, serviceToken) });
+    }
+
+    if (path === '/api/admin/app-versions' && request.method === 'POST') {
+        const body = await request.json();
+        const now = new Date().toISOString();
+        const fields = {
+            windowsVersion: { stringValue: cleanSetting(body.windowsVersion, DEFAULT_APP_VERSIONS.windows.version) },
+            windowsReleaseDate: { stringValue: cleanSetting(body.windowsReleaseDate, DEFAULT_APP_VERSIONS.windows.releaseDate) },
+            androidVersion: { stringValue: cleanSetting(body.androidVersion, DEFAULT_APP_VERSIONS.android.version) },
+            androidReleaseDate: { stringValue: cleanSetting(body.androidReleaseDate, DEFAULT_APP_VERSIONS.android.releaseDate) },
+            updatedAt: { timestampValue: now }
+        };
+
+        await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
+        return json({ success: true, appVersions: appVersionsFromDoc({ fields }) });
+    }
 
     if (path === '/api/admin/summary' && request.method === 'GET') {
         const [users, invites] = await Promise.all([

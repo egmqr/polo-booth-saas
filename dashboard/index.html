@@ -44,6 +44,21 @@
       border-radius: 9px;
     }
 
+    .download-app-item {
+      display: grid;
+      gap: 3px;
+      min-width: 92px;
+    }
+
+    .download-version-subtext {
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1.2;
+      text-align: center;
+      white-space: normal;
+    }
+
     .download-app-btn.android {
       background: #16a34a;
     }
@@ -182,6 +197,11 @@
 
       .download-links {
         flex: 1;
+      }
+
+      .download-app-item {
+        flex: 1;
+        min-width: 0;
       }
 
       .download-app-btn {
@@ -1300,12 +1320,18 @@
 
     <div class="top-controls-right" style="gap: 8px;">
       <div class="download-links" id="appDownloadLinks">
-        <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" download>
-          <i class="bi bi-windows"></i> Windows
-        </a>
-        <a href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" class="download-app-btn android" download>
-          <i class="bi bi-android2"></i> Android
-        </a>
+        <div class="download-app-item">
+          <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" download>
+            <i class="bi bi-windows"></i> Windows
+          </a>
+          <div class="download-version-subtext" id="dashboardWindowsVersion">Latest v1.0.0 | Released Jul 6, 2026</div>
+        </div>
+        <div class="download-app-item">
+          <a href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" class="download-app-btn android" download>
+            <i class="bi bi-android2"></i> Android
+          </a>
+          <div class="download-version-subtext" id="dashboardAndroidVersion">Latest v1.0.3 | Released Jul 6, 2026</div>
+        </div>
       </div>
       <!-- Moon/Sun pill — each icon is its own button and the active one is highlighted -->
       <div class="theme-toggle" title="Toggle theme">
@@ -1625,6 +1651,35 @@
     // CONFIGURATION & SECRETS
     // ==========================================
     const WORKER_URL = "https://api.polo-booth.com";
+    const APP_VERSION_DEFAULTS = {
+      windows: { version: '1.0.0', releaseDate: '2026-07-06' },
+      android: { version: '1.0.3', releaseDate: '2026-07-06' }
+    };
+
+    function formatCompactAppVersion(app) {
+      const version = app?.version || 'Not set';
+      const releaseDate = app?.releaseDate ? new Date(app.releaseDate) : null;
+      const dateText = releaseDate && !Number.isNaN(releaseDate.getTime())
+        ? releaseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : (app?.releaseDate || 'Not set');
+      return `Latest v${version.replace(/^v/i, '')} | Released ${dateText}`;
+    }
+
+    async function loadAppVersionLabels() {
+      let versions = APP_VERSION_DEFAULTS;
+      try {
+        const response = await fetch(`${WORKER_URL}/api/app-versions`, { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          versions = data.appVersions || versions;
+        }
+      } catch { }
+
+      document.getElementById('dashboardWindowsVersion').textContent = formatCompactAppVersion(versions.windows);
+      document.getElementById('dashboardAndroidVersion').textContent = formatCompactAppVersion(versions.android);
+    }
+
+    loadAppVersionLabels();
 
     // Client-side ID token cache — Firebase tokens are valid for 1h, we cache for 50 min
     let _cachedIdToken = null;

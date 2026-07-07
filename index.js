@@ -4,7 +4,7 @@ import { handleGalleryRoutes } from './gallery.js';
 import { handleQRRoutes } from './qr.js';
 import { handleDashboardRoutes, handleUserRoutes } from './dashboard.js';
 import { handleHotfolder } from './hotfolder.js';
-import { handleAdminRoutes } from './admin.js';
+import { handleAdminRoutes, handleAppVersionsPublic } from './admin.js';
 import { json, cors } from './util.js';
 
 export default {
@@ -27,6 +27,9 @@ export default {
             // ── Admin routes (protected by ADMIN_SECRET header) ──
             if (path.startsWith('/api/admin/'))
                 return cors(await handleAdminRoutes(request, env));
+
+            if (path === '/api/app-versions')
+                return cors(await handleAppVersionsPublic(request, env));
 
             // ── User auth routes (provision + profile) ──
             if (path === '/api/auth/provision-user' || path === '/api/user/profile')

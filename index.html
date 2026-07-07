@@ -414,10 +414,22 @@
       margin-top: 24px;
     }
 
+    .download-item {
+      display: grid;
+      gap: 8px;
+    }
+
     .download-actions .btn {
       min-height: 54px;
       justify-content: center;
       font-size: 15px;
+    }
+
+    .download-version {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
     }
 
     .site-footer {
@@ -739,12 +751,18 @@
             Use the dashboard in the browser, then run booth capture on Windows or Android.
           </p>
           <div class="download-actions">
-            <a class="btn" href="https://cdn.polo-booth.com/PoloPro.exe" download>
-              <i class="bi bi-windows"></i> Windows app
-            </a>
-            <a class="btn" href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" download>
-              <i class="bi bi-android2"></i> Android app
-            </a>
+            <div class="download-item">
+              <a class="btn" href="https://cdn.polo-booth.com/PoloPro.exe" download>
+                <i class="bi bi-windows"></i> Windows app
+              </a>
+              <div class="download-version" id="landingWindowsVersion">Latest version: 1.0.0 | Release date: Jul 6, 2026</div>
+            </div>
+            <div class="download-item">
+              <a class="btn" href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" download>
+                <i class="bi bi-android2"></i> Android app
+              </a>
+              <div class="download-version" id="landingAndroidVersion">Latest version: 1.0.3 | Release date: Jul 6, 2026</div>
+            </div>
           </div>
         </div>
       </div>
@@ -765,5 +783,36 @@
       </div>
     </div>
   </footer>
+  <script>
+    const APP_VERSION_DEFAULTS = {
+      windows: { version: '1.0.0', releaseDate: '2026-07-06' },
+      android: { version: '1.0.3', releaseDate: '2026-07-06' }
+    };
+
+    function formatAppVersionLine(app) {
+      const version = app?.version || 'Not set';
+      const releaseDate = app?.releaseDate ? new Date(app.releaseDate) : null;
+      const dateText = releaseDate && !Number.isNaN(releaseDate.getTime())
+        ? releaseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : (app?.releaseDate || 'Not set');
+      return `Latest version: ${version} | Release date: ${dateText}`;
+    }
+
+    async function loadAppVersionLabels() {
+      let versions = APP_VERSION_DEFAULTS;
+      try {
+        const response = await fetch('https://api.polo-booth.com/api/app-versions', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          versions = data.appVersions || versions;
+        }
+      } catch { }
+
+      document.getElementById('landingWindowsVersion').textContent = formatAppVersionLine(versions.windows);
+      document.getElementById('landingAndroidVersion').textContent = formatAppVersionLine(versions.android);
+    }
+
+    loadAppVersionLabels();
+  </script>
 </body>
 </html>

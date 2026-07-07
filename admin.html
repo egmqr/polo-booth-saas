@@ -3,7 +3,7 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProBooth Admin</title>
+    <title>PoloPro Admin</title>
     <style>
         *,
         *::before,
@@ -109,8 +109,13 @@
             background: var(--panel);
             border: 1px solid var(--line);
             border-radius: 8px;
-            padding: 24px;
+            padding: 30px;
             box-shadow: 0 24px 70px var(--shadow);
+        }
+
+        .login-form {
+            display: grid;
+            gap: 14px;
         }
 
         h1,
@@ -419,6 +424,29 @@
             grid-column: span 2;
         }
 
+        .settings-panel {
+            display: grid;
+            gap: 16px;
+            background: var(--panel);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            padding: 18px;
+            max-width: 760px;
+        }
+
+        .settings-form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .settings-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -519,6 +547,7 @@
 
             .filters,
             .form-grid,
+            .settings-form,
             .drawer-grid {
                 grid-template-columns: 1fr;
             }
@@ -552,7 +581,7 @@
 
             .login-card {
                 margin-top: 10vh;
-                padding: 18px;
+                padding: 24px;
             }
 
             .app-head {
@@ -603,7 +632,7 @@
             .tabs {
                 width: 100%;
                 display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: repeat(3, minmax(0, 1fr));
                 margin-top: 0;
             }
 
@@ -819,11 +848,13 @@
 <body>
     <div id="loginSection">
         <div class="login-card">
-            <h1>ProBooth Admin</h1>
+            <h1>PoloPro Admin</h1>
             <p class="sub">Manage accounts, access, and invite codes.</p>
-            <input type="text" id="apiBase" placeholder="API Base URL">
-            <input type="password" id="adminSecret" placeholder="Admin Secret" onkeydown="if(event.key==='Enter') doLogin()">
-            <button class="btn-primary" onclick="doLogin()" style="width:100%; margin-top:4px;">Login</button>
+            <div class="login-form">
+                <input type="text" id="apiBase" placeholder="API Base URL">
+                <input type="password" id="adminSecret" placeholder="Admin Secret" onkeydown="if(event.key==='Enter') doLogin()">
+                <button class="btn-primary" onclick="doLogin()" style="width:100%;">Login</button>
+            </div>
             <p class="err" id="loginErr"></p>
         </div>
     </div>
@@ -831,7 +862,7 @@
     <main id="mainSection" class="screen" style="display:none;">
         <header class="app-head">
             <div>
-                <h1>ProBooth Admin</h1>
+                <h1>PoloPro Admin</h1>
                 <p class="sub" id="sessionLine">Signed in for this browser session.</p>
             </div>
             <div class="head-actions">
@@ -863,6 +894,7 @@
             <div class="tabs">
                 <button class="tab-btn active" id="btnTabUsers" onclick="switchTab('users')">Users</button>
                 <button class="tab-btn" id="btnTabInvites" onclick="switchTab('invites')">Invites</button>
+                <button class="tab-btn" id="btnTabSettings" onclick="switchTab('settings')">Settings</button>
             </div>
             <div></div>
             <div class="row-actions">
@@ -994,6 +1026,38 @@
                 <div class="empty" id="inviteEmpty" style="display:none;">No invite codes match the current filters.</div>
             </div>
         </section>
+
+        <section id="viewSettings" style="display:none;">
+            <div class="settings-panel">
+                <div>
+                    <h2>App download versions</h2>
+                    <p class="sub">These values appear under the Windows and Android download buttons on the landing page and dashboard.</p>
+                </div>
+                <div class="settings-form">
+                    <div class="field">
+                        <label>Windows latest version</label>
+                        <input id="windowsVersionInput" placeholder="1.0.0">
+                    </div>
+                    <div class="field">
+                        <label>Windows release date</label>
+                        <input id="windowsReleaseDateInput" type="date">
+                    </div>
+                    <div class="field">
+                        <label>Android latest version</label>
+                        <input id="androidVersionInput" placeholder="1.0.3">
+                    </div>
+                    <div class="field">
+                        <label>Android release date</label>
+                        <input id="androidReleaseDateInput" type="date">
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button class="btn-primary" onclick="saveAppVersions()">Save Versions</button>
+                    <button class="btn-ghost" onclick="loadAppVersions()">Reload</button>
+                    <span class="muted" id="appVersionsUpdatedAt"></span>
+                </div>
+            </div>
+        </section>
     </main>
 
     <div class="modal-backdrop" id="userDrawer">
@@ -1086,6 +1150,7 @@
         let selectedUsers = new Set();
         let drawerUid = '';
         let sessionTimer = null;
+        let appVersions = null;
 
         const SESSION_DURATION_MS = 60 * 60 * 1000;
 
@@ -1149,7 +1214,8 @@
                 await Promise.all([
                     loadSummary(),
                     loadUsers(true),
-                    loadInvites(true)
+                    loadInvites(true),
+                    loadAppVersions()
                 ]);
                 document.getElementById('loginSection').style.display = 'none';
                 document.getElementById('mainSection').style.display = 'block';
@@ -1225,7 +1291,7 @@
         }
 
         async function refreshData() {
-            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true)]);
+            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true), loadAppVersions()]);
             showToast('Data refreshed');
         }
 
@@ -1233,11 +1299,45 @@
             currentTab = tab;
             document.getElementById('viewUsers').style.display = tab === 'users' ? 'block' : 'none';
             document.getElementById('viewInvites').style.display = tab === 'invites' ? 'block' : 'none';
+            document.getElementById('viewSettings').style.display = tab === 'settings' ? 'block' : 'none';
             document.getElementById('btnTabUsers').classList.toggle('active', tab === 'users');
             document.getElementById('btnTabInvites').classList.toggle('active', tab === 'invites');
+            document.getElementById('btnTabSettings').classList.toggle('active', tab === 'settings');
             document.getElementById('loadMoreUsersBtn').style.display = tab === 'users' ? 'inline-block' : 'none';
             document.getElementById('loadMoreInvitesBtn').style.display = tab === 'invites' ? 'inline-block' : 'none';
+            if (tab === 'settings') {
+                document.getElementById('loadMoreUsersBtn').style.display = 'none';
+                document.getElementById('loadMoreInvitesBtn').style.display = 'none';
+                return;
+            }
             loadSummary().catch(err => showToast(err.message));
+        }
+
+        async function loadAppVersions() {
+            const data = await adminFetch('/api/admin/app-versions');
+            appVersions = data.appVersions || {};
+            document.getElementById('windowsVersionInput').value = appVersions.windows?.version || '';
+            document.getElementById('windowsReleaseDateInput').value = toDateInput(appVersions.windows?.releaseDate);
+            document.getElementById('androidVersionInput').value = appVersions.android?.version || '';
+            document.getElementById('androidReleaseDateInput').value = toDateInput(appVersions.android?.releaseDate);
+            document.getElementById('appVersionsUpdatedAt').textContent = appVersions.updatedAt
+                ? `Last updated ${formatDateTime(appVersions.updatedAt)}`
+                : 'Defaults are currently being used.';
+        }
+
+        async function saveAppVersions() {
+            const data = await adminFetch('/api/admin/app-versions', {
+                method: 'POST',
+                body: JSON.stringify({
+                    windowsVersion: document.getElementById('windowsVersionInput').value,
+                    windowsReleaseDate: document.getElementById('windowsReleaseDateInput').value,
+                    androidVersion: document.getElementById('androidVersionInput').value,
+                    androidReleaseDate: document.getElementById('androidReleaseDateInput').value
+                })
+            });
+            appVersions = data.appVersions || {};
+            await loadAppVersions();
+            showToast('App versions saved');
         }
 
         function setStats(l1, v1, l2, v2, l3, v3, l4, v4) {
@@ -1578,6 +1678,13 @@
             if (Number.isNaN(date.getTime())) return '';
             const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
             return local.toISOString().slice(0, 16);
+        }
+
+        function toDateInput(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+            return date.toISOString().slice(0, 10);
         }
 
         function fromLocalDateTime(value) {

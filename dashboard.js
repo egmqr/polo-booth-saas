@@ -360,9 +360,9 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
             const listData = await listRes.json();
             const existingCount = (listData.documents || []).length;
 
-            // Allow up to 3 cloud events for free users; extras are saved locally in ProBooth.
+            // Allow up to 3 cloud events for free users; extras are saved locally in PoloPro.
             if (existingCount >= 3) {
-                return { success: false, error: 'Free accounts can publish 3 cloud events. Additional events are saved locally in the ProBooth app.' };
+                return { success: false, error: 'Free accounts can publish 3 cloud events. Additional events are saved locally in the PoloPro app.' };
             }
         }
 
@@ -470,7 +470,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
     const totalBooths = includeCommunity ? actualNumBooths + 1 : actualNumBooths;
 
     // Pre-compute all non-community booth prefixes so every booth config
-    // carries the full list. ProBooth can then register all booths from
+    // carries the full list. PoloPro can then register all booths from
     // whichever config file it processes first.
     const allBoothPrefixes = [];
     for (let i = 1; i <= totalBooths; i++) {
@@ -497,7 +497,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
                 MainGalleryLink: mainGalleryUrl,
                 R2KeyPrefix: prefix,
                 // All non-community booth prefixes — present in every booth config
-                // so ProBooth gets the full list regardless of sync order.
+                // so PoloPro gets the full list regardless of sync order.
                 AllBoothPrefixes: allBoothPrefixes,
                 StaticBoothPreviewSeconds: preserved.StaticBoothPreviewSeconds ?? 30,
                 TemplatePaths: [], IsStaticBoothMode: preserved.IsStaticBoothMode ?? false,
@@ -569,7 +569,7 @@ async function generateBoothSetup(env, p, currentUser, isUpdate = false) {
         source: eventSource
     });
 
-    // Push each booth config to the user's hotfolder so ProBooth picks it up on next sync
+    // Push each booth config to the user's hotfolder so PoloPro picks it up on next sync
     // FIX: Skip pushing to hotfolder if this is a "Community Only" web event
     if (!isOnlyCommunity) {
         await Promise.all(boothResults
@@ -638,12 +638,12 @@ async function updateBoothSetup(env, p, currentUser) {
                 };
 
                 // Always pull the latest Templates from R2 for the first non-community booth.
-                // ProBooth is the owner of templates for probooth-source events; the dashboard
+                // PoloPro is the owner of templates for probooth-source events; the dashboard
                 // must carry them forward unchanged. For dashboard-source events this still
                 // ensures the R2 config is the source of truth if the frontend sent an empty list.
                 if (i === 1 && Array.isArray(existing?.Templates) && existing.Templates.length > 0) {
                     // Prefer R2 templates if:
-                    //   a) the source is probooth (ProBooth owns templates), OR
+                    //   a) the source is probooth (PoloPro owns templates), OR
                     //   b) the dashboard sent no templates (empty/null)
                     const isProbooth = (existing?.Settings?.Source === 'probooth') || (p._existingSource === 'probooth');
                     if (isProbooth || !latestTemplates.length) {
@@ -724,8 +724,8 @@ async function deleteBoothEvent(env, eventId, currentUser) {
         if (hotList.objects.length) await Storage.delete(env, hotList.objects.map(o => o.key));
     }
 
-    // Write a deletion tombstone so ProBooth removes its local folders on next sync.
-    // Pattern: {eventId}_deleted.json — ProBooth's Pass 1 detects and processes these.
+    // Write a deletion tombstone so PoloPro removes its local folders on next sync.
+    // Pattern: {eventId}_deleted.json — PoloPro's Pass 1 detects and processes these.
     await putHotfolderTargets(env, currentUser.uid, `${eventId}_deleted.json`, JSON.stringify({ deleted: true, eventId }));
 
     const serviceToken = await getServiceToken(env);
@@ -897,7 +897,7 @@ async function checkEventNameUnique(env, body, currentUser) {
 // ── EVENT NAME RENAME (push to Firestore + hotfolder) ────────────────
 // Called when a dashboard user changes only the Event Name in Edit Setup.
 // Updates Firestore and pushes a lightweight rename marker to the hotfolder
-// so ProBooth can update the event name on its side on next sync.
+// so PoloPro can update the event name on its side on next sync.
 async function renameEventName(env, body, currentUser) {
     const { eventId, newEventName } = body;
     if (!eventId || !newEventName) return { success: false, error: 'eventId and newEventName required' };
@@ -913,7 +913,7 @@ async function renameEventName(env, body, currentUser) {
     });
     if (!fsRes.ok) return { success: false, error: `Firestore error ${fsRes.status}` };
 
-    // 2. Push a rename marker to the hotfolder so ProBooth picks it up on next startup sync.
+    // 2. Push a rename marker to the hotfolder so PoloPro picks it up on next startup sync.
     //    We patch all existing booth config files to carry the new EventName.
     const uPrefix = `users/${currentUser.uid}/events/${eventId}/config`;
     const configList = await Storage.list(env, { prefix: uPrefix + '/', limit: 20 });
@@ -925,7 +925,7 @@ async function renameEventName(env, body, currentUser) {
             const pkg = JSON.parse(await r2obj.text());
             if (pkg?.Settings) {
                 // Skip the community booth — its R2KeyPrefix contains '/community'
-                // and ProBooth doesn't need a hotfolder entry for it.
+                // and PoloPro doesn't need a hotfolder entry for it.
                 if ((pkg.Settings.R2KeyPrefix || '').includes('/community')) return;
 
                 // Update EventName in the config JSON (keeps the -BoothN suffix pattern)
