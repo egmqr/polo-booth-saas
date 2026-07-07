@@ -1351,13 +1351,13 @@
           </div>
       <div class="download-links download-modal-grid" id="appDownloadLinks">
         <div class="download-app-item">
-          <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" download>
+          <a href="https://cdn.polo-booth.com/PoloPro.exe" class="download-app-btn" id="dashboardWindowsDownload" download>
             <i class="bi bi-windows"></i> Windows
           </a>
           <div class="download-version-subtext" id="dashboardWindowsVersion">Latest v1.0.0 | Released Jul 6, 2026</div>
         </div>
         <div class="download-app-item">
-          <a href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" class="download-app-btn android" download>
+          <a href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" class="download-app-btn android" id="dashboardAndroidDownload" download>
             <i class="bi bi-android2"></i> Android
           </a>
           <div class="download-version-subtext" id="dashboardAndroidVersion">Latest v1.0.3 | Released Jul 6, 2026</div>
@@ -1684,8 +1684,8 @@
     // ==========================================
     const WORKER_URL = "https://api.polo-booth.com";
     const APP_VERSION_DEFAULTS = {
-      windows: { version: '1.0.0', releaseDate: '2026-07-06' },
-      android: { version: '1.0.3', releaseDate: '2026-07-06' }
+      windows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro.exe' },
+      android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' }
     };
 
     function formatCompactAppVersion(app) {
@@ -1695,6 +1695,14 @@
         ? releaseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : (app?.releaseDate || 'Not set');
       return `Latest v${version.replace(/^v/i, '')} | Released ${dateText}`;
+    }
+
+    function versionedDownloadUrl(app, updatedAt) {
+      const url = app?.downloadUrl;
+      if (!url) return '';
+      if (!updatedAt) return url;
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}v=${encodeURIComponent(updatedAt)}`;
     }
 
     async function loadAppVersionLabels() {
@@ -1709,6 +1717,8 @@
 
       document.getElementById('dashboardWindowsVersion').textContent = formatCompactAppVersion(versions.windows);
       document.getElementById('dashboardAndroidVersion').textContent = formatCompactAppVersion(versions.android);
+      document.getElementById('dashboardWindowsDownload').href = versionedDownloadUrl(versions.windows, versions.updatedAt) || APP_VERSION_DEFAULTS.windows.downloadUrl;
+      document.getElementById('dashboardAndroidDownload').href = versionedDownloadUrl(versions.android, versions.updatedAt) || APP_VERSION_DEFAULTS.android.downloadUrl;
     }
 
     loadAppVersionLabels();

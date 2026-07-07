@@ -447,6 +447,21 @@
             flex-wrap: wrap;
         }
 
+        .upload-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .upload-card {
+            display: grid;
+            gap: 10px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #111315;
+            padding: 12px;
+        }
+
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -548,6 +563,7 @@
             .filters,
             .form-grid,
             .settings-form,
+            .upload-grid,
             .drawer-grid {
                 grid-template-columns: 1fr;
             }
@@ -1056,6 +1072,24 @@
                     <button class="btn-ghost" onclick="loadAppVersions()">Reload</button>
                     <span class="muted" id="appVersionsUpdatedAt"></span>
                 </div>
+                <div class="upload-grid">
+                    <div class="upload-card">
+                        <div>
+                            <h3>Windows installer</h3>
+                            <p class="muted">Uploads overwrite <span class="mono">PoloPro.exe</span> in R2.</p>
+                        </div>
+                        <input id="windowsExeInput" type="file" accept=".exe,application/x-msdownload,application/octet-stream">
+                        <button class="btn-primary" onclick="uploadAppFile('windows')">Upload Windows EXE</button>
+                    </div>
+                    <div class="upload-card">
+                        <div>
+                            <h3>Android package</h3>
+                            <p class="muted">Uploads write the APK for the Android version above and update the public link.</p>
+                        </div>
+                        <input id="androidApkInput" type="file" accept=".apk,application/vnd.android.package-archive,application/octet-stream">
+                        <button class="btn-primary" onclick="uploadAppFile('android')">Upload Android APK</button>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -1244,6 +1278,20 @@
             return data;
         }
 
+        async function adminMultipartFetch(path, formData) {
+            const resp = await fetch(`${API}${path}`, {
+                method: 'POST',
+                headers: { 'x-admin-secret': SECRET },
+                body: formData
+            });
+            let data = {};
+            try { data = await resp.json(); } catch { }
+            if (!resp.ok || data.success === false) {
+                throw new Error(data.error || `Request failed (${resp.status})`);
+            }
+            return data;
+        }
+
         async function loadSummary() {
             const data = await adminFetch('/api/admin/summary');
             const s = data.summary;
@@ -1338,6 +1386,31 @@
             appVersions = data.appVersions || {};
             await loadAppVersions();
             showToast('App versions saved');
+        }
+
+        async function uploadAppFile(appType) {
+            const inputId = appType === 'windows' ? 'windowsExeInput' : 'androidApkInput';
+            const input = document.getElementById(inputId);
+            const file = input.files && input.files[0];
+            if (!file) {
+                showToast(`Choose a ${appType === 'windows' ? 'Windows EXE' : 'Android APK'} first`);
+                return;
+            }
+
+            const form = new FormData();
+            form.append('appType', appType);
+            form.append('file', file);
+            form.append('windowsVersion', document.getElementById('windowsVersionInput').value);
+            form.append('windowsReleaseDate', document.getElementById('windowsReleaseDateInput').value);
+            form.append('androidVersion', document.getElementById('androidVersionInput').value);
+            form.append('androidReleaseDate', document.getElementById('androidReleaseDateInput').value);
+
+            showToast(`Uploading ${file.name}...`);
+            const data = await adminMultipartFetch('/api/admin/upload-app', form);
+            input.value = '';
+            appVersions = data.appVersions || {};
+            await loadAppVersions();
+            showToast(`Uploaded ${data.key}`);
         }
 
         function setStats(l1, v1, l2, v2, l3, v3, l4, v4) {

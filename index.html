@@ -752,13 +752,13 @@
           </p>
           <div class="download-actions">
             <div class="download-item">
-              <a class="btn" href="https://cdn.polo-booth.com/PoloPro.exe" download>
+              <a class="btn" id="landingWindowsDownload" href="https://cdn.polo-booth.com/PoloPro.exe" download>
                 <i class="bi bi-windows"></i> Windows app
               </a>
               <div class="download-version" id="landingWindowsVersion">Latest version: 1.0.0 | Release date: Jul 6, 2026</div>
             </div>
             <div class="download-item">
-              <a class="btn" href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" download>
+              <a class="btn" id="landingAndroidDownload" href="https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk" download>
                 <i class="bi bi-android2"></i> Android app
               </a>
               <div class="download-version" id="landingAndroidVersion">Latest version: 1.0.3 | Release date: Jul 6, 2026</div>
@@ -785,8 +785,8 @@
   </footer>
   <script>
     const APP_VERSION_DEFAULTS = {
-      windows: { version: '1.0.0', releaseDate: '2026-07-06' },
-      android: { version: '1.0.3', releaseDate: '2026-07-06' }
+      windows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro.exe' },
+      android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' }
     };
 
     function formatAppVersionLine(app) {
@@ -796,6 +796,14 @@
         ? releaseDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
         : (app?.releaseDate || 'Not set');
       return `Latest version: ${version} | Release date: ${dateText}`;
+    }
+
+    function versionedDownloadUrl(app, updatedAt) {
+      const url = app?.downloadUrl;
+      if (!url) return '';
+      if (!updatedAt) return url;
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}v=${encodeURIComponent(updatedAt)}`;
     }
 
     async function loadAppVersionLabels() {
@@ -810,6 +818,8 @@
 
       document.getElementById('landingWindowsVersion').textContent = formatAppVersionLine(versions.windows);
       document.getElementById('landingAndroidVersion').textContent = formatAppVersionLine(versions.android);
+      document.getElementById('landingWindowsDownload').href = versionedDownloadUrl(versions.windows, versions.updatedAt) || APP_VERSION_DEFAULTS.windows.downloadUrl;
+      document.getElementById('landingAndroidDownload').href = versionedDownloadUrl(versions.android, versions.updatedAt) || APP_VERSION_DEFAULTS.android.downloadUrl;
     }
 
     loadAppVersionLabels();

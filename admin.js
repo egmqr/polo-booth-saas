@@ -6,9 +6,10 @@ import { json } from './util.js';
 const ADMIN_PAGE_LIMIT = 500;
 const APP_VERSION_DOC = 'app_settings/downloads';
 const DEFAULT_APP_VERSIONS = {
-    windows: { version: '1.0.0', releaseDate: '2026-07-06' },
-    android: { version: '1.0.3', releaseDate: '2026-07-06' }
+    windows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro.exe' },
+    android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' }
 };
+const WINDOWS_DOWNLOAD_KEY = 'PoloPro.exe';
 
 function docId(doc) {
     return decodeURIComponent((doc.name || '').split('/').pop() || '');
@@ -41,16 +42,30 @@ function cleanSetting(value, fallback = '') {
     return String(value ?? fallback).trim().slice(0, 80);
 }
 
+function cleanVersion(value, fallback) {
+    return cleanSetting(value, fallback).replace(/^v/i, '').replace(/[^0-9A-Za-z._-]/g, '').slice(0, 40) || fallback;
+}
+
+function publicCdnBase(env) {
+    return String(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '');
+}
+
+function androidDownloadKey(version) {
+    return `PoloPro-${cleanVersion(version, DEFAULT_APP_VERSIONS.android.version)}-release.apk`;
+}
+
 function appVersionsFromDoc(doc) {
     const f = doc?.fields || {};
     return {
         windows: {
             version: readString(f, 'windowsVersion', DEFAULT_APP_VERSIONS.windows.version),
-            releaseDate: readString(f, 'windowsReleaseDate', DEFAULT_APP_VERSIONS.windows.releaseDate)
+            releaseDate: readString(f, 'windowsReleaseDate', DEFAULT_APP_VERSIONS.windows.releaseDate),
+            downloadUrl: readString(f, 'windowsDownloadUrl', DEFAULT_APP_VERSIONS.windows.downloadUrl)
         },
         android: {
             version: readString(f, 'androidVersion', DEFAULT_APP_VERSIONS.android.version),
-            releaseDate: readString(f, 'androidReleaseDate', DEFAULT_APP_VERSIONS.android.releaseDate)
+            releaseDate: readString(f, 'androidReleaseDate', DEFAULT_APP_VERSIONS.android.releaseDate),
+            downloadUrl: readString(f, 'androidDownloadUrl', DEFAULT_APP_VERSIONS.android.downloadUrl)
         },
         updatedAt: readString(f, 'updatedAt', '')
     };
@@ -59,6 +74,24 @@ function appVersionsFromDoc(doc) {
 async function readAppVersions(fsBase, serviceToken) {
     const doc = await getFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC);
     return appVersionsFromDoc(doc);
+}
+
+function appVersionFields(env, values = {}) {
+    const windowsVersion = cleanVersion(values.windowsVersion, DEFAULT_APP_VERSIONS.windows.version);
+    const androidVersion = cleanVersion(values.androidVersion, DEFAULT_APP_VERSIONS.android.version);
+    const windowsReleaseDate = cleanSetting(values.windowsReleaseDate, DEFAULT_APP_VERSIONS.windows.releaseDate);
+    const androidReleaseDate = cleanSetting(values.androidReleaseDate, DEFAULT_APP_VERSIONS.android.releaseDate);
+    const cdn = publicCdnBase(env);
+
+    return {
+        windowsVersion: { stringValue: windowsVersion },
+        windowsReleaseDate: { stringValue: windowsReleaseDate },
+        windowsDownloadUrl: { stringValue: `${cdn}/${WINDOWS_DOWNLOAD_KEY}` },
+        androidVersion: { stringValue: androidVersion },
+        androidReleaseDate: { stringValue: androidReleaseDate },
+        androidDownloadUrl: { stringValue: `${cdn}/${androidDownloadKey(androidVersion)}` },
+        updatedAt: { timestampValue: new Date().toISOString() }
+    };
 }
 
 function cleanStatus(status) {
@@ -289,17 +322,53 @@ export async function handleAdminRoutes(request, env) {
 
     if (path === '/api/admin/app-versions' && request.method === 'POST') {
         const body = await request.json();
-        const now = new Date().toISOString();
-        const fields = {
-            windowsVersion: { stringValue: cleanSetting(body.windowsVersion, DEFAULT_APP_VERSIONS.windows.version) },
-            windowsReleaseDate: { stringValue: cleanSetting(body.windowsReleaseDate, DEFAULT_APP_VERSIONS.windows.releaseDate) },
-            androidVersion: { stringValue: cleanSetting(body.androidVersion, DEFAULT_APP_VERSIONS.android.version) },
-            androidReleaseDate: { stringValue: cleanSetting(body.androidReleaseDate, DEFAULT_APP_VERSIONS.android.releaseDate) },
-            updatedAt: { timestampValue: now }
-        };
+        const fields = appVersionFields(env, body);
 
         await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
         return json({ success: true, appVersions: appVersionsFromDoc({ fields }) });
+    }
+
+    if (path === '/api/admin/upload-app' && request.method === 'POST') {
+        const form = await request.formData();
+        const appType = String(form.get('appType') || '').toLowerCase();
+        const file = form.get('file');
+        if (!['windows', 'android'].includes(appType)) return json({ success: false, error: 'Choose Windows or Android.' }, 400);
+        if (!file || typeof file.arrayBuffer !== 'function') return json({ success: false, error: 'Choose an app file to upload.' }, 400);
+
+        const current = await readAppVersions(fsBase, serviceToken);
+        const values = {
+            windowsVersion: form.get('windowsVersion') || current.windows.version,
+            windowsReleaseDate: form.get('windowsReleaseDate') || current.windows.releaseDate,
+            androidVersion: form.get('androidVersion') || current.android.version,
+            androidReleaseDate: form.get('androidReleaseDate') || current.android.releaseDate
+        };
+        const fields = appVersionFields(env, values);
+        const windowsVersion = fields.windowsVersion.stringValue;
+        const androidVersion = fields.androidVersion.stringValue;
+        const key = appType === 'windows' ? WINDOWS_DOWNLOAD_KEY : androidDownloadKey(androidVersion);
+        const expectedExt = appType === 'windows' ? '.exe' : '.apk';
+        const fileName = String(file.name || '').toLowerCase();
+        if (fileName && !fileName.endsWith(expectedExt)) {
+            return json({ success: false, error: `Upload a ${expectedExt} file for ${appType}.` }, 400);
+        }
+
+        const contentType = appType === 'windows'
+            ? 'application/vnd.microsoft.portable-executable'
+            : 'application/vnd.android.package-archive';
+        await env.PHOTOS.put(key, await file.arrayBuffer(), {
+            httpMetadata: {
+                contentType,
+                cacheControl: 'public, max-age=60'
+            },
+            customMetadata: {
+                appType,
+                version: appType === 'windows' ? windowsVersion : androidVersion,
+                uploadedAt: new Date().toISOString()
+            }
+        });
+
+        await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
+        return json({ success: true, appType, key, appVersions: appVersionsFromDoc({ fields }) });
     }
 
     if (path === '/api/admin/summary' && request.method === 'GET') {
