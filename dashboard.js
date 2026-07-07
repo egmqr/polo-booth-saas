@@ -71,7 +71,12 @@ async function getUserTier(env, uid) {
 
     const doc = await res.json();
     let tier = doc.fields?.tier?.stringValue || 'free';
+    const status = doc.fields?.status?.stringValue || 'active';
     const expiresAt = doc.fields?.expiresAt?.timestampValue;
+
+    if (status === 'suspended' || status === 'disabled') {
+        return 'blocked';
+    }
 
     // ENFORCEMENT: If they are marked paid but the date has passed, force 'free'
     if (tier === 'paid' && expiresAt) {
@@ -81,6 +86,23 @@ async function getUserTier(env, uid) {
     }
 
     return tier;
+}
+
+async function getUserAccess(env, uid) {
+    const serviceToken = await getServiceToken(env);
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${uid}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${serviceToken}` } });
+    if (res.status === 404) return { ok: true, status: 'active' };
+    if (!res.ok) return { ok: true, status: 'active' };
+
+    const doc = await res.json();
+    const status = doc.fields?.status?.stringValue || 'active';
+    const reason = doc.fields?.suspensionReason?.stringValue || '';
+    return {
+        ok: status !== 'suspended' && status !== 'disabled',
+        status,
+        reason
+    };
 }
 
 // ── USER ROUTES (provision + profile) ────────────────────────────────
@@ -117,12 +139,34 @@ export async function handleUserRoutes(request, env) {
         const isUsed = codeDoc.fields?.used?.booleanValue;
         const isMultiUse = codeDoc.fields?.isMultiUse?.booleanValue;
         const expiresAt = codeDoc.fields?.expiresAt?.timestampValue;
+        const isRevoked = codeDoc.fields?.revoked?.booleanValue;
+        const inviteTier = codeDoc.fields?.tier?.stringValue || 'paid';
+        const maxUses = parseInt(codeDoc.fields?.maxUses?.integerValue || '0', 10);
+        const useCount = parseInt(codeDoc.fields?.useCount?.integerValue || '0', 10);
+
+        if (isRevoked) {
+            return json({ success: false, error: 'This invite code has been revoked.' }, 400);
+        }
 
         if (isMultiUse) {
             // Validate expiration for multi-use codes
             if (expiresAt && new Date() > new Date(expiresAt)) {
                 return json({ success: false, error: 'This invite code has expired.' }, 400);
             }
+            if (maxUses > 0 && useCount >= maxUses) {
+                return json({ success: false, error: 'This invite code has reached its usage limit.' }, 400);
+            }
+            await fetch(`${codeUrl}?updateMask.fieldPaths=useCount&updateMask.fieldPaths=lastUsedAt&updateMask.fieldPaths=lastUsedBy`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${serviceToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fields: {
+                        useCount: { integerValue: String(useCount + 1) },
+                        lastUsedAt: { timestampValue: new Date().toISOString() },
+                        lastUsedBy: { stringValue: user.uid }
+                    }
+                })
+            });
             // Note: We skip the PATCH request below so it remains usable.
         } else {
             // Standard single-use logic
@@ -148,7 +192,16 @@ export async function handleUserRoutes(request, env) {
         const existing = await fetch(docUrl, { headers: { Authorization: `Bearer ${serviceToken}` } });
         if (existing.ok) {
             const doc = await existing.json();
-            if (doc.fields) return json({ success: true, tier: doc.fields.tier?.stringValue || 'free' });
+            if (doc.fields) {
+                const status = doc.fields.status?.stringValue || 'active';
+                if (status === 'suspended' || status === 'disabled') {
+                    return json({
+                        success: false,
+                        error: doc.fields.suspensionReason?.stringValue || 'This account is not currently active.'
+                    }, 403);
+                }
+                return json({ success: true, tier: doc.fields.tier?.stringValue || 'free' });
+            }
         }
 
         await fetch(docUrl, {
@@ -157,14 +210,18 @@ export async function handleUserRoutes(request, env) {
             body: JSON.stringify({
                 fields: {
                     email: { stringValue: user.email },
-                    tier: { stringValue: 'paid' },
+                    tier: { stringValue: inviteTier === 'free' ? 'free' : 'paid' },
+                    status: { stringValue: 'active' },
+                    role: { stringValue: 'owner' },
                     createdAt: { timestampValue: new Date().toISOString() },
+                    updatedAt: { timestampValue: new Date().toISOString() },
                     pin: { stringValue: '0000' },
-                    note: { stringValue: '' }
+                    note: { stringValue: '' },
+                    inviteCode: { stringValue: codeDoc.name.split('/').pop() || '' }
                 }
             })
         });
-        return json({ success: true, tier: 'paid' });
+        return json({ success: true, tier: inviteTier === 'free' ? 'free' : 'paid' });
     }
 
     // GET /api/user/profile — called on every login
@@ -175,6 +232,13 @@ export async function handleUserRoutes(request, env) {
 
         const doc = await res.json();
         const f = doc.fields || {};
+        const status = f.status?.stringValue || 'active';
+        if (status === 'suspended' || status === 'disabled') {
+            return json({
+                success: false,
+                error: f.suspensionReason?.stringValue || 'This account is not currently active.'
+            }, 403);
+        }
 
         let tier = f.tier?.stringValue || 'free';
         const expiresAt = f.expiresAt?.timestampValue;
@@ -190,6 +254,8 @@ export async function handleUserRoutes(request, env) {
             uid: user.uid,
             email: user.email,
             tier: tier, // <-- Pass the evaluated tier here
+            status,
+            role: f.role?.stringValue || 'owner',
             note: f.note?.stringValue || '',
             pin: f.pin?.stringValue || '1234'
         });
@@ -209,6 +275,14 @@ export async function handleDashboardRoutes(request, env) {
     let currentUser;
     try { currentUser = await authenticate(request, env); }
     catch (e) { return json({ success: false, error: 'Unauthorized' }, 401); }
+
+    const access = await getUserAccess(env, currentUser.uid);
+    if (!access.ok) {
+        return json({
+            success: false,
+            error: access.reason || 'This account is not currently active.'
+        }, 403);
+    }
 
     const body = await request.json();
 

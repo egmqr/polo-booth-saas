@@ -9,358 +9,799 @@
         *::before,
         *::after {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        }
+
+        :root {
+            --bg: #101112;
+            --panel: #181a1c;
+            --panel-2: #202326;
+            --line: #2b2f33;
+            --line-soft: #22262a;
+            --text: #e8ecef;
+            --muted: #8c949d;
+            --dim: #5f6871;
+            --blue: #70a5ff;
+            --green: #39d98a;
+            --yellow: #f7c948;
+            --red: #ff6b6b;
+            --violet: #c79cff;
+            --shadow: rgba(0, 0, 0, .36);
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0f0f0f;
-            color: #d0d0d0;
-            padding: 30px;
+            margin: 0;
             min-height: 100vh;
-        }
-
-        h1 {
-            font-size: 20px;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 6px;
-        }
-
-        .sub {
-            color: #555;
-            font-size: 13px;
-            margin-bottom: 28px;
-        }
-
-        .card {
-            background: #1a1a1a;
-            border: 1px solid #262626;
-            border-radius: 12px;
-            padding: 28px;
-            max-width: 420px;
-        }
-
-        input {
-            display: block;
-            width: 100%;
-            background: #111;
-            border: 1px solid #2a2a2a;
-            border-radius: 7px;
-            padding: 11px 14px;
-            color: #e0e0e0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 14px;
-            margin-bottom: 12px;
-            outline: none;
         }
 
-        input:focus {
-            border-color: #444;
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
         }
 
         button {
-            cursor: pointer;
-            border: none;
+            min-height: 36px;
+            border: 1px solid var(--line);
             border-radius: 7px;
-            padding: 10px 18px;
-            font-size: 14px;
-            font-weight: 600;
-            transition: opacity .15s;
+            background: var(--panel-2);
+            color: var(--text);
+            cursor: pointer;
+            padding: 8px 12px;
+            font-weight: 650;
         }
 
         button:hover {
-            opacity: .82;
+            border-color: #46505a;
+            background: #252a2f;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: .48;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            min-height: 36px;
+            border: 1px solid var(--line);
+            border-radius: 7px;
+            background: #111315;
+            color: var(--text);
+            outline: none;
+            padding: 8px 10px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(112, 165, 255, .12);
+        }
+
+        .screen {
+            width: min(1500px, calc(100vw - 36px));
+            margin: 0 auto;
+            padding: 24px 0 44px;
+        }
+
+        #loginSection {
+            min-height: 100vh;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 22px;
+        }
+
+        .login-card {
+            width: min(420px, 100%);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 24px 70px var(--shadow);
+        }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 16px;
+        }
+
+        h3 {
+            font-size: 13px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .sub {
+            color: var(--muted);
+            margin-top: 7px;
+            margin-bottom: 20px;
+            line-height: 1.45;
+        }
+
+        .app-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        .head-actions,
+        .row-actions,
+        .tabs,
+        .bulkbar,
+        .inline-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn-primary {
-            background: #253355;
-            color: #fff;
+            background: #244a84;
+            border-color: #3565a9;
         }
 
-        .btn-upgrade {
-            background: #1a3c2e;
-            color: #6ee7b7;
-            padding: 5px 13px;
-            font-size: 12px;
+        .btn-danger {
+            background: #4a1c20;
+            border-color: #753137;
+            color: #ffd5d5;
         }
 
-        .btn-downgrade {
-            background: #3d1010;
-            color: #fca5a5;
-            padding: 5px 13px;
-            font-size: 12px;
+        .btn-good {
+            background: #153b2b;
+            border-color: #286548;
+            color: #a8f0ce;
         }
 
-        .btn-muted {
-            background: #1e1e1e;
-            color: #666;
-            border: 1px solid #2a2a2a;
-        }
-
-        /* Tabs styling */
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #222;
-            padding-bottom: 15px;
-        }
-
-        .tab-btn {
+        .btn-ghost {
             background: transparent;
-            color: #888;
-            border: 1px solid transparent;
-            padding: 8px 16px;
         }
 
-        .tab-btn.active {
-            background: #1a1a1a;
-            color: #fff;
-            border-color: #333;
+        .btn-small {
+            min-height: 30px;
+            padding: 5px 9px;
+            font-size: 12px;
         }
 
-        .topbar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 22px;
-        }
-
-        .stat {
-            background: #1a1a1a;
-            border: 1px solid #222;
-            border-radius: 9px;
-            padding: 14px 22px;
-            min-width: 90px;
-        }
-
-        .stat-l {
-            font-size: 11px;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: .6px;
-            margin-bottom: 4px;
-        }
-
-        .stat-v {
-            font-size: 24px;
-            font-weight: 700;
-            color: #fff;
-        }
-
-        .stat-v.g {
-            color: #34d399;
-        }
-
-        .stat-v.d {
-            color: #ef4444;
-        }
-
-        .search-row {
-            display: flex;
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(130px, 1fr));
             gap: 10px;
             margin-bottom: 16px;
         }
 
-        .search-row input {
-            margin: 0;
-            flex: 1;
+        .stat {
+            background: var(--panel);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .stat-l {
+            font-size: 11px;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 5px;
+        }
+
+        .stat-v {
+            font-size: 24px;
+            font-weight: 750;
+        }
+
+        .toolbar {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .tabs {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 3px;
+            background: #121416;
+        }
+
+        .tab-btn {
+            min-height: 32px;
+            border-color: transparent;
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .tab-btn.active {
+            background: var(--panel-2);
+            color: var(--text);
+            border-color: var(--line);
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(120px, .55fr));
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .bulkbar {
+            min-height: 44px;
+            background: var(--panel);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+
+        .bulkbar select,
+        .bulkbar input {
+            max-width: 210px;
+        }
+
+        .table-shell {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            overflow: auto;
+            background: #121416;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            min-width: 1050px;
         }
 
-        thead th {
+        th,
+        td {
             text-align: left;
-            padding: 9px 12px;
-            border-bottom: 1px solid #1e1e1e;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            color: #555;
-        }
-
-        tbody td {
-            padding: 12px 12px;
-            border-bottom: 1px solid #171717;
+            padding: 10px;
+            border-bottom: 1px solid #1d2023;
             vertical-align: middle;
         }
 
-        tbody tr:hover td {
-            background: #141414;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #151719;
+            color: var(--dim);
             font-size: 11px;
-            font-weight: 700;
+            letter-spacing: .06em;
             text-transform: uppercase;
+            font-weight: 750;
         }
 
-        .b-free {
-            background: #1c1c1c;
-            color: #555;
-            border: 1px solid #2a2a2a;
+        tbody tr:hover td {
+            background: #181b1e;
         }
 
-        .b-paid {
-            background: rgba(52, 211, 153, .1);
-            color: #34d399;
-            border: 1px solid rgba(52, 211, 153, .3);
+        .check-cell {
+            width: 42px;
         }
 
-        .note-input {
-            width: 160px;
-            background: #111;
-            border: 1px solid #1e1e1e;
-            border-radius: 5px;
-            padding: 5px 9px;
-            color: #888;
-            font-size: 12px;
-            display: inline-block;
-            margin: 0;
+        .check-cell input {
+            width: 16px;
+            min-height: 16px;
+            padding: 0;
         }
 
         .mono {
-            font-family: monospace;
-            font-size: 11px;
-            color: #888;
-        }
-
-        .fw-bold {
-            font-weight: bold;
-            color: #d0d0d0;
+            font-family: Consolas, "SFMono-Regular", monospace;
+            font-size: 12px;
         }
 
         .muted {
-            font-size: 12px;
-            color: #555;
+            color: var(--muted);
         }
 
-        .acts {
-            display: flex;
-            gap: 6px;
+        .dim {
+            color: var(--dim);
+        }
+
+        .email-main {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .badge {
+            display: inline-flex;
             align-items: center;
+            min-height: 22px;
+            border-radius: 999px;
+            padding: 3px 9px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            border: 1px solid transparent;
+            white-space: nowrap;
         }
 
-        .err {
-            color: #ef4444;
+        .b-paid,
+        .b-active,
+        .b-usable {
+            color: var(--green);
+            background: rgba(57, 217, 138, .08);
+            border-color: rgba(57, 217, 138, .28);
+        }
+
+        .b-free,
+        .b-viewer {
+            color: var(--muted);
+            background: rgba(140, 148, 157, .08);
+            border-color: rgba(140, 148, 157, .22);
+        }
+
+        .b-suspended,
+        .b-disabled,
+        .b-revoked,
+        .b-expired {
+            color: var(--red);
+            background: rgba(255, 107, 107, .08);
+            border-color: rgba(255, 107, 107, .26);
+        }
+
+        .b-admin,
+        .b-owner,
+        .b-multi {
+            color: var(--blue);
+            background: rgba(112, 165, 255, .08);
+            border-color: rgba(112, 165, 255, .26);
+        }
+
+        .b-expiring,
+        .b-used {
+            color: var(--yellow);
+            background: rgba(247, 201, 72, .08);
+            border-color: rgba(247, 201, 72, .28);
+        }
+
+        .compact-input,
+        .compact-select {
+            min-height: 32px;
+            padding: 5px 8px;
             font-size: 12px;
-            margin-top: 10px;
+        }
+
+        .note-cell {
+            min-width: 210px;
+        }
+
+        .expires-cell {
+            min-width: 190px;
+        }
+
+        .empty {
+            padding: 30px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(120px, 1fr));
+            gap: 8px;
+            background: var(--panel);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .form-grid .wide {
+            grid-column: span 2;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .58);
             display: none;
+            align-items: stretch;
+            justify-content: flex-end;
+            z-index: 50;
+        }
+
+        .drawer {
+            width: min(620px, 100vw);
+            background: #151719;
+            border-left: 1px solid var(--line);
+            box-shadow: -20px 0 70px var(--shadow);
+            padding: 18px;
+            overflow: auto;
+        }
+
+        .drawer-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .drawer-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin: 14px 0;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .event-list {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+        }
+
+        .event-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 10px;
+            background: #111315;
+            border: 1px solid var(--line-soft);
+            border-radius: 7px;
         }
 
         .toast {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: #253355;
-            color: #fff;
-            padding: 12px 20px;
-            border-radius: 9px;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, .5);
+            right: 18px;
+            bottom: 18px;
+            z-index: 80;
             display: none;
-            z-index: 999;
+            max-width: 360px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: #244a84;
+            color: white;
+            box-shadow: 0 16px 50px var(--shadow);
+            font-weight: 650;
+        }
+
+        .err {
+            color: var(--red);
+            margin-top: 10px;
+            display: none;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .screen {
+                width: calc(100vw - 22px);
+                padding-top: 14px;
+            }
+
+            .app-head,
+            .toolbar {
+                display: block;
+            }
+
+            .head-actions,
+            .tabs {
+                margin-top: 12px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .filters,
+            .form-grid,
+            .drawer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid .wide {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
 
 <body>
-
-    <div id="loginSection" style="display:none;">
-        <div class="card">
+    <div id="loginSection">
+        <div class="login-card">
             <h1>ProBooth Admin</h1>
-            <p class="sub">Enter credentials to manage the system.</p>
+            <p class="sub">Manage accounts, access, and invite codes.</p>
             <input type="text" id="apiBase" placeholder="API Base URL">
-            <input type="password" id="adminSecret" placeholder="Admin Secret"
-                onkeypress="if(event.key==='Enter') doLogin()">
-            <button class="btn-primary" onclick="doLogin()" style="width:100%;">Login</button>
+            <input type="password" id="adminSecret" placeholder="Admin Secret" onkeydown="if(event.key==='Enter') doLogin()">
+            <button class="btn-primary" onclick="doLogin()" style="width:100%; margin-top:4px;">Login</button>
             <p class="err" id="loginErr"></p>
         </div>
     </div>
 
-    <div id="mainSection" style="display:none;">
-        <div class="topbar">
+    <main id="mainSection" class="screen" style="display:none;">
+        <header class="app-head">
+            <div>
+                <h1>ProBooth Admin</h1>
+                <p class="sub" id="sessionLine">Signed in for this browser session.</p>
+            </div>
+            <div class="head-actions">
+                <button class="btn-ghost" onclick="refreshData()">Refresh</button>
+                <button class="btn-ghost" onclick="doLogout()">Logout</button>
+            </div>
+        </header>
+
+        <section class="stats">
             <div class="stat">
-                <div class="stat-l" id="stat1L">Total</div>
-                <div class="stat-v" id="stat1V">—</div>
+                <div class="stat-l" id="stat1L">Users</div>
+                <div class="stat-v" id="stat1V">-</div>
             </div>
             <div class="stat">
-                <div class="stat-l" id="stat2L">Free</div>
-                <div class="stat-v d" id="stat2V">—</div>
+                <div class="stat-l" id="stat2L">Paid</div>
+                <div class="stat-v" id="stat2V">-</div>
             </div>
             <div class="stat">
-                <div class="stat-l" id="stat3L">Paid</div>
-                <div class="stat-v g" id="stat3V">—</div>
+                <div class="stat-l" id="stat3L">Restricted</div>
+                <div class="stat-v" id="stat3V">-</div>
             </div>
-            <button class="btn-muted" onclick="refreshData()" style="margin-left:auto;">↻ Refresh Data</button>
-            <button class="btn-muted" onclick="doLogout()">Logout</button>
-        </div>
-
-        <div class="tabs">
-            <button class="tab-btn active" id="btnTabUsers" onclick="switchTab('users')">Users</button>
-            <button class="tab-btn" id="btnTabInvites" onclick="switchTab('invites')">Invite Codes</button>
-        </div>
-
-        <div id="viewUsers">
-            <div class="search-row">
-                <input type="text" id="searchInput" placeholder="Filter by email…" oninput="filterTable()">
+            <div class="stat">
+                <div class="stat-l" id="stat4L">Invites</div>
+                <div class="stat-v" id="stat4V">-</div>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Email</th>
-                        <th>UID</th>
-                        <th>Tier</th>
-                        <th>Joined</th>
-                        <th>Note</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="userTable"></tbody>
-            </table>
-        </div>
+        </section>
 
-        <div id="viewInvites" style="display:none;">
-            <div class="search-row">
-                <input type="text" id="searchInvites" placeholder="Filter codes or UID…" oninput="filterInvites()">
+        <div class="toolbar">
+            <div class="tabs">
+                <button class="tab-btn active" id="btnTabUsers" onclick="switchTab('users')">Users</button>
+                <button class="tab-btn" id="btnTabInvites" onclick="switchTab('invites')">Invites</button>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Invite Code</th>
-                        <th>Status</th>
-                        <th>Used By UID</th>
-                        <th>Created</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="inviteTable"></tbody>
-            </table>
+            <div></div>
+            <div class="row-actions">
+                <button class="btn-ghost" id="loadMoreUsersBtn" onclick="loadUsers(false)">Load Users</button>
+                <button class="btn-ghost" id="loadMoreInvitesBtn" onclick="loadInvites(false)" style="display:none;">Load Invites</button>
+            </div>
         </div>
 
+        <section id="viewUsers">
+            <div class="filters">
+                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()">
+                <select id="tierFilter" onchange="renderUsers()">
+                    <option value="">All tiers</option>
+                    <option value="paid">Paid</option>
+                    <option value="free">Free</option>
+                </select>
+                <select id="statusFilter" onchange="renderUsers()">
+                    <option value="">All status</option>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="disabled">Disabled</option>
+                </select>
+                <select id="roleFilter" onchange="renderUsers()">
+                    <option value="">All roles</option>
+                    <option value="owner">Owner</option>
+                    <option value="admin">Admin</option>
+                    <option value="member">Member</option>
+                    <option value="viewer">Viewer</option>
+                </select>
+            </div>
+
+            <div class="bulkbar">
+                <label class="check-cell"><input type="checkbox" id="selectAllUsers" onchange="toggleAllUsers(this.checked)"></label>
+                <strong id="bulkCount">0 selected</strong>
+                <select id="bulkTier">
+                    <option value="">Tier unchanged</option>
+                    <option value="paid">Paid</option>
+                    <option value="free">Free</option>
+                </select>
+                <select id="bulkStatus">
+                    <option value="">Status unchanged</option>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="disabled">Disabled</option>
+                </select>
+                <input id="bulkNote" placeholder="Optional note">
+                <button class="btn-primary" onclick="applyBulkUsers()">Apply</button>
+                <button class="btn-ghost" onclick="clearSelection()">Clear</button>
+            </div>
+
+            <div class="table-shell">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="check-cell"></th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Tier</th>
+                            <th>Role</th>
+                            <th>Expires</th>
+                            <th>Events</th>
+                            <th>Joined</th>
+                            <th>Note</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTable"></tbody>
+                </table>
+                <div class="empty" id="userEmpty" style="display:none;">No users match the current filters.</div>
+            </div>
+        </section>
+
+        <section id="viewInvites" style="display:none;">
+            <div class="form-grid">
+                <input id="newInviteCode" placeholder="Code (optional)">
+                <select id="newInviteTier">
+                    <option value="paid">Paid account</option>
+                    <option value="free">Free account</option>
+                </select>
+                <select id="newInviteType">
+                    <option value="single">Single use</option>
+                    <option value="multi">Multi use</option>
+                </select>
+                <input id="newInviteMaxUses" type="number" min="0" placeholder="Max uses">
+                <input id="newInviteExpires" type="datetime-local">
+                <input id="newInviteNote" class="wide" placeholder="Internal note">
+                <button class="btn-primary" onclick="createInvite()">Create Invite</button>
+            </div>
+
+            <div class="filters" style="grid-template-columns:minmax(220px,1fr) repeat(3,minmax(120px,.35fr));">
+                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()">
+                <select id="inviteStateFilter" onchange="renderInvites()">
+                    <option value="">All states</option>
+                    <option value="usable">Usable</option>
+                    <option value="used">Used</option>
+                    <option value="revoked">Revoked</option>
+                    <option value="expired">Expired</option>
+                </select>
+                <select id="inviteTypeFilter" onchange="renderInvites()">
+                    <option value="">All types</option>
+                    <option value="multi">Multi use</option>
+                    <option value="single">Single use</option>
+                </select>
+                <select id="inviteTierFilter" onchange="renderInvites()">
+                    <option value="">All tiers</option>
+                    <option value="paid">Paid</option>
+                    <option value="free">Free</option>
+                </select>
+            </div>
+
+            <div class="table-shell">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>State</th>
+                            <th>Type</th>
+                            <th>Tier</th>
+                            <th>Used By</th>
+                            <th>Usage</th>
+                            <th>Expires</th>
+                            <th>Created</th>
+                            <th>Note</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inviteTable"></tbody>
+                </table>
+                <div class="empty" id="inviteEmpty" style="display:none;">No invite codes match the current filters.</div>
+            </div>
+        </section>
+    </main>
+
+    <div class="modal-backdrop" id="userDrawer">
+        <aside class="drawer">
+            <div class="drawer-head">
+                <div>
+                    <h2 id="drawerTitle">User</h2>
+                    <p class="muted mono" id="drawerUid"></p>
+                </div>
+                <button class="btn-ghost" onclick="closeUserDrawer()">Close</button>
+            </div>
+
+            <div class="drawer-grid">
+                <div class="field">
+                    <label>Status</label>
+                    <select id="drawerStatus">
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="disabled">Disabled</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Tier</label>
+                    <select id="drawerTier">
+                        <option value="paid">Paid</option>
+                        <option value="free">Free</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Role</label>
+                    <select id="drawerRole">
+                        <option value="owner">Owner</option>
+                        <option value="admin">Admin</option>
+                        <option value="member">Member</option>
+                        <option value="viewer">Viewer</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Expires</label>
+                    <input type="datetime-local" id="drawerExpires">
+                </div>
+                <div class="field">
+                    <label>Account Name</label>
+                    <input id="drawerAccountName">
+                </div>
+                <div class="field">
+                    <label>Seat Limit</label>
+                    <input type="number" min="1" id="drawerSeatLimit">
+                </div>
+                <div class="field">
+                    <label>PIN</label>
+                    <input id="drawerPin">
+                </div>
+                <div class="field">
+                    <label>Invite Code</label>
+                    <input id="drawerInviteCode" disabled>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Suspension Reason</label>
+                <input id="drawerSuspensionReason">
+            </div>
+            <div class="field" style="margin-top:10px;">
+                <label>Admin Note</label>
+                <textarea id="drawerNote"></textarea>
+            </div>
+            <div class="inline-actions" style="margin-top:12px;">
+                <button class="btn-primary" onclick="saveDrawerUser()">Save User</button>
+                <button class="btn-good" onclick="quickExtendDrawer()">Extend 1 Year</button>
+                <button class="btn-danger" onclick="quickSuspendDrawer()">Suspend</button>
+            </div>
+
+            <hr style="border:0; border-top:1px solid var(--line-soft); margin:18px 0;">
+            <h3>Events</h3>
+            <div class="event-list" id="drawerEvents"></div>
+        </aside>
     </div>
 
     <div class="toast" id="toast"></div>
 
     <script>
-        let API = '', SECRET = '';
+        let API = '';
+        let SECRET = '';
         let allUsers = [];
         let allInvites = [];
         let currentTab = 'users';
-
-        const SESSION_DURATION_MS = 60 * 60 * 1000; // 1 hour
+        let usersNextPage = '';
+        let invitesNextPage = '';
+        let selectedUsers = new Set();
+        let drawerUid = '';
         let sessionTimer = null;
+
+        const SESSION_DURATION_MS = 60 * 60 * 1000;
 
         window.onload = async () => {
             const storedApi = sessionStorage.getItem('adminApi');
@@ -374,26 +815,14 @@
                     SECRET = storedSecret;
                     document.getElementById('apiBase').value = API;
                     document.getElementById('adminSecret').value = SECRET;
-
-                    // Attempt to restore session
-                    const uOk = await fetchUsers();
-                    if (uOk) {
-                        await fetchInvites();
-                        document.getElementById('mainSection').style.display = 'block';
-                        updateStats();
-
-                        // Resume the countdown
-                        sessionTimer = setTimeout(() => {
-                            showToast('Session expired after 1 hour.');
-                            doLogout();
-                        }, SESSION_DURATION_MS - age);
-
-                        return; // Successfully restored, exit early
+                    const ok = await bootstrapApp(false);
+                    if (ok) {
+                        sessionTimer = setTimeout(expireSession, SESSION_DURATION_MS - age);
+                        return;
                     }
                 }
             }
 
-            // If no session exists or validation fails, reveal the login box
             doLogout();
         };
 
@@ -403,239 +832,535 @@
             const errEl = document.getElementById('loginErr');
             errEl.style.display = 'none';
 
+            if (!API || !SECRET) {
+                errEl.textContent = 'API base URL and admin secret are required.';
+                errEl.style.display = 'block';
+                return;
+            }
+
             try {
-                // Fetch users first to validate secret
-                const uOk = await fetchUsers();
-                if (uOk) {
-                    await fetchInvites();
-                    document.getElementById('loginSection').style.display = 'none';
-                    document.getElementById('mainSection').style.display = 'block';
-                    updateStats();
-
-                    // Save session data
-                    sessionStorage.setItem('adminApi', API);
-                    sessionStorage.setItem('adminSecret', SECRET);
-                    sessionStorage.setItem('adminTime', Date.now().toString());
-
-                    // Start 1-hour timer
-                    if (sessionTimer) clearTimeout(sessionTimer);
-                    sessionTimer = setTimeout(() => {
-                        showToast('Session expired after 1 hour.');
-                        doLogout();
-                    }, SESSION_DURATION_MS);
-                } else {
-                    errEl.textContent = 'Authentication failed or no access.';
+                const ok = await bootstrapApp(true);
+                if (!ok) {
+                    errEl.textContent = 'Authentication failed or admin API is unavailable.';
                     errEl.style.display = 'block';
+                    return;
                 }
-            } catch (e) {
-                errEl.textContent = 'Connection error: ' + e.message;
+
+                sessionStorage.setItem('adminApi', API);
+                sessionStorage.setItem('adminSecret', SECRET);
+                sessionStorage.setItem('adminTime', Date.now().toString());
+
+                if (sessionTimer) clearTimeout(sessionTimer);
+                sessionTimer = setTimeout(expireSession, SESSION_DURATION_MS);
+            } catch (err) {
+                errEl.textContent = err.message;
                 errEl.style.display = 'block';
             }
         }
 
+        async function bootstrapApp(reset) {
+            try {
+                await Promise.all([
+                    loadSummary(),
+                    loadUsers(true),
+                    loadInvites(true)
+                ]);
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('mainSection').style.display = 'block';
+                updateSessionLine();
+                if (reset) showToast('Admin session started');
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        async function adminFetch(path, options = {}) {
+            const resp = await fetch(`${API}${path}`, {
+                ...options,
+                headers: {
+                    'x-admin-secret': SECRET,
+                    'Content-Type': 'application/json',
+                    ...(options.headers || {})
+                }
+            });
+            let data = {};
+            try { data = await resp.json(); } catch { }
+            if (!resp.ok || data.success === false) {
+                throw new Error(data.error || `Request failed (${resp.status})`);
+            }
+            return data;
+        }
+
+        async function loadSummary() {
+            const data = await adminFetch('/api/admin/summary');
+            const s = data.summary;
+            if (currentTab === 'users') {
+                setStats('Users', s.users.total, 'Paid', s.users.paid, 'Restricted', s.users.suspended, 'Expiring 30d', s.users.expiring30d);
+            } else {
+                setStats('Invites', s.invites.total, 'Usable', s.invites.usable, 'Used', s.invites.used, 'Revoked', s.invites.revoked);
+            }
+            window.__summary = s;
+        }
+
+        async function loadUsers(reset) {
+            if (reset) {
+                allUsers = [];
+                usersNextPage = '';
+                selectedUsers.clear();
+            }
+            const page = reset ? '' : usersNextPage;
+            if (!reset && !page) {
+                showToast('All loaded users are already shown');
+                return;
+            }
+            const data = await adminFetch(`/api/admin/users?pageSize=150${page ? `&pageToken=${encodeURIComponent(page)}` : ''}`);
+            mergeByKey(allUsers, data.users || [], 'uid');
+            usersNextPage = data.nextPageToken || '';
+            document.getElementById('loadMoreUsersBtn').disabled = !usersNextPage;
+            renderUsers();
+        }
+
+        async function loadInvites(reset) {
+            if (reset) {
+                allInvites = [];
+                invitesNextPage = '';
+            }
+            const page = reset ? '' : invitesNextPage;
+            if (!reset && !page) {
+                showToast('All loaded invites are already shown');
+                return;
+            }
+            const data = await adminFetch(`/api/admin/invites?pageSize=250${page ? `&pageToken=${encodeURIComponent(page)}` : ''}`);
+            mergeByKey(allInvites, data.invites || [], 'code');
+            invitesNextPage = data.nextPageToken || '';
+            document.getElementById('loadMoreInvitesBtn').disabled = !invitesNextPage;
+            renderInvites();
+        }
+
         async function refreshData() {
-            await fetchUsers();
-            await fetchInvites();
-            updateStats();
-            showToast('✅ Data refreshed');
-        }
-
-        async function fetchUsers() {
-            const resp = await fetch(`${API}/api/admin/users`, { headers: { 'x-admin-secret': SECRET } });
-            if (!resp.ok) return false;
-            const data = await resp.json();
-            if (data.success) {
-                allUsers = data.users.sort((a, b) => a.email.localeCompare(b.email));
-                renderTable(allUsers);
-                return true;
-            }
-            return false;
-        }
-
-        async function fetchInvites() {
-            const resp = await fetch(`${API}/api/admin/invites`, { headers: { 'x-admin-secret': SECRET } });
-            if (!resp.ok) return false;
-            const data = await resp.json();
-            if (data.success) {
-                allInvites = data.invites.sort((a, b) => {
-                    // Sort available first, then by date created
-                    if (a.used !== b.used) return a.used ? 1 : -1;
-                    return b.createdAt.localeCompare(a.createdAt);
-                });
-                renderInvites(allInvites);
-                return true;
-            }
-            return false;
+            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true)]);
+            showToast('Data refreshed');
         }
 
         function switchTab(tab) {
             currentTab = tab;
-            if (tab === 'users') {
-                document.getElementById('viewUsers').style.display = 'block';
-                document.getElementById('viewInvites').style.display = 'none';
-                document.getElementById('btnTabUsers').classList.add('active');
-                document.getElementById('btnTabInvites').classList.remove('active');
-            } else {
-                document.getElementById('viewUsers').style.display = 'none';
-                document.getElementById('viewInvites').style.display = 'block';
-                document.getElementById('btnTabUsers').classList.remove('active');
-                document.getElementById('btnTabInvites').classList.add('active');
-            }
-            updateStats();
+            document.getElementById('viewUsers').style.display = tab === 'users' ? 'block' : 'none';
+            document.getElementById('viewInvites').style.display = tab === 'invites' ? 'block' : 'none';
+            document.getElementById('btnTabUsers').classList.toggle('active', tab === 'users');
+            document.getElementById('btnTabInvites').classList.toggle('active', tab === 'invites');
+            document.getElementById('loadMoreUsersBtn').style.display = tab === 'users' ? 'inline-block' : 'none';
+            document.getElementById('loadMoreInvitesBtn').style.display = tab === 'invites' ? 'inline-block' : 'none';
+            loadSummary().catch(err => showToast(err.message));
         }
 
-        function updateStats() {
-            if (currentTab === 'users') {
-                document.getElementById('stat1L').textContent = 'Total Users';
-                document.getElementById('stat1V').textContent = allUsers.length;
-                document.getElementById('stat2L').textContent = 'Free';
-                document.getElementById('stat2V').textContent = allUsers.filter(u => u.tier !== 'paid').length;
-                document.getElementById('stat2V').className = 'stat-v d'; // red
-                document.getElementById('stat3L').textContent = 'Paid';
-                document.getElementById('stat3V').textContent = allUsers.filter(u => u.tier === 'paid').length;
-                document.getElementById('stat3V').className = 'stat-v g'; // green
-            } else {
-                document.getElementById('stat1L').textContent = 'Total Codes';
-                document.getElementById('stat1V').textContent = allInvites.length;
-                document.getElementById('stat2L').textContent = 'Used';
-                document.getElementById('stat2V').textContent = allInvites.filter(i => i.used).length;
-                document.getElementById('stat2V').className = 'stat-v d'; // red
-                document.getElementById('stat3L').textContent = 'Available';
-                document.getElementById('stat3V').textContent = allInvites.filter(i => !i.used).length;
-                document.getElementById('stat3V').className = 'stat-v g'; // green
-            }
+        function setStats(l1, v1, l2, v2, l3, v3, l4, v4) {
+            document.getElementById('stat1L').textContent = l1;
+            document.getElementById('stat1V').textContent = v1;
+            document.getElementById('stat2L').textContent = l2;
+            document.getElementById('stat2V').textContent = v2;
+            document.getElementById('stat3L').textContent = l3;
+            document.getElementById('stat3V').textContent = v3;
+            document.getElementById('stat4L').textContent = l4;
+            document.getElementById('stat4V').textContent = v4;
         }
 
-        /* --- USERS LOGIC --- */
-        function renderTable(users) {
+        function renderUsers() {
             const tbody = document.getElementById('userTable');
+            const rows = filteredUsers();
             tbody.innerHTML = '';
-            users.forEach(u => {
-                const joined = u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
 
-                // NEW: Handle expiration display and local auto-downgrade
-                let isPaid = u.tier === 'paid';
-                let expHtml = '';
-                if (isPaid && u.expiresAt) {
-                    const expDate = new Date(u.expiresAt);
-                    if (new Date() > expDate) {
-                        isPaid = false; // Expired! Treat as free locally
-                        u.tier = 'free';
-                    } else {
-                        expHtml = `<div style="font-size:10px; color:#888; margin-top:4px;">Exp: ${expDate.toLocaleDateString('en-PH')}</div>`;
-                    }
-                }
-
+            rows.forEach(user => {
                 const tr = document.createElement('tr');
+                const expired = user.tier === 'paid' && user.effectiveTier !== 'paid';
                 tr.innerHTML = `
-                    <td>${esc(u.email)}</td>
-                    <td class="mono">${u.uid.substring(0, 14)}…</td>
-                    <td id="tier-cell-${u.uid}">
-                        <span class="badge ${isPaid ? 'b-paid' : 'b-free'}" id="badge-${u.uid}">${u.tier}</span>
-                        ${isPaid ? expHtml : ''}
+                    <td class="check-cell"><input type="checkbox" data-uid="${escAttr(user.uid)}" ${selectedUsers.has(user.uid) ? 'checked' : ''} onchange="toggleUserSelection('${escAttr(user.uid)}', this.checked)"></td>
+                    <td>
+                        <div class="email-main">${esc(user.email || '(no email)')}</div>
+                        <div class="mono dim">${esc(user.uid)}</div>
+                        ${user.accountName ? `<div class="muted">${esc(user.accountName)}</div>` : ''}
                     </td>
-                    <td class="muted">${joined}</td>
-                    <td><input class="note-input" id="note-${u.uid}" value="${esc(u.note || '')}" placeholder="e.g. GCash Jan 2025"></td>
-                    <td class="acts">
-                        <button class="btn-upgrade"   onclick="setTier('${u.uid}','paid')">▲ Upgrade</button>
-                        <button class="btn-downgrade" onclick="setTier('${u.uid}','free')">▼ Downgrade</button>
+                    <td>${badge(user.status, user.status)}</td>
+                    <td>
+                        ${badge(expired ? 'expired' : user.tier, expired ? 'expired' : user.tier)}
+                        ${user.tier === 'paid' && user.effectiveTier === 'paid' && daysUntil(user.expiresAt) <= 30 ? badge('expiring', 'expiring') : ''}
+                    </td>
+                    <td>${badge(user.role, user.role)}</td>
+                    <td class="expires-cell"><input class="compact-input" id="exp-${escAttr(user.uid)}" type="datetime-local" value="${toLocalDateTime(user.expiresAt)}"></td>
+                    <td class="muted">${user.eventCount ?? '-'}</td>
+                    <td class="muted">${formatDate(user.createdAt)}</td>
+                    <td class="note-cell"><input class="compact-input" id="note-${escAttr(user.uid)}" value="${escAttr(user.note || '')}" placeholder="Admin note"></td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-small" onclick="openUserDrawer('${escAttr(user.uid)}')">Detail</button>
+                            <button class="btn-small btn-primary" onclick="saveInlineUser('${escAttr(user.uid)}')">Save</button>
+                        </div>
                     </td>`;
                 tbody.appendChild(tr);
             });
+
+            document.getElementById('userEmpty').style.display = rows.length ? 'none' : 'block';
+            updateBulkCount();
         }
 
-        function filterTable() {
-            const q = document.getElementById('searchInput').value.toLowerCase();
-            renderTable(allUsers.filter(u => u.email.toLowerCase().includes(q)));
-        }
+        function filteredUsers() {
+            const q = document.getElementById('userSearch').value.trim().toLowerCase();
+            const tier = document.getElementById('tierFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const role = document.getElementById('roleFilter').value;
 
-        async function setTier(uid, tier) {
-            const note = document.getElementById(`note-${uid}`)?.value || '';
-            try {
-                const resp = await fetch(`${API}/api/admin/set-tier`, {
-                    method: 'POST',
-                    headers: { 'x-admin-secret': SECRET, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ uid, tier, note })
-                });
-                const data = await resp.json();
-                if (data.success) {
-                    const badge = document.getElementById(`badge-${uid}`);
-                    if (badge) { badge.className = `badge ${tier === 'paid' ? 'b-paid' : 'b-free'}`; badge.textContent = tier; }
-                    const u = allUsers.find(x => x.uid === uid);
-                    if (u) { u.tier = tier; u.note = note; }
-                    updateStats();
-                    showToast(tier === 'paid' ? '✅ Upgraded to Paid' : '🔒 Downgraded to Free');
-                } else showToast('Error: ' + data.error);
-            } catch (e) { showToast('Error: ' + e.message); }
-        }
-
-        /* --- INVITES LOGIC --- */
-        function renderInvites(list) {
-            const tbody = document.getElementById('inviteTable');
-            tbody.innerHTML = '';
-            list.forEach(i => {
-                const created = i.createdAt ? new Date(i.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
-
-                let statusHtml = '';
-                let isUsable = false;
-
-                if (i.isMultiUse) {
-                    const expired = i.expiresAt && new Date() > new Date(i.expiresAt);
-                    isUsable = !expired;
-                    const expDate = i.expiresAt ? new Date(i.expiresAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never';
-                    statusHtml = `<span class="badge ${expired ? 'b-free' : 'b-paid'}">Multi-Use ${expired ? '(Expired)' : ''}</span>
-                                  <div class="muted" style="font-size:10px; margin-top:4px;">Exp: ${expDate}</div>`;
-                } else {
-                    isUsable = !i.used;
-                    statusHtml = `<span class="badge ${i.used ? 'b-free' : 'b-paid'}">${i.used ? 'Used' : 'Available'}</span>`;
-                }
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="mono fw-bold" style="${!isUsable ? 'text-decoration: line-through; color: #555;' : ''}">${i.code}</td>
-                    <td>${statusHtml}</td>
-                    <td class="mono muted">${i.isMultiUse ? 'Multiple Users' : (i.usedBy || '—')}</td>
-                    <td class="muted">${created}</td>
-                    <td class="acts">
-                        <button class="${!isUsable ? 'btn-muted' : 'btn-upgrade'}" ${!isUsable ? 'disabled' : ''} onclick="copyCode('${i.code}')">
-                            ${!isUsable ? 'N/A' : 'Copy'}
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+            return allUsers.filter(user => {
+                const haystack = [user.email, user.uid, user.note, user.accountName, user.inviteCode].join(' ').toLowerCase();
+                return (!q || haystack.includes(q))
+                    && (!tier || user.effectiveTier === tier || user.tier === tier)
+                    && (!status || user.status === status)
+                    && (!role || user.role === role);
             });
         }
 
-        function filterInvites() {
-            const q = document.getElementById('searchInvites').value.toLowerCase();
-            renderInvites(allInvites.filter(i => i.code.toLowerCase().includes(q) || i.usedBy.toLowerCase().includes(q)));
+        function renderInvites() {
+            const tbody = document.getElementById('inviteTable');
+            const rows = filteredInvites();
+            tbody.innerHTML = '';
+
+            rows.forEach(invite => {
+                const state = invite.revoked ? 'revoked' : invite.expired ? 'expired' : invite.used ? 'used' : invite.usable ? 'usable' : 'unavailable';
+                const usage = invite.isMultiUse ? `${invite.useCount || 0}${invite.maxUses ? ` / ${invite.maxUses}` : ''}` : (invite.used ? '1 / 1' : '0 / 1');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="mono"><strong>${esc(invite.code)}</strong></td>
+                    <td>${badge(state, state)}</td>
+                    <td>${badge(invite.isMultiUse ? 'multi' : 'single', invite.isMultiUse ? 'multi' : 'single')}</td>
+                    <td>${badge(invite.tier, invite.tier)}</td>
+                    <td class="mono muted">${esc(invite.isMultiUse ? (invite.lastUsedBy || 'multiple') : (invite.usedBy || '-'))}</td>
+                    <td class="muted">${esc(usage)}</td>
+                    <td class="muted">${formatDateTime(invite.expiresAt) || 'Never'}</td>
+                    <td class="muted">${formatDate(invite.createdAt)}</td>
+                    <td class="muted">${esc(invite.note || '')}</td>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-small" onclick="copyCode('${escAttr(invite.code)}')">Copy</button>
+                            <button class="btn-small btn-danger" onclick="revokeInvite('${escAttr(invite.code)}')" ${invite.revoked ? 'disabled' : ''}>Revoke</button>
+                            <button class="btn-small btn-ghost" onclick="deleteInvite('${escAttr(invite.code)}')">Delete</button>
+                        </div>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('inviteEmpty').style.display = rows.length ? 'none' : 'block';
+        }
+
+        function filteredInvites() {
+            const q = document.getElementById('inviteSearch').value.trim().toLowerCase();
+            const state = document.getElementById('inviteStateFilter').value;
+            const type = document.getElementById('inviteTypeFilter').value;
+            const tier = document.getElementById('inviteTierFilter').value;
+
+            return allInvites.filter(invite => {
+                const currentState = invite.revoked ? 'revoked' : invite.expired ? 'expired' : invite.used ? 'used' : invite.usable ? 'usable' : 'unavailable';
+                const haystack = [invite.code, invite.usedBy, invite.note].join(' ').toLowerCase();
+                return (!q || haystack.includes(q))
+                    && (!state || currentState === state)
+                    && (!type || (type === 'multi') === invite.isMultiUse)
+                    && (!tier || invite.tier === tier);
+            });
+        }
+
+        async function saveInlineUser(uid) {
+            const user = allUsers.find(u => u.uid === uid);
+            if (!user) return;
+            await updateUser(uid, {
+                note: document.getElementById(`note-${uid}`).value,
+                expiresAt: fromLocalDateTime(document.getElementById(`exp-${uid}`).value)
+            });
+        }
+
+        async function updateUser(uid, patch) {
+            const data = await adminFetch('/api/admin/update-user', {
+                method: 'POST',
+                body: JSON.stringify({ uid, ...patch })
+            });
+            await loadUsers(true);
+            await loadSummary();
+            showToast(data.updated ? `${data.updated} users updated` : 'User updated');
+        }
+
+        async function applyBulkUsers() {
+            const uids = [...selectedUsers];
+            if (!uids.length) {
+                showToast('Select at least one user');
+                return;
+            }
+            const tier = document.getElementById('bulkTier').value;
+            const status = document.getElementById('bulkStatus').value;
+            const note = document.getElementById('bulkNote').value;
+            const payload = { uids };
+            if (tier) payload.tier = tier;
+            if (status) payload.status = status;
+            if (note) payload.note = note;
+            if (!tier && !status && !note) {
+                showToast('Choose a bulk change first');
+                return;
+            }
+
+            const data = await adminFetch('/api/admin/bulk-users', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            selectedUsers.clear();
+            await loadUsers(true);
+            await loadSummary();
+            showToast(`${data.updated} users updated`);
+        }
+
+        async function openUserDrawer(uid) {
+            drawerUid = uid;
+            document.getElementById('userDrawer').style.display = 'flex';
+            document.getElementById('drawerTitle').textContent = 'Loading user...';
+            document.getElementById('drawerEvents').innerHTML = '';
+
+            const data = await adminFetch(`/api/admin/user-detail?uid=${encodeURIComponent(uid)}`);
+            const user = data.user;
+            mergeByKey(allUsers, [user], 'uid');
+
+            document.getElementById('drawerTitle').textContent = user.email || '(no email)';
+            document.getElementById('drawerUid').textContent = user.uid;
+            document.getElementById('drawerStatus').value = user.status || 'active';
+            document.getElementById('drawerTier').value = user.tier || 'free';
+            document.getElementById('drawerRole').value = user.role || 'owner';
+            document.getElementById('drawerExpires').value = toLocalDateTime(user.expiresAt);
+            document.getElementById('drawerAccountName').value = user.accountName || '';
+            document.getElementById('drawerSeatLimit').value = user.seatLimit || 1;
+            document.getElementById('drawerPin').value = user.pin || '';
+            document.getElementById('drawerInviteCode').value = user.inviteCode || '';
+            document.getElementById('drawerSuspensionReason').value = user.suspensionReason || '';
+            document.getElementById('drawerNote').value = user.note || '';
+
+            const events = document.getElementById('drawerEvents');
+            events.innerHTML = '';
+            if (!data.events.length) {
+                events.innerHTML = '<div class="empty">No cloud events found for this user.</div>';
+            } else {
+                data.events.forEach(event => {
+                    const div = document.createElement('div');
+                    div.className = 'event-row';
+                    div.innerHTML = `
+                        <div>
+                            <strong>${esc(event.eventName)}</strong>
+                            <div class="mono dim">${esc(event.id)}</div>
+                        </div>
+                        <div class="muted">${esc(event.boothCount || '-')} booths<br>${formatDate(event.timestamp)}</div>`;
+                    events.appendChild(div);
+                });
+            }
+        }
+
+        function closeUserDrawer() {
+            drawerUid = '';
+            document.getElementById('userDrawer').style.display = 'none';
+        }
+
+        async function saveDrawerUser() {
+            if (!drawerUid) return;
+            await updateUser(drawerUid, {
+                status: document.getElementById('drawerStatus').value,
+                tier: document.getElementById('drawerTier').value,
+                role: document.getElementById('drawerRole').value,
+                expiresAt: fromLocalDateTime(document.getElementById('drawerExpires').value),
+                accountName: document.getElementById('drawerAccountName').value,
+                seatLimit: document.getElementById('drawerSeatLimit').value,
+                pin: document.getElementById('drawerPin').value,
+                suspensionReason: document.getElementById('drawerSuspensionReason').value,
+                note: document.getElementById('drawerNote').value
+            });
+            await openUserDrawer(drawerUid);
+        }
+
+        async function quickExtendDrawer() {
+            if (!drawerUid) return;
+            await updateUser(drawerUid, { tier: 'paid', extendOneYear: true, status: 'active' });
+            await openUserDrawer(drawerUid);
+        }
+
+        async function quickSuspendDrawer() {
+            if (!drawerUid) return;
+            await updateUser(drawerUid, {
+                status: 'suspended',
+                suspensionReason: document.getElementById('drawerSuspensionReason').value || 'Suspended by admin.'
+            });
+            await openUserDrawer(drawerUid);
+        }
+
+        async function createInvite() {
+            const payload = {
+                code: document.getElementById('newInviteCode').value,
+                tier: document.getElementById('newInviteTier').value,
+                isMultiUse: document.getElementById('newInviteType').value === 'multi',
+                maxUses: document.getElementById('newInviteMaxUses').value,
+                expiresAt: fromLocalDateTime(document.getElementById('newInviteExpires').value),
+                note: document.getElementById('newInviteNote').value
+            };
+            const data = await adminFetch('/api/admin/create-invite', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            document.getElementById('newInviteCode').value = '';
+            document.getElementById('newInviteNote').value = '';
+            await loadInvites(true);
+            await loadSummary();
+            showToast(`Invite created: ${data.invite.code}`);
+        }
+
+        async function revokeInvite(code) {
+            if (!confirm(`Revoke invite ${code}?`)) return;
+            await adminFetch('/api/admin/revoke-invite', {
+                method: 'POST',
+                body: JSON.stringify({ code })
+            });
+            await loadInvites(true);
+            await loadSummary();
+            showToast('Invite revoked');
+        }
+
+        async function deleteInvite(code) {
+            if (!confirm(`Delete invite ${code}? This cannot be undone.`)) return;
+            await adminFetch('/api/admin/delete-invite', {
+                method: 'POST',
+                body: JSON.stringify({ code })
+            });
+            allInvites = allInvites.filter(invite => invite.code !== code);
+            renderInvites();
+            await loadSummary();
+            showToast('Invite deleted');
+        }
+
+        function toggleUserSelection(uid, checked) {
+            if (checked) selectedUsers.add(uid);
+            else selectedUsers.delete(uid);
+            updateBulkCount();
+        }
+
+        function toggleAllUsers(checked) {
+            filteredUsers().forEach(user => {
+                if (checked) selectedUsers.add(user.uid);
+                else selectedUsers.delete(user.uid);
+            });
+            renderUsers();
+        }
+
+        function clearSelection() {
+            selectedUsers.clear();
+            document.getElementById('selectAllUsers').checked = false;
+            renderUsers();
+        }
+
+        function updateBulkCount() {
+            document.getElementById('bulkCount').textContent = `${selectedUsers.size} selected`;
+            const visible = filteredUsers();
+            document.getElementById('selectAllUsers').checked = visible.length > 0 && visible.every(user => selectedUsers.has(user.uid));
+        }
+
+        function mergeByKey(target, incoming, key) {
+            incoming.forEach(item => {
+                const idx = target.findIndex(existing => existing[key] === item[key]);
+                if (idx >= 0) target[idx] = item;
+                else target.push(item);
+            });
+        }
+
+        function badge(kind, text) {
+            return `<span class="badge b-${escAttr(kind || 'free')}">${esc(text || '-')}</span>`;
+        }
+
+        function formatDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            return date.toLocaleString('en-PH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function toLocalDateTime(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '';
+            const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return local.toISOString().slice(0, 16);
+        }
+
+        function fromLocalDateTime(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+        }
+
+        function daysUntil(value) {
+            if (!value) return 9999;
+            const ms = new Date(value) - new Date();
+            return Math.ceil(ms / (24 * 60 * 60 * 1000));
         }
 
         function copyCode(code) {
             navigator.clipboard.writeText(code);
-            showToast('📋 Copied: ' + code);
+            showToast(`Copied ${code}`);
         }
 
-        /* --- GLOBAL LOGIC --- */
+        function updateSessionLine() {
+            const expiry = new Date(Date.now() + SESSION_DURATION_MS);
+            document.getElementById('sessionLine').textContent = `API: ${API} | session expires around ${expiry.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        }
+
+        function expireSession() {
+            showToast('Session expired');
+            doLogout();
+        }
+
         function doLogout() {
-            API = ''; SECRET = ''; allUsers = []; allInvites = [];
+            API = '';
+            SECRET = '';
+            allUsers = [];
+            allInvites = [];
+            selectedUsers.clear();
+            usersNextPage = '';
+            invitesNextPage = '';
             sessionStorage.removeItem('adminApi');
             sessionStorage.removeItem('adminSecret');
             sessionStorage.removeItem('adminTime');
-            if (sessionTimer) { clearTimeout(sessionTimer); sessionTimer = null; }
-
+            if (sessionTimer) {
+                clearTimeout(sessionTimer);
+                sessionTimer = null;
+            }
             document.getElementById('mainSection').style.display = 'none';
-            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('loginSection').style.display = 'flex';
             document.getElementById('adminSecret').value = '';
         }
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg; t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 2800);
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            clearTimeout(toast.__timer);
+            toast.__timer = setTimeout(() => toast.style.display = 'none', 3000);
         }
 
-        function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+        function esc(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escAttr(value) {
+            return esc(value).replace(/`/g, '&#96;');
+        }
     </script>
 </body>
 
