@@ -322,6 +322,31 @@
         .handle-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
         .handle-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
 
+        .canvas-element-controls {
+            position: absolute;
+            left: 50%; bottom: -48px;
+            display: flex; gap: 5px;
+            padding: 5px;
+            border: 1px solid var(--border-mid);
+            border-radius: 9px;
+            background: var(--bg-panel);
+            box-shadow: 0 3px 12px rgba(0,0,0,0.18);
+            pointer-events: auto;
+            transform: translateX(-50%);
+        }
+        .canvas-element-control {
+            width: 28px; height: 28px;
+            border: 0; border-radius: 6px;
+            background: transparent;
+            color: var(--text-main);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .canvas-element-control:hover { background: var(--teal-light); color: var(--teal-hover); }
+        body.dark-mode .canvas-element-controls { background: var(--dm-panel); border-color: var(--dm-border); }
+        body.dark-mode .canvas-element-control { color: var(--dm-text); }
+        body.dark-mode .canvas-element-control:hover { background: #0d2e2b; color: #5eead4; }
+
         /* ── Canvas element ── */
         .canvas-element { position: absolute; transform-origin: center center; cursor: move; user-select: none; }
         .canvas-element img { width: 100%; height: 100%; pointer-events: none; }
@@ -358,6 +383,12 @@
                 <div class="resize-handle handle-ne" data-pos="ne"></div>
                 <div class="resize-handle handle-sw" data-pos="sw"></div>
                 <div class="resize-handle handle-se" data-pos="se"></div>
+                <div class="canvas-element-controls" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+                    <button type="button" class="canvas-element-control" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button>
+                    <button type="button" class="canvas-element-control" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button>
+                    <button type="button" class="canvas-element-control" id="canvasRotateLeft" onclick="rotateSelectedLayer(-15)" title="Rotate left" aria-label="Rotate left">↶</button>
+                    <button type="button" class="canvas-element-control" id="canvasRotateRight" onclick="rotateSelectedLayer(15)" title="Rotate right" aria-label="Rotate right">↷</button>
+                </div>
             </div>
         </div>
     </div>
@@ -509,7 +540,7 @@
         document.getElementById('txtCanvasWidth').value = data.CanvasWidth;
         document.getElementById('txtCanvasHeight').value = data.CanvasHeight;
 
-        designCanvas.innerHTML = '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div></div>';
+        designCanvas.innerHTML = '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div><div class="canvas-element-controls" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()"><button type="button" class="canvas-element-control" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button><button type="button" class="canvas-element-control" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button><button type="button" class="canvas-element-control" id="canvasRotateLeft" onclick="rotateSelectedLayer(-15)" title="Rotate left" aria-label="Rotate left">↶</button><button type="button" class="canvas-element-control" id="canvasRotateRight" onclick="rotateSelectedLayer(15)" title="Rotate right" aria-label="Rotate right">↷</button></div></div>';
         templateState.Layers = [];
 
         const layersToLoad = [...data.Layers].reverse();
@@ -843,6 +874,24 @@
             templateState.Layers[targetIndex] = temp;
             refreshLayers();
         }
+    }
+
+    function moveSelectedLayer(direction) {
+        const index = templateState.Layers.findIndex(l => l.id === selectedLayerId);
+        const targetIndex = index + direction;
+        if (index < 0 || targetIndex < 0 || targetIndex >= templateState.Layers.length) return;
+        const layer = templateState.Layers[index];
+        templateState.Layers[index] = templateState.Layers[targetIndex];
+        templateState.Layers[targetIndex] = layer;
+        refreshLayers();
+    }
+
+    function rotateSelectedLayer(degrees) {
+        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+        if (!layer || layer.isLocked) return;
+        layer.Rotation = ((layer.Rotation + degrees + 180) % 360) - 180;
+        applyTransform(layer.domElement, layer);
+        syncPropertyPanel(layer);
     }
 
     function selectLayer(id) {
