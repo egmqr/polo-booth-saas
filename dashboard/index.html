@@ -1257,6 +1257,25 @@
       font-size: 35px;
       cursor: pointer;
     }
+    /* Operator command-center refresh */
+    .command-center { max-width: 1180px; margin: 0 auto; }
+    .command-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end; margin-bottom: 18px; padding: 26px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, var(--bg-container), var(--card-bg)); }
+    .command-header h1 { margin: 0; font-size: clamp(26px, 4vw, 40px); letter-spacing: -0.06em; }
+    .command-header p { margin: 8px 0 0; color: var(--text-muted); font-size: 13px; }
+    .command-header .form-group { min-width: min(100%, 300px); margin: 0; }
+    .work-zone-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 18px; padding: 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
+    .work-zone-rail a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; color: var(--text-muted); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+    .work-zone-rail a:hover { background: var(--btn-bg); color: #fff; }
+    .work-zone-title { margin: 0 0 14px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .work-zone-card { position: relative; margin-top: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); scroll-margin-top: 20px; }
+    #editFormFields { display: grid; gap: 18px; }
+    #editFormFields > .color-group:first-of-type { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
+    #viewContainer { margin-top: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); scroll-margin-top: 20px; }
+    #viewContainer #boothList { margin-top: 16px; }
+    .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
+    .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
+    @media (max-width: 700px) { .command-header { grid-template-columns: 1fr; padding: 20px; } .command-header .form-group { width: 100%; } .work-zone-rail { position: sticky; top: 8px; z-index: 20; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
   </style>
 </head>
 
@@ -1478,7 +1497,21 @@
     </div>
   </div>
 
-  <div class="container" id="mainApp" style="display:none;">
+  <main class="container command-center" id="mainApp" style="display:none;">
+    <section class="command-header" aria-label="Event command center">
+      <div>
+        <p class="work-zone-title">PoloPro operator control room</p>
+        <h1>Build, run, share.</h1>
+        <p>Prepare your event, connect each capture flow, then publish every photo through QR and the live gallery.</p>
+      </div>
+      <div class="command-event-note"><i class="bi bi-qr-code"></i> Instant QR sharing + live gallery</div>
+    </section>
+    <nav class="work-zone-rail" aria-label="Event work zones">
+      <a href="#setup-zone">Event setup</a>
+      <a href="#booth-zone">Booth</a>
+      <a href="#sharing-zone">Sharing</a>
+      <a href="#gallery-zone">Gallery</a>
+    </nav>
     <div class="mode-toggle">
       <button type="button" id="btnModeNew" class="mode-btn active" onclick="setMode('new')">New Setup</button>
       <button type="button" id="btnModeEdit" class="mode-btn" onclick="setMode('edit')">Edit Setup</button>
@@ -1494,7 +1527,9 @@
       </select>
     </div>
 
-    <div id="editFormFields">
+    <div id="editFormFields" class="work-zone" data-work-zone="Event Setup">
+      <section id="setup-zone" class="work-zone-card">
+        <h2 class="work-zone-title">Event setup</h2>
       <!-- eventId is hidden from UI but kept in DOM for backend use -->
       <input type="hidden" id="eventId">
 
@@ -1519,7 +1554,10 @@
         <span class="hint-text" id="boothHint" style="display:none;">Booth count is locked during edits.</span>
       </div>
 
-      <div class="form-group" id="templatesGroup" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+      </section>
+
+      <div id="templatesGroup" class="form-group work-zone-card" data-work-zone="Booth" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <h2 id="booth-zone" class="work-zone-title">Booth</h2>
         <label>Print Templates</label>
         <select id="boothTemplateList" size="3" onchange="handleTemplateSelection()"></select>
         <div id="templateLockNotice"
@@ -1544,7 +1582,8 @@
         </div>
       </div>
 
-      <div class="form-group" id="communityGroup" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+      <div id="communityGroup" class="form-group work-zone-card" data-work-zone="Sharing" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+        <h2 id="sharing-zone" class="work-zone-title">Sharing</h2>
         <div class="checkbox-wrapper" id="communityEnableRow">
           <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
           <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Virtual Booth</label>
@@ -1656,7 +1695,8 @@
 
     </div>
 
-    <div id="viewContainer" style="display: none;">
+    <div id="viewContainer" class="work-zone" data-work-zone="Gallery" style="display: none;">
+      <h2 id="gallery-zone" class="work-zone-title">Gallery</h2>
       <div
         style="padding: 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
         <h3 id="viewEventTitle" style="margin: 0 0 5px 0;">Select an event above</h3>
@@ -1672,7 +1712,7 @@
       onclick="runUpdate()">Save Changes</button>
     <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
 
-  </div>
+  </main>
 
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
