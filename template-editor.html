@@ -322,22 +322,6 @@
         .handle-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
         .handle-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
 
-        .layer-corner-control {
-            position: absolute;
-            width: 28px; height: 28px;
-            border: 2px solid var(--teal);
-            border-radius: 5px;
-            background: var(--bg-panel);
-            color: var(--teal-hover);
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 800;
-            pointer-events: auto;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
-        }
-        .layer-corner-control:hover { background: var(--teal-light); }
-        .layer-back { bottom: -14px; left: -14px; }
-        .layer-forward { bottom: -14px; right: -14px; }
         .rotation-stem { position: absolute; top: -30px; left: 50%; height: 18px; border-left: 2px solid var(--teal); }
         .rotation-handle {
             position: absolute;
@@ -354,7 +338,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.18);
         }
         .rotation-handle:active { cursor: grabbing; }
-        body.dark-mode .layer-corner-control, body.dark-mode .rotation-handle { background: var(--dm-panel); color: #5eead4; }
+        body.dark-mode .rotation-handle { background: var(--dm-panel); color: #5eead4; }
 
         /* ── Canvas element ── */
         .canvas-element { position: absolute; transform-origin: center center; cursor: move; user-select: none; }
@@ -383,6 +367,7 @@
     <div class="canvas-area" id="canvasWrapper">
         <div class="canvas-toolbar">
             <button class="toolbar-btn close" onclick="window.close()">✕ Close</button>
+            <button class="toolbar-btn" id="undoBtn" onclick="undo()" disabled>↶ Undo</button>
             <button class="toolbar-btn dm-toggle" onclick="document.body.classList.toggle('dark-mode')" title="Toggle dark mode">🌙 Theme</button>
         </div>
 
@@ -392,8 +377,6 @@
                 <div class="resize-handle handle-ne" data-pos="ne"></div>
                 <div class="resize-handle handle-sw" data-pos="sw"></div>
                 <div class="resize-handle handle-se" data-pos="se"></div>
-                <button type="button" class="layer-corner-control layer-back" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button>
-                <button type="button" class="layer-corner-control layer-forward" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button>
                 <div class="rotation-stem"></div>
                 <button type="button" class="rotation-handle" id="canvasRotationHandle" title="Drag to rotate" aria-label="Drag to rotate">↻</button>
             </div>
@@ -474,12 +457,31 @@
     
     let selectedLayerId = null;
     let dragState = null;
+    let undoStack = [];
+    let layerDragState = null;
 
     const designCanvas = document.getElementById('designCanvas');
     const canvasWrapper = document.getElementById('canvasWrapper');
 
     function selectionOverlayMarkup() {
-        return '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div><button type="button" class="layer-corner-control layer-back" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button><button type="button" class="layer-corner-control layer-forward" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button><div class="rotation-stem"></div><button type="button" class="rotation-handle" id="canvasRotationHandle" title="Drag to rotate" aria-label="Drag to rotate">↻</button></div>';
+        return '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div><div class="rotation-stem"></div><button type="button" class="rotation-handle" id="canvasRotationHandle" title="Drag to rotate" aria-label="Drag to rotate">↻</button></div>';
+    }
+
+    function snapshotLayers() { return templateState.Layers.map(({ domElement, ...layer }) => ({ ...layer })); }
+    function recordUndo() {
+        undoStack.push({ layers: snapshotLayers(), selectedLayerId });
+        if (undoStack.length > 120) undoStack.shift();
+        document.getElementById('undoBtn').disabled = false;
+    }
+    function undo() {
+        const snapshot = undoStack.pop();
+        if (!snapshot) return;
+        designCanvas.querySelectorAll('.canvas-element').forEach(element => element.remove());
+        templateState.Layers = snapshot.layers;
+        templateState.Layers.forEach(createDOMElement);
+        selectedLayerId = snapshot.selectedLayerId;
+        refreshLayers(); selectLayer(selectedLayerId);
+        document.getElementById('undoBtn').disabled = undoStack.length === 0;
     }
 
     function wireHandles() {
@@ -635,6 +637,7 @@
     }
 
     async function addPhotoSlot() {
+        recordUndo();
         let slotCount = templateState.Layers.filter(l => l.LayerType === 'PhotoSlot').length;
         const theme = getSlotTheme(slotCount);
         
@@ -757,7 +760,7 @@
 
         const pos = getPointerPos(e);
         dragState = {
-            layer, isResize: isGlobalResize, handle: handlePos,
+            layer, isResize: isGlobalResize, handle: handlePos, undoRecorded: false,
             startX: pos.x, startY: pos.y,
             startW: layer.Width, startH: layer.Height,
             startLeft: layer.X, startTop: layer.Y,
@@ -782,7 +785,7 @@
         const centerX = canvasRect.left + (layer.X + layer.Width / 2) * scale;
         const centerY = canvasRect.top + (layer.Y + layer.Height / 2) * scale;
         dragState = {
-            layer, isRotate: true,
+            layer, isRotate: true, undoRecorded: false,
             centerX, centerY,
             startAngle: Math.atan2(pointer.y - centerY, pointer.x - centerX) * 180 / Math.PI,
             startRotation: layer.Rotation
@@ -801,12 +804,15 @@
         if (dragState.isRotate) {
             const pointer = getPointerPos(e);
             const angle = Math.atan2(pointer.y - dragState.centerY, pointer.x - dragState.centerX) * 180 / Math.PI;
-            l.Rotation = Math.round(((dragState.startRotation + angle - dragState.startAngle + 180) % 360) - 180);
+            if (!dragState.undoRecorded) { recordUndo(); dragState.undoRecorded = true; }
+            const rawRotation = dragState.startRotation + angle - dragState.startAngle;
+            l.Rotation = ((Math.round(rawRotation / 45) * 45 + 180) % 360) - 180;
             applyTransform(l.domElement, l);
             syncPropertyPanel(l);
             return;
         }
         const lockRatio = (l.LayerType === 'PhotoSlot') ? true : document.getElementById('chkLockAspectRatio').checked;
+        if (!dragState.undoRecorded) { recordUndo(); dragState.undoRecorded = true; }
 
         if (e.touches && e.touches.length === 2) {
             const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -890,6 +896,26 @@
         templateState.Layers.forEach((layer, index) => {
             const div = document.createElement('div');
             div.className = `layer-item ${layer.id === selectedLayerId ? 'active' : ''}`;
+            div.draggable = true;
+            div.addEventListener('dragstart', (event) => {
+                layerDragState = { id: layer.id, snapshot: snapshotLayers() };
+                event.dataTransfer.effectAllowed = 'move';
+            });
+            div.addEventListener('dragover', (event) => event.preventDefault());
+            div.addEventListener('drop', (event) => {
+                event.preventDefault();
+                if (!layerDragState || layerDragState.id === layer.id) return;
+                const from = templateState.Layers.findIndex(item => item.id === layerDragState.id);
+                const to = templateState.Layers.findIndex(item => item.id === layer.id);
+                const [moving] = templateState.Layers.splice(from, 1);
+                templateState.Layers.splice(to, 0, moving);
+                undoStack.push({ layers: layerDragState.snapshot, selectedLayerId });
+                if (undoStack.length > 120) undoStack.shift();
+                document.getElementById('undoBtn').disabled = false;
+                layerDragState = null;
+                refreshLayers();
+            });
+            div.addEventListener('dragend', () => { layerDragState = null; });
             
             const nameSpan = document.createElement('span');
             nameSpan.innerText = (layer.isLocked ? '🔒 ' : '') + layer.DisplayName;
@@ -987,6 +1013,7 @@
     function updateLayerProperty(prop, value) {
         const layer = templateState.Layers.find(l => l.id === selectedLayerId);
         if (!layer || layer.isLocked) return;
+        recordUndo();
         let newValue = parseFloat(value);
         if (isNaN(newValue)) return;
         const lockRatio = (layer.LayerType === 'PhotoSlot') || document.getElementById('chkLockAspectRatio').checked;
@@ -1007,6 +1034,7 @@
     function scaleToCanvas() {
         const layer = templateState.Layers.find(l => l.id === selectedLayerId);
         if (!layer || layer.isLocked) return;
+        recordUndo();
         const lockRatio = (layer.LayerType === 'PhotoSlot') || document.getElementById('chkLockAspectRatio').checked;
         const currentRatio = layer.Width / layer.Height;
         layer.X = 0; layer.Y = 0; layer.Rotation = 0;
@@ -1024,6 +1052,7 @@
     function toggleLock() {
         const layer = templateState.Layers.find(l => l.id === selectedLayerId);
         if (!layer) return;
+        recordUndo();
         layer.isLocked = !layer.isLocked;
         layer.domElement.style.pointerEvents = layer.isLocked ? 'none' : 'auto';
         selectLayer(layer.id);
@@ -1032,6 +1061,7 @@
     function deleteLayer() {
         const index = templateState.Layers.findIndex(l => l.id === selectedLayerId);
         if (index < 0) return;
+        recordUndo();
         const layer = templateState.Layers[index];
         layer.domElement.remove();
         templateState.Layers.splice(index, 1);
