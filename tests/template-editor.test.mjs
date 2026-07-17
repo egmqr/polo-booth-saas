@@ -7,7 +7,7 @@ const dashboard = await readFile(new URL('../dashboard/index.html', import.meta.
 
 test('uses a snapped rotation puller without duplicate corner layer buttons', () => {
   assert.match(editor, /id="canvasRotationHandle"/);
-  assert.match(editor, /Math\.round\(rawRotation \/ 45\) \* 45/);
+  assert.match(editor, /Math\.abs\(rawRotation - snappedRotation\) <= 5/);
   assert.match(editor, /function handleRotationStart\(/);
   assert.doesNotMatch(editor, /id="canvasLayerBack"/);
   assert.doesNotMatch(editor, /id="canvasLayerForward"/);
@@ -20,6 +20,15 @@ test('supports undo history and dragging layers to reorder', () => {
   assert.match(editor, /function undo\(/);
   assert.match(editor, /div\.draggable = true;/);
   assert.match(editor, /div\.addEventListener\('drop'/);
+});
+
+test('keeps layer actions inline and inherits dashboard theme', () => {
+  assert.match(editor, /Drag a layer to reorder/);
+  assert.match(editor, /\.layer-item\.drag-over/);
+  assert.match(editor, /function toggleLayerLock\(/);
+  assert.match(editor, /function deleteLayerById\(/);
+  assert.match(editor, /window\.opener\.document\.body\.classList\.contains\('dark-mode'\)/);
+  assert.doesNotMatch(editor, /dm-toggle/);
 });
 
 test('leaves room for the event selector arrow', () => {

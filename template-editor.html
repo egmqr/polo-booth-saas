@@ -283,15 +283,25 @@
         body.dark-mode .layer-item:hover { background: #252831; }
         body.dark-mode .layer-item.active { background: #0d2e2b; color: #5eead4; }
 
-        .layer-arrows span {
-            cursor: pointer;
+        .layer-reorder-hint {
+            margin: -7px 0 8px;
             color: var(--text-faint);
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            transition: color 0.15s;
+            font-size: 0.72rem;
         }
-        .layer-arrows span:hover { color: var(--teal); }
+
+        .layer-item.drag-over { box-shadow: inset 0 2px 0 var(--teal); }
+
+        .layer-inline-actions { margin-left: auto; display: flex; gap: 2px; }
+        .layer-inline-btn {
+            width: 28px; height: 28px;
+            display: grid; place-items: center;
+            border: 0; border-radius: 6px;
+            background: transparent; color: var(--text-faint);
+            cursor: pointer; font-size: 0.86rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .layer-inline-btn:hover { background: var(--teal-light); color: var(--teal-hover); }
+        .layer-inline-btn.delete:hover { color: var(--red); }
 
         /* ── Action panel ── */
         .action-panel { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -353,12 +363,6 @@
             letter-spacing: 0.03em;
         }
 
-        /* ── Dark mode toggle ── */
-        .dm-toggle {
-            font-size: 0.75rem;
-            gap: 5px;
-            padding: 7px 11px;
-        }
     </style>
 </head>
 <body class="dark-mode">
@@ -367,8 +371,6 @@
     <div class="canvas-area" id="canvasWrapper">
         <div class="canvas-toolbar">
             <button class="toolbar-btn close" onclick="window.close()">✕ Close</button>
-            <button class="toolbar-btn" id="undoBtn" onclick="undo()" disabled>↶ Undo</button>
-            <button class="toolbar-btn dm-toggle" onclick="document.body.classList.toggle('dark-mode')" title="Toggle dark mode">🌙 Theme</button>
         </div>
 
         <div id="designCanvas">
@@ -425,13 +427,13 @@
                 </button>
             </div>
 
+            <p class="layer-reorder-hint">⋮⋮ Drag a layer to reorder</p>
             <div class="layer-list" id="layersList"></div>
 
             <div id="layerActionsPanel" style="display: none;">
                 <div class="action-panel">
-                    <button class="btn btn-secondary btn-icon" id="btnToggleLock" onclick="toggleLock()" title="Toggle lock">🔓</button>
+                    <button class="btn btn-secondary" id="undoBtn" onclick="undo()" disabled title="Undo last change">↶ Undo</button>
                     <button class="btn btn-primary" style="flex:1;" onclick="scaleToCanvas()">📐 Scale to Canvas</button>
-                    <button class="btn btn-danger-soft btn-icon" onclick="deleteLayer()" title="Delete layer">🗑️</button>
                 </div>
 
                 <label>Element Size (px)</label>
@@ -512,6 +514,12 @@
     }
 
     async function init() {
+        if (window.opener) {
+            try {
+                document.body.classList.toggle('dark-mode', window.opener.document.body.classList.contains('dark-mode'));
+            } catch (_) {}
+        }
+
         if (window.opener && window.opener.templateToEdit) {
             const source = window.opener.templateToEdit;
             const loadedTemplate = {
@@ -806,7 +814,9 @@
             const angle = Math.atan2(pointer.y - dragState.centerY, pointer.x - dragState.centerX) * 180 / Math.PI;
             if (!dragState.undoRecorded) { recordUndo(); dragState.undoRecorded = true; }
             const rawRotation = dragState.startRotation + angle - dragState.startAngle;
-            l.Rotation = ((Math.round(rawRotation / 45) * 45 + 180) % 360) - 180;
+            const snappedRotation = Math.round(rawRotation / 45) * 45;
+            const finalRotation = Math.abs(rawRotation - snappedRotation) <= 5 ? snappedRotation : rawRotation;
+            l.Rotation = ((Math.round(finalRotation) + 180) % 360) - 180;
             applyTransform(l.domElement, l);
             syncPropertyPanel(l);
             return;
@@ -901,9 +911,15 @@
                 layerDragState = { id: layer.id, snapshot: snapshotLayers() };
                 event.dataTransfer.effectAllowed = 'move';
             });
+            div.addEventListener('dragenter', (event) => {
+                event.preventDefault();
+                if (layerDragState && layerDragState.id !== layer.id) div.classList.add('drag-over');
+            });
             div.addEventListener('dragover', (event) => event.preventDefault());
+            div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
             div.addEventListener('drop', (event) => {
                 event.preventDefault();
+                div.classList.remove('drag-over');
                 if (!layerDragState || layerDragState.id === layer.id) return;
                 const from = templateState.Layers.findIndex(item => item.id === layerDragState.id);
                 const to = templateState.Layers.findIndex(item => item.id === layer.id);
@@ -921,11 +937,14 @@
             nameSpan.innerText = (layer.isLocked ? '🔒 ' : '') + layer.DisplayName;
             div.appendChild(nameSpan);
 
-            const controls = document.createElement('div');
-            controls.className = 'layer-arrows';
-            if (index > 0) controls.innerHTML += `<span onclick="moveLayer('${layer.id}', -1, event)" title="Move up">▲</span>`;
-            if (index < templateState.Layers.length - 1) controls.innerHTML += `<span onclick="moveLayer('${layer.id}', 1, event)" title="Move down">▼</span>`;
-            div.appendChild(controls);
+            const actions = document.createElement('div');
+            actions.className = 'layer-inline-actions';
+            actions.innerHTML = `
+                <button type="button" class="layer-inline-btn" title="${layer.isLocked ? 'Unlock' : 'Lock'} layer">${layer.isLocked ? '🔒' : '🔓'}</button>
+                <button type="button" class="layer-inline-btn delete" title="Delete layer">🗑️</button>`;
+            actions.children[0].onclick = (event) => { event.stopPropagation(); toggleLayerLock(layer.id); };
+            actions.children[1].onclick = (event) => { event.stopPropagation(); deleteLayerById(layer.id); };
+            div.appendChild(actions);
             div.onclick = () => selectLayer(layer.id);
             list.appendChild(div);
             layer.domElement.style.zIndex = templateState.Layers.length - index;
@@ -983,9 +1002,6 @@
                 btnRotate.style.display = 'none';
             }
 
-            const btnLock = document.getElementById('btnToggleLock');
-            btnLock.innerText = layer.isLocked ? "🔒" : "🔓";
-            btnLock.className = layer.isLocked ? 'btn btn-danger-soft btn-icon' : 'btn btn-secondary btn-icon';
         } else {
             document.getElementById('layerActionsPanel').style.display = 'none';
             chkLock.disabled = false;
@@ -1049,8 +1065,8 @@
         syncPropertyPanel(layer);
     }
 
-    function toggleLock() {
-        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+    function toggleLayerLock(id) {
+        const layer = templateState.Layers.find(l => l.id === id);
         if (!layer) return;
         recordUndo();
         layer.isLocked = !layer.isLocked;
@@ -1058,14 +1074,14 @@
         selectLayer(layer.id);
     }
 
-    function deleteLayer() {
-        const index = templateState.Layers.findIndex(l => l.id === selectedLayerId);
+    function deleteLayerById(id) {
+        const index = templateState.Layers.findIndex(l => l.id === id);
         if (index < 0) return;
         recordUndo();
         const layer = templateState.Layers[index];
         layer.domElement.remove();
         templateState.Layers.splice(index, 1);
-        selectLayer(templateState.Layers.length > 0 ? templateState.Layers[0].id : null);
+        selectLayer(templateState.Layers.length > 0 ? (selectedLayerId === id ? templateState.Layers[0].id : selectedLayerId) : null);
     }
 
     async function saveTemplate() {
