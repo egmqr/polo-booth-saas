@@ -31,6 +31,14 @@ test('keeps layer actions inline and inherits dashboard theme', () => {
   assert.doesNotMatch(editor, /dm-toggle/);
 });
 
+test('uses an exact fill action and accurate layer drop cues', () => {
+  assert.match(editor, /class="btn btn-secondary btn-icon" id="undoBtn"/);
+  assert.match(editor, /layer\.Width = templateState\.CanvasWidth;\s*layer\.Height = templateState\.CanvasHeight;/);
+  assert.match(editor, /drag-over-before/);
+  assert.match(editor, /drag-over-after/);
+  assert.match(editor, /const insertionIndex = dropAfter \? targetIndex \+ 1 : targetIndex;/);
+});
+
 test('leaves room for the event selector arrow', () => {
   assert.match(dashboard, /#eventSelect \{[^}]*appearance: none;/);
   assert.match(dashboard, /#eventSelect \{[^}]*background-position: right 16px center;/);

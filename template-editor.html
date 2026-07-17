@@ -289,7 +289,8 @@
             font-size: 0.72rem;
         }
 
-        .layer-item.drag-over { box-shadow: inset 0 2px 0 var(--teal); }
+        .layer-item.drag-over-before { box-shadow: inset 0 2px 0 var(--teal); }
+        .layer-item.drag-over-after { box-shadow: inset 0 -2px 0 var(--teal); }
 
         .layer-inline-actions { margin-left: auto; display: flex; gap: 2px; }
         .layer-inline-btn {
@@ -432,7 +433,7 @@
 
             <div id="layerActionsPanel" style="display: none;">
                 <div class="action-panel">
-                    <button class="btn btn-secondary" id="undoBtn" onclick="undo()" disabled title="Undo last change">↶ Undo</button>
+                    <button class="btn btn-secondary btn-icon" id="undoBtn" onclick="undo()" disabled title="Undo last change" aria-label="Undo last change">↶</button>
                     <button class="btn btn-primary" style="flex:1;" onclick="scaleToCanvas()">📐 Scale to Canvas</button>
                 </div>
 
@@ -911,20 +912,29 @@
                 layerDragState = { id: layer.id, snapshot: snapshotLayers() };
                 event.dataTransfer.effectAllowed = 'move';
             });
-            div.addEventListener('dragenter', (event) => {
+            const updateDropCue = (event) => {
                 event.preventDefault();
-                if (layerDragState && layerDragState.id !== layer.id) div.classList.add('drag-over');
-            });
-            div.addEventListener('dragover', (event) => event.preventDefault());
-            div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+                if (!layerDragState || layerDragState.id === layer.id) return;
+                const rect = div.getBoundingClientRect();
+                const dropAfter = event.clientY > rect.top + rect.height / 2;
+                layerDragState.dropTargetId = layer.id;
+                layerDragState.dropAfter = dropAfter;
+                div.classList.toggle('drag-over-before', !dropAfter);
+                div.classList.toggle('drag-over-after', dropAfter);
+            };
+            div.addEventListener('dragenter', updateDropCue);
+            div.addEventListener('dragover', updateDropCue);
+            div.addEventListener('dragleave', () => div.classList.remove('drag-over-before', 'drag-over-after'));
             div.addEventListener('drop', (event) => {
                 event.preventDefault();
-                div.classList.remove('drag-over');
+                div.classList.remove('drag-over-before', 'drag-over-after');
                 if (!layerDragState || layerDragState.id === layer.id) return;
                 const from = templateState.Layers.findIndex(item => item.id === layerDragState.id);
-                const to = templateState.Layers.findIndex(item => item.id === layer.id);
                 const [moving] = templateState.Layers.splice(from, 1);
-                templateState.Layers.splice(to, 0, moving);
+                const targetIndex = templateState.Layers.findIndex(item => item.id === layer.id);
+                const dropAfter = layerDragState.dropTargetId === layer.id && layerDragState.dropAfter;
+                const insertionIndex = dropAfter ? targetIndex + 1 : targetIndex;
+                templateState.Layers.splice(insertionIndex, 0, moving);
                 undoStack.push({ layers: layerDragState.snapshot, selectedLayerId });
                 if (undoStack.length > 120) undoStack.shift();
                 document.getElementById('undoBtn').disabled = false;
@@ -1051,16 +1061,9 @@
         const layer = templateState.Layers.find(l => l.id === selectedLayerId);
         if (!layer || layer.isLocked) return;
         recordUndo();
-        const lockRatio = (layer.LayerType === 'PhotoSlot') || document.getElementById('chkLockAspectRatio').checked;
-        const currentRatio = layer.Width / layer.Height;
         layer.X = 0; layer.Y = 0; layer.Rotation = 0;
-        if (lockRatio) {
-            layer.Width = templateState.CanvasWidth;
-            layer.Height = Math.round(templateState.CanvasWidth / currentRatio);
-        } else {
-            layer.Width = templateState.CanvasWidth;
-            layer.Height = templateState.CanvasHeight;
-        }
+        layer.Width = templateState.CanvasWidth;
+        layer.Height = templateState.CanvasHeight;
         applyTransform(layer.domElement, layer);
         syncPropertyPanel(layer);
     }
