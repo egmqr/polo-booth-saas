@@ -322,30 +322,39 @@
         .handle-sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
         .handle-se { bottom: -7px; right: -7px; cursor: nwse-resize; }
 
-        .canvas-element-controls {
+        .layer-corner-control {
             position: absolute;
-            left: 50%; bottom: -48px;
-            display: flex; gap: 5px;
-            padding: 5px;
-            border: 1px solid var(--border-mid);
-            border-radius: 9px;
-            background: var(--bg-panel);
-            box-shadow: 0 3px 12px rgba(0,0,0,0.18);
-            pointer-events: auto;
-            transform: translateX(-50%);
-        }
-        .canvas-element-control {
             width: 28px; height: 28px;
-            border: 0; border-radius: 6px;
-            background: transparent;
-            color: var(--text-main);
+            border: 2px solid var(--teal);
+            border-radius: 5px;
+            background: var(--bg-panel);
+            color: var(--teal-hover);
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            font-weight: 800;
+            pointer-events: auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
         }
-        .canvas-element-control:hover { background: var(--teal-light); color: var(--teal-hover); }
-        body.dark-mode .canvas-element-controls { background: var(--dm-panel); border-color: var(--dm-border); }
-        body.dark-mode .canvas-element-control { color: var(--dm-text); }
-        body.dark-mode .canvas-element-control:hover { background: #0d2e2b; color: #5eead4; }
+        .layer-corner-control:hover { background: var(--teal-light); }
+        .layer-back { bottom: -14px; left: -14px; }
+        .layer-forward { bottom: -14px; right: -14px; }
+        .rotation-stem { position: absolute; top: -30px; left: 50%; height: 18px; border-left: 2px solid var(--teal); }
+        .rotation-handle {
+            position: absolute;
+            top: -46px; left: calc(50% - 12px);
+            width: 24px; height: 24px;
+            border: 2px solid var(--teal);
+            border-radius: 50%;
+            background: var(--bg-panel);
+            color: var(--teal-hover);
+            cursor: grab;
+            font-size: 0.85rem;
+            font-weight: 800;
+            pointer-events: auto;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+        }
+        .rotation-handle:active { cursor: grabbing; }
+        body.dark-mode .layer-corner-control, body.dark-mode .rotation-handle { background: var(--dm-panel); color: #5eead4; }
 
         /* ── Canvas element ── */
         .canvas-element { position: absolute; transform-origin: center center; cursor: move; user-select: none; }
@@ -383,12 +392,10 @@
                 <div class="resize-handle handle-ne" data-pos="ne"></div>
                 <div class="resize-handle handle-sw" data-pos="sw"></div>
                 <div class="resize-handle handle-se" data-pos="se"></div>
-                <div class="canvas-element-controls" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
-                    <button type="button" class="canvas-element-control" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button>
-                    <button type="button" class="canvas-element-control" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button>
-                    <button type="button" class="canvas-element-control" id="canvasRotateLeft" onclick="rotateSelectedLayer(-15)" title="Rotate left" aria-label="Rotate left">↶</button>
-                    <button type="button" class="canvas-element-control" id="canvasRotateRight" onclick="rotateSelectedLayer(15)" title="Rotate right" aria-label="Rotate right">↷</button>
-                </div>
+                <button type="button" class="layer-corner-control layer-back" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button>
+                <button type="button" class="layer-corner-control layer-forward" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button>
+                <div class="rotation-stem"></div>
+                <button type="button" class="rotation-handle" id="canvasRotationHandle" title="Drag to rotate" aria-label="Drag to rotate">↻</button>
             </div>
         </div>
     </div>
@@ -444,9 +451,6 @@
                     <button class="btn btn-danger-soft btn-icon" onclick="deleteLayer()" title="Delete layer">🗑️</button>
                 </div>
 
-                <label>Rotation (degrees)</label>
-                <input type="range" id="sldRotation" min="-180" max="180" value="0" oninput="updateLayerProperty('rotation', this.value)">
-
                 <label>Element Size (px)</label>
                 <div class="grid-2">
                     <input type="number" id="txtLayerWidth" placeholder="Width" onchange="updateLayerProperty('width', this.value)">
@@ -474,6 +478,10 @@
     const designCanvas = document.getElementById('designCanvas');
     const canvasWrapper = document.getElementById('canvasWrapper');
 
+    function selectionOverlayMarkup() {
+        return '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div><button type="button" class="layer-corner-control layer-back" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button><button type="button" class="layer-corner-control layer-forward" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button><div class="rotation-stem"></div><button type="button" class="rotation-handle" id="canvasRotationHandle" title="Drag to rotate" aria-label="Drag to rotate">↻</button></div>';
+    }
+
     function wireHandles() {
         document.querySelectorAll('.resize-handle').forEach(handle => {
             const newHandle = handle.cloneNode(true);
@@ -488,6 +496,11 @@
             newHandle.addEventListener('mousedown', startDrag);
             newHandle.addEventListener('touchstart', startDrag, { passive: false });
         });
+        const rotationHandle = document.getElementById('canvasRotationHandle');
+        if (rotationHandle) {
+            rotationHandle.addEventListener('mousedown', handleRotationStart);
+            rotationHandle.addEventListener('touchstart', handleRotationStart, { passive: false });
+        }
     }
 
     function onCanvasClick(e) {
@@ -540,7 +553,7 @@
         document.getElementById('txtCanvasWidth').value = data.CanvasWidth;
         document.getElementById('txtCanvasHeight').value = data.CanvasHeight;
 
-        designCanvas.innerHTML = '<div id="selectionOverlay"><div class="resize-handle handle-nw" data-pos="nw"></div><div class="resize-handle handle-ne" data-pos="ne"></div><div class="resize-handle handle-sw" data-pos="sw"></div><div class="resize-handle handle-se" data-pos="se"></div><div class="canvas-element-controls" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()"><button type="button" class="canvas-element-control" id="canvasLayerBack" onclick="moveSelectedLayer(1)" title="Send backward" aria-label="Send backward">▾</button><button type="button" class="canvas-element-control" id="canvasLayerForward" onclick="moveSelectedLayer(-1)" title="Bring forward" aria-label="Bring forward">▴</button><button type="button" class="canvas-element-control" id="canvasRotateLeft" onclick="rotateSelectedLayer(-15)" title="Rotate left" aria-label="Rotate left">↶</button><button type="button" class="canvas-element-control" id="canvasRotateRight" onclick="rotateSelectedLayer(15)" title="Rotate right" aria-label="Rotate right">↷</button></div></div>';
+        designCanvas.innerHTML = selectionOverlayMarkup();
         templateState.Layers = [];
 
         const layersToLoad = [...data.Layers].reverse();
@@ -758,11 +771,41 @@
         document.addEventListener('touchend', handleMouseUp);
     }
 
+    function handleRotationStart(e) {
+        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
+        if (!layer || layer.isLocked) return;
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+        const pointer = getPointerPos(e);
+        const canvasRect = designCanvas.getBoundingClientRect();
+        const scale = canvasRect.width / templateState.CanvasWidth;
+        const centerX = canvasRect.left + (layer.X + layer.Width / 2) * scale;
+        const centerY = canvasRect.top + (layer.Y + layer.Height / 2) * scale;
+        dragState = {
+            layer, isRotate: true,
+            centerX, centerY,
+            startAngle: Math.atan2(pointer.y - centerY, pointer.x - centerX) * 180 / Math.PI,
+            startRotation: layer.Rotation
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('touchmove', handleMouseMove, { passive: false });
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('touchend', handleMouseUp);
+    }
+
     function handleMouseMove(e) {
         if (!dragState) return;
         if (e.cancelable) e.preventDefault(); 
 
         const l = dragState.layer;
+        if (dragState.isRotate) {
+            const pointer = getPointerPos(e);
+            const angle = Math.atan2(pointer.y - dragState.centerY, pointer.x - dragState.centerX) * 180 / Math.PI;
+            l.Rotation = Math.round(((dragState.startRotation + angle - dragState.startAngle + 180) % 360) - 180);
+            applyTransform(l.domElement, l);
+            syncPropertyPanel(l);
+            return;
+        }
         const lockRatio = (l.LayerType === 'PhotoSlot') ? true : document.getElementById('chkLockAspectRatio').checked;
 
         if (e.touches && e.touches.length === 2) {
@@ -886,14 +929,6 @@
         refreshLayers();
     }
 
-    function rotateSelectedLayer(degrees) {
-        const layer = templateState.Layers.find(l => l.id === selectedLayerId);
-        if (!layer || layer.isLocked) return;
-        layer.Rotation = ((layer.Rotation + degrees + 180) % 360) - 180;
-        applyTransform(layer.domElement, layer);
-        syncPropertyPanel(layer);
-    }
-
     function selectLayer(id) {
         selectedLayerId = id;
         templateState.Layers.forEach(l => l.domElement.classList.remove('active'));
@@ -947,7 +982,6 @@
     function syncPropertyPanel(layer) {
         document.getElementById('txtLayerWidth').value = layer.Width;
         document.getElementById('txtLayerHeight').value = layer.Height;
-        document.getElementById('sldRotation').value = layer.Rotation;
     }
 
     function updateLayerProperty(prop, value) {
