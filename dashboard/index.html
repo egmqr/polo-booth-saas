@@ -195,7 +195,9 @@
       flex-wrap: wrap;
       /* Allows items to stack on narrow phone screens */
       gap: 12px;
-      max-width: 600px;
+      max-width: 1180px;
+      box-sizing: border-box;
+      padding: 0 25px;
       margin: 0 auto 20px auto;
       z-index: 9999;
       position: relative;
@@ -1261,15 +1263,21 @@
     .command-center { max-width: 1180px; margin: 0 auto; }
     .mode-toggle { display: none; }
     #editFormFields { display: grid; gap: 0; }
-    .dashboard-segment { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
-    .dashboard-segment h2 { margin: 0 0 18px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .workspace-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .event-picker { flex: 1 1 360px; min-width: 0; }
+    .workspace-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .workspace-actions .action-btn, .workspace-actions .file-btn { margin: 0; }
+    .workspace-actions #deleteBtn { margin-top: 0; }
+    .dashboard-segment { margin-top: 20px; padding: 26px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
+    .dashboard-segment h2 { margin: 0 0 22px; color: var(--text-main); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
     #eventSegment .form-group, #webGallerySegment > .form-group { border-bottom: 0 !important; padding-bottom: 0 !important; }
     #eventSegment .color-group { padding: 0; border: 0; border-radius: 0; background: transparent; }
     #templatesGroup { margin-top: 18px; }
-    #viewContainer { margin-top: 32px; }
+    #viewContainer { margin-top: 20px; }
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
+    @media (max-width: 700px) { .top-navbar { padding: 0; } .workspace-toolbar { align-items: stretch; flex-direction: column; } .workspace-actions { justify-content: flex-start; } .workspace-actions > * { flex: 1 1 auto; } .dashboard-segment { padding: 20px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
   </style>
 </head>
@@ -1499,15 +1507,22 @@
       <button type="button" id="btnModeView" class="mode-btn" hidden></button>
     </div>
 
-    <div class="form-group" id="editSelectContainer">
-      <label for="eventSearch" style="display:none;">Search events</label>
-      <input type="text" id="eventSearch" placeholder="Type name or ID..." onkeyup="filterBoothEvents()"
-        style="display:none;">
-      <label for="eventSelect">Current event</label>
-      <select id="eventSelect" onchange="openWorkspaceEvent()">
-        <option value="">New event — select an existing event to open it</option>
-      </select>
-      <button type="button" class="file-btn" style="margin-top: 10px;" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
+    <div class="workspace-toolbar" id="editSelectContainer">
+      <div class="form-group event-picker">
+        <label for="eventSearch" style="display:none;">Search events</label>
+        <input type="text" id="eventSearch" placeholder="Type name or ID..." onkeyup="filterBoothEvents()"
+          style="display:none;">
+        <label for="eventSelect">Current event</label>
+        <select id="eventSelect" onchange="openWorkspaceEvent()">
+          <option value="">New event — select an existing event to open it</option>
+        </select>
+      </div>
+      <div class="workspace-actions">
+        <button type="button" class="file-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
+        <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
+        <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;" onclick="runUpdate()">Save Changes</button>
+        <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
+      </div>
     </div>
 
     <div id="editFormFields">
@@ -1691,11 +1706,6 @@
       <button id="downloadAllQRsBtn" class="action-btn" style="display:none;" onclick="downloadAllQRs()">Download All QR
         Codes</button>
     </div>
-
-    <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
-    <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;"
-      onclick="runUpdate()">Save Changes</button>
-    <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
 
   </main>
 

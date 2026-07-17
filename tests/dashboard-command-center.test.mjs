@@ -16,9 +16,12 @@ test('includes dashboard accessibility and responsive safeguards', () => {
   assert.match(page, /command-center/);
 });
 
-test('uses restrained section styling', () => {
-  assert.match(page, /\.dashboard-segment \{[^}]*border-top: 1px solid var\(--border\);/);
-  assert.match(page, /#editFormFields \{ display: grid; gap: 0;/);
+test('uses boxed segments and context actions', () => {
+  assert.match(page, /\.dashboard-segment \{[^}]*border: 1px solid var\(--border\);/);
+  assert.match(page, /\.dashboard-segment h2 \{[^}]*font-size: 18px;/);
+  assert.match(page, /\.workspace-toolbar \{[^}]*display: flex;/);
+  assert.match(page, /\.top-navbar \{[^}]*max-width: 1180px;/);
+  assert.doesNotMatch(page, /\.dashboard-segment \{[^}]*border-top:/);
 });
 
 test('groups the workspace into Event, Web Gallery, and Manage', () => {
