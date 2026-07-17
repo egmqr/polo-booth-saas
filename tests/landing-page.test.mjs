@@ -17,3 +17,14 @@ test('includes responsive navigation and safeguards', () => {
   assert.match(page, /:focus-visible/);
   assert.match(page, /prefers-reduced-motion: reduce/);
 });
+
+test('leads three workflows with instant QR sharing and live gallery', () => {
+  assert.match(page, /Every shot, shared in seconds\./);
+  assert.match(page, /Roving photoman/);
+  assert.match(page, /On-site studio photography/);
+  assert.match(page, /Static booth with countdown/);
+  assert.match(page, /QR sharing/);
+  assert.match(page, /live web gallery/i);
+  assert.ok(page.indexOf('Roving photoman') < page.indexOf('On-site studio photography'));
+  assert.ok(page.indexOf('On-site studio photography') < page.indexOf('Static booth with countdown'));
+});

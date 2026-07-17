@@ -138,3 +138,59 @@ Expected: clean status after implementation commit.
 - Spec coverage: Task 2 implements visual direction, CTA vocabulary, preserved integrations, mobile navigation, keyboard focus, motion reduction, responsive layout, touch targets.
 - Contract coverage: Task 1 protects primary action, secondary action, responsive navigation, focus, and motion safeguards.
 - No placeholders, contradictory requirements, or unbound interfaces.
+
+---
+
+## Buyer-priority update
+
+### Task 4: Lead with instant sharing for three capture modes
+
+**Files:**
+
+- Modify: `tests/landing-page.test.mjs`
+- Modify: `index.html`
+
+**Interfaces:** The landing page continues to use `/dashboard/?signup=true` for signup and `#apps` for downloads. Existing gallery, download, and app-version IDs remain unchanged.
+
+- [ ] **Step 1: Write failing buyer-priority test**
+
+```js
+test('leads three workflows with instant QR sharing and live gallery', () => {
+  assert.match(page, /Every shot, shared in seconds\./);
+  assert.match(page, /Roving photoman/);
+  assert.match(page, /On-site studio photography/);
+  assert.match(page, /Static booth with countdown/);
+  assert.match(page, /QR sharing/);
+  assert.match(page, /live web gallery/i);
+  assert.ok(page.indexOf('Roving photoman') < page.indexOf('On-site studio photography'));
+  assert.ok(page.indexOf('On-site studio photography') < page.indexOf('Static booth with countdown'));
+});
+```
+
+- [ ] **Step 2: Verify red**
+
+Run: `node --test tests/landing-page.test.mjs`
+
+Expected: FAIL because page does not yet describe all ranked capture modes or instant-sharing headline.
+
+- [ ] **Step 3: Implement smallest content update**
+
+Replace hero headline and copy with instant sharing and live gallery outcome. Replace four-step workflow with three cards, in fixed order:
+
+```text
+Roving photoman — send every roaming capture straight to guest QR access and live gallery.
+On-site studio photography — keep portrait sessions flowing with QR delivery and gallery visibility.
+Static booth with countdown — countdown, capture, then publish to QR and live gallery.
+```
+
+Keep cards visually consistent with current control-room design. Do not change routes, image assets, JS version loader, or menu behavior.
+
+- [ ] **Step 4: Verify green**
+
+Run: `node --test tests/landing-page.test.mjs`
+
+Expected: PASS with 4 tests, 0 failures.
+
+- [ ] **Step 5: Commit**
+
+Run: `git add index.html tests/landing-page.test.mjs docs/superpowers/plans/2026-07-18-operator-landing-redesign.md; git commit -m "feat: clarify instant-sharing workflows"`

@@ -608,7 +608,7 @@
     .section.alt { background: #0e141e; }
     .section-title { font-size: clamp(36px, 5vw, 64px); }
     .section-copy, .feature-copy p { color: var(--muted); }
-    .workflow { gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 16px; overflow: hidden; }
+    .workflow { grid-template-columns: repeat(3, 1fr); gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 16px; overflow: hidden; }
     .workflow-step, .feature-card, .download-panel { border: 0; border-radius: 0; box-shadow: none; background: #131b27; }
     .workflow-step { min-height: 235px; padding: 26px; }
     .step-index { width: auto; height: auto; display: block; border-radius: 0; background: none; color: var(--coral); font-family: "DM Mono", monospace; font-size: 12px; }
@@ -678,9 +678,9 @@
     <section class="hero" aria-label="PoloPro overview">
       <div class="hero-inner">
         <p class="hero-kicker"><span class="signal-dot"></span> Built for live event operators</p>
-        <h1>Run every event<br><em>without losing control.</em></h1>
+        <h1 aria-label="Every shot, shared in seconds.">Every shot,<br><em>shared in seconds.</em></h1>
         <p class="hero-copy">
-          Set up, capture, share, and deliver polished photo experiences from one reliable control room.
+          Give every guest instant QR sharing and a live web gallery—whether you roam, run a studio station, or operate a countdown booth.
         </p>
         <div class="hero-actions">
           <a class="btn" href="/dashboard/?signup=true">Start free <i class="bi bi-arrow-up-right"></i></a>
@@ -697,38 +697,31 @@
     <section class="section" id="overview">
       <div class="wrap">
         <div class="section-head">
-          <h2 class="section-title">One workflow from setup to delivery.</h2>
+          <h2 class="section-title">One share flow for every capture style.</h2>
           <p class="section-copy">
-            PoloPro connects event setup, booth apps, templates, QR sharing, and gallery management without moving between separate tools.
+            QR sharing and a live web gallery keep every capture visible, delivered, and ready for guests to enjoy.
           </p>
         </div>
         <div class="workflow">
           <article class="workflow-step">
-            <span class="step-index">1</span>
+            <span class="step-index">01 / Roving</span>
             <div>
-              <h3>Create the event</h3>
-              <p>Set booth count, gallery title, QR links, search options, time display, and virtual booth settings.</p>
+              <h3>Roving photoman</h3>
+              <p>Send every roaming capture straight to guest QR access and the live web gallery.</p>
             </div>
           </article>
           <article class="workflow-step">
-            <span class="step-index">2</span>
+            <span class="step-index">02 / Studio</span>
             <div>
-              <h3>Prepare templates</h3>
-              <p>Import portrait and landscape frames, then match each capture to the right output format.</p>
+              <h3>On-site studio photography</h3>
+              <p>Keep portrait sessions moving with QR sharing and gallery visibility after every shot.</p>
             </div>
           </article>
           <article class="workflow-step">
-            <span class="step-index">3</span>
+            <span class="step-index">03 / Booth</span>
             <div>
-              <h3>Run the booth</h3>
-              <p>Launch from Android or Windows, connect supported cameras, and keep booth files ready for live operation.</p>
-            </div>
-          </article>
-          <article class="workflow-step">
-            <span class="step-index">4</span>
-            <div>
-              <h3>Share the gallery</h3>
-              <p>Give guests a QR path to their photos and keep the event gallery organized from the dashboard.</p>
+              <h3>Static booth with countdown</h3>
+              <p>Run the countdown, capture the moment, then publish to QR sharing and the live web gallery.</p>
             </div>
           </article>
         </div>
