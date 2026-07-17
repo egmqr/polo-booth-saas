@@ -1259,25 +1259,17 @@
     }
     /* Operator command-center refresh */
     .command-center { max-width: 1180px; margin: 0 auto; }
-    .command-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end; margin-bottom: 12px; padding: 14px 0 22px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
-    .command-header h1 { margin: 0; font-size: clamp(26px, 4vw, 40px); letter-spacing: -0.06em; }
-    .command-header p { margin: 8px 0 0; color: var(--text-muted); font-size: 13px; }
-    .command-header .form-group { min-width: min(100%, 300px); margin: 0; }
-    .work-zone-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 12px; padding: 0; border: 0; background: transparent; }
-    .work-zone-rail a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; color: var(--text-muted); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
-    .work-zone-rail a:hover { background: var(--btn-bg); color: #fff; }
-    .workspace-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
-    .workspace-actions p { margin: 0; color: var(--text-muted); font-size: 12px; }
     .mode-toggle { display: none; }
-    .work-zone-title { margin: 0 0 14px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-    .work-zone-card { position: relative; margin-top: 34px; padding: 24px 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; scroll-margin-top: 20px; }
-    #editFormFields { display: grid; gap: 18px; }
-    #editFormFields > .color-group:first-of-type { padding: 0; border: 0; border-radius: 0; background: transparent; }
-    #viewContainer { margin-top: 34px; padding: 24px 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; scroll-margin-top: 20px; }
+    #editFormFields { display: grid; gap: 0; }
+    .dashboard-segment { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
+    .dashboard-segment h2 { margin: 0 0 18px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    #eventSegment .form-group, #webGallerySegment > .form-group { border-bottom: 0 !important; padding-bottom: 0 !important; }
+    #eventSegment .color-group { padding: 0; border: 0; border-radius: 0; background: transparent; }
+    #templatesGroup { margin-top: 18px; }
+    #viewContainer { margin-top: 32px; }
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
-    @media (max-width: 700px) { .command-header { grid-template-columns: 1fr; padding: 20px; } .command-header .form-group { width: 100%; } .work-zone-rail { position: sticky; top: 8px; z-index: 20; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
   </style>
 </head>
@@ -1501,24 +1493,6 @@
   </div>
 
   <main class="container command-center" id="mainApp" style="display:none;">
-    <section class="command-header" aria-label="Event command center">
-      <div>
-        <p class="work-zone-title">PoloPro operator control room</p>
-        <h1>Build, run, share.</h1>
-        <p>Prepare your event, connect each capture flow, then publish every photo through QR and the live gallery.</p>
-      </div>
-      <div class="command-event-note"><i class="bi bi-qr-code"></i> Instant QR sharing + live gallery</div>
-    </section>
-    <nav class="work-zone-rail" aria-label="Event work zones">
-      <a href="#setup-zone">Configure</a>
-      <a href="#booth-zone">Booths</a>
-      <a href="#sharing-zone">Gallery settings</a>
-      <a href="#gallery-zone">Share live</a>
-    </nav>
-    <div class="workspace-actions">
-      <p>Open an event once. Configure it, then share live.</p>
-      <button type="button" class="action-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
-    </div>
     <div class="mode-toggle">
       <button type="button" id="btnModeNew" class="mode-btn active" hidden></button>
       <button type="button" id="btnModeEdit" class="mode-btn" hidden></button>
@@ -1533,11 +1507,12 @@
       <select id="eventSelect" onchange="openWorkspaceEvent()">
         <option value="">New event — select an existing event to open it</option>
       </select>
+      <button type="button" class="file-btn" style="margin-top: 10px;" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
     </div>
 
-    <div id="editFormFields" class="work-zone" data-work-zone="Event Setup">
-      <section id="setup-zone" class="work-zone-card">
-        <h2 class="work-zone-title">Event setup</h2>
+    <div id="editFormFields">
+      <section id="eventSegment" class="dashboard-segment" data-dashboard-segment="Event">
+        <h2>Event</h2>
       <!-- eventId is hidden from UI but kept in DOM for backend use -->
       <input type="hidden" id="eventId">
 
@@ -1547,10 +1522,6 @@
           <input type="text" id="eventName" placeholder="e.g., PoloBday" required oninput="checkEventNameDuplicate()">
           <span class="hint-text" id="eventNameHint" style="display:none; color: var(--danger, #e53935);">An event with
             this name already exists.</span>
-        </div>
-        <div class="form-group">
-          <label for="pageTitle">Web Gallery Page Title</label>
-          <input type="text" id="pageTitle" placeholder="e.g., Polo's Birthday Celebration 🎉">
         </div>
       </div>
 
@@ -1562,10 +1533,7 @@
         <span class="hint-text" id="boothHint" style="display:none;">Booth count is locked during edits.</span>
       </div>
 
-      </section>
-
-      <div id="templatesGroup" class="form-group work-zone-card" data-work-zone="Booth" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-        <h2 id="booth-zone" class="work-zone-title">Booth</h2>
+      <div id="templatesGroup" class="form-group">
         <label>Print Templates</label>
         <select id="boothTemplateList" size="3" onchange="handleTemplateSelection()"></select>
         <div id="templateLockNotice"
@@ -1590,8 +1558,16 @@
         </div>
       </div>
 
-      <div id="communityGroup" class="form-group work-zone-card" data-work-zone="Sharing" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-        <h2 id="sharing-zone" class="work-zone-title">Sharing</h2>
+      </section>
+
+      <section id="webGallerySegment" class="dashboard-segment" data-dashboard-segment="Web Gallery">
+        <h2>Web Gallery</h2>
+        <div class="form-group">
+          <label for="pageTitle">Web Gallery Page Title</label>
+          <input type="text" id="pageTitle" placeholder="e.g., Polo's Birthday Celebration 🎉">
+        </div>
+
+      <div id="communityGroup" class="form-group">
         <div class="checkbox-wrapper" id="communityEnableRow">
           <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
           <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Virtual Booth</label>
@@ -1701,10 +1677,11 @@
         </div>
       </div>
 
+      </section>
     </div>
 
-    <div id="viewContainer" class="work-zone" data-work-zone="Gallery" style="display: none;">
-      <h2 id="gallery-zone" class="work-zone-title">Share live</h2>
+    <div id="viewContainer" class="dashboard-segment" data-dashboard-segment="Manage" style="display: none;">
+      <h2>Manage</h2>
       <div
         style="padding: 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
         <h3 id="viewEventTitle" style="margin: 0 0 5px 0;">Select an event above</h3>
@@ -2658,7 +2635,7 @@
         if (mode === 'edit') {
           document.getElementById('boothCount').disabled = true;
           document.getElementById('boothHint').style.display = 'block';
-          document.getElementById('boothCount').closest('.form-group').style.display = 'none';
+          document.getElementById('boothCount').closest('.form-group').style.display = 'block';
           document.getElementById('templatesGroup').style.display = 'none';
           document.getElementById('communityEnableRow').style.display = 'none';
           document.getElementById('communityOnlyRow').style.display = 'none';

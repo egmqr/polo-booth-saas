@@ -4,11 +4,8 @@ import test from 'node:test';
 
 const page = await readFile(new URL('../dashboard/index.html', import.meta.url), 'utf8');
 
-test('exposes command-center work zones without removing critical controls', () => {
-  for (const zone of ['Event Setup', 'Booth', 'Sharing', 'Gallery']) {
-    assert.match(page, new RegExp(`data-work-zone="${zone}"`));
-  }
-  for (const id of ['eventSelect', 'eventName', 'eventId', 'manageModal', 'dashboardWindowsDownload', 'dashboardAndroidDownload']) {
+test('preserves critical operator controls', () => {
+  for (const id of ['eventSelect', 'eventName', 'eventId', 'boothCount', 'boothTemplateList', 'pageTitle', 'boothList', 'manageModal', 'dashboardWindowsDownload', 'dashboardAndroidDownload']) {
     assert.match(page, new RegExp(`id="${id}"`));
   }
 });
@@ -19,15 +16,20 @@ test('includes dashboard accessibility and responsive safeguards', () => {
   assert.match(page, /command-center/);
 });
 
-test('uses restrained section styling instead of stacked card borders', () => {
-  assert.match(page, /\.work-zone-card \{[^}]*border: 0;/);
-  assert.match(page, /\.command-header \{[^}]*border: 0;/);
+test('uses restrained section styling', () => {
+  assert.match(page, /\.dashboard-segment \{[^}]*border-top: 1px solid var\(--border\);/);
+  assert.match(page, /#editFormFields \{ display: grid; gap: 0;/);
+});
+
+test('groups the workspace into Event, Web Gallery, and Manage', () => {
+  for (const segment of ['Event', 'Web Gallery', 'Manage']) {
+    assert.match(page, new RegExp(`data-dashboard-segment="${segment}"`));
+  }
+  assert.doesNotMatch(page, /class="work-zone-rail"/);
 });
 
 test('uses one event workspace instead of visible setup modes', () => {
   assert.match(page, />\s*New event\s*</);
-  assert.match(page, />\s*Configure\s*</);
-  assert.match(page, />\s*Share live\s*</);
   assert.doesNotMatch(page, />\s*New Setup\s*<\/button>/);
   assert.doesNotMatch(page, />\s*Edit Setup\s*<\/button>/);
   assert.doesNotMatch(page, />\s*View Setup\s*<\/button>/);
