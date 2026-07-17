@@ -1259,21 +1259,21 @@
     }
     /* Operator command-center refresh */
     .command-center { max-width: 1180px; margin: 0 auto; }
-    .command-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end; margin-bottom: 18px; padding: 26px; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, var(--bg-container), var(--card-bg)); }
+    .command-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: end; margin-bottom: 12px; padding: 14px 0 22px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
     .command-header h1 { margin: 0; font-size: clamp(26px, 4vw, 40px); letter-spacing: -0.06em; }
     .command-header p { margin: 8px 0 0; color: var(--text-muted); font-size: 13px; }
     .command-header .form-group { min-width: min(100%, 300px); margin: 0; }
-    .work-zone-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 18px; padding: 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
+    .work-zone-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 12px; padding: 0; border: 0; background: transparent; }
     .work-zone-rail a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; color: var(--text-muted); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
     .work-zone-rail a:hover { background: var(--btn-bg); color: #fff; }
     .workspace-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
     .workspace-actions p { margin: 0; color: var(--text-muted); font-size: 12px; }
     .mode-toggle { display: none; }
     .work-zone-title { margin: 0 0 14px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-    .work-zone-card { position: relative; margin-top: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); scroll-margin-top: 20px; }
+    .work-zone-card { position: relative; margin-top: 34px; padding: 24px 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; scroll-margin-top: 20px; }
     #editFormFields { display: grid; gap: 18px; }
-    #editFormFields > .color-group:first-of-type { padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
-    #viewContainer { margin-top: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); scroll-margin-top: 20px; }
+    #editFormFields > .color-group:first-of-type { padding: 0; border: 0; border-radius: 0; background: transparent; }
+    #viewContainer { margin-top: 34px; padding: 24px 0 0; border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; scroll-margin-top: 20px; }
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
@@ -3130,7 +3130,9 @@
         // Only fetch assets if we haven't already loaded them for this event
         if (_lastAssetsEventId !== selectedId) { fetchExistingAssets(true, selectedId); _lastAssetsEventId = selectedId; }
 
-      } else if (currentMode === 'view' || currentMode === 'edit') {
+      }
+
+      if (currentMode === 'view' || currentMode === 'edit') {
         const displayEventTitle = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || "Unnamed Event";
         document.getElementById('viewEventTitle').innerText = displayEventTitle;
         document.getElementById('viewEventId').innerText = "ID: " + details.id;
