@@ -1266,6 +1266,9 @@
     .work-zone-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0 0 18px; padding: 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
     .work-zone-rail a { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 8px; color: var(--text-muted); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
     .work-zone-rail a:hover { background: var(--btn-bg); color: #fff; }
+    .workspace-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .workspace-actions p { margin: 0; color: var(--text-muted); font-size: 12px; }
+    .mode-toggle { display: none; }
     .work-zone-title { margin: 0 0 14px; color: var(--text-muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
     .work-zone-card { position: relative; margin-top: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); scroll-margin-top: 20px; }
     #editFormFields { display: grid; gap: 18px; }
@@ -1507,23 +1510,28 @@
       <div class="command-event-note"><i class="bi bi-qr-code"></i> Instant QR sharing + live gallery</div>
     </section>
     <nav class="work-zone-rail" aria-label="Event work zones">
-      <a href="#setup-zone">Event setup</a>
-      <a href="#booth-zone">Booth</a>
-      <a href="#sharing-zone">Sharing</a>
-      <a href="#gallery-zone">Gallery</a>
+      <a href="#setup-zone">Configure</a>
+      <a href="#booth-zone">Booths</a>
+      <a href="#sharing-zone">Gallery settings</a>
+      <a href="#gallery-zone">Share live</a>
     </nav>
+    <div class="workspace-actions">
+      <p>Open an event once. Configure it, then share live.</p>
+      <button type="button" class="action-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
+    </div>
     <div class="mode-toggle">
-      <button type="button" id="btnModeNew" class="mode-btn active" onclick="setMode('new')">New Setup</button>
-      <button type="button" id="btnModeEdit" class="mode-btn" onclick="setMode('edit')">Edit Setup</button>
-      <button type="button" id="btnModeView" class="mode-btn" onclick="setMode('view')">View Setup</button>
+      <button type="button" id="btnModeNew" class="mode-btn active" hidden></button>
+      <button type="button" id="btnModeEdit" class="mode-btn" hidden></button>
+      <button type="button" id="btnModeView" class="mode-btn" hidden></button>
     </div>
 
-    <div class="form-group" id="editSelectContainer" style="display: none;">
-      <label for="eventSearch" style="display:none;">Search Generated Event</label>
+    <div class="form-group" id="editSelectContainer">
+      <label for="eventSearch" style="display:none;">Search events</label>
       <input type="text" id="eventSearch" placeholder="Type name or ID..." onkeyup="filterBoothEvents()"
         style="display:none;">
-      <select id="eventSelect" onchange="loadBoothEventDetails()">
-        <option value="">-- Loading Booths... --</option>
+      <label for="eventSelect">Current event</label>
+      <select id="eventSelect" onchange="openWorkspaceEvent()">
+        <option value="">New event — select an existing event to open it</option>
       </select>
     </div>
 
@@ -1696,7 +1704,7 @@
     </div>
 
     <div id="viewContainer" class="work-zone" data-work-zone="Gallery" style="display: none;">
-      <h2 id="gallery-zone" class="work-zone-title">Gallery</h2>
+      <h2 id="gallery-zone" class="work-zone-title">Share live</h2>
       <div
         style="padding: 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
         <h3 id="viewEventTitle" style="margin: 0 0 5px 0;">Select an event above</h3>
@@ -2545,6 +2553,19 @@
     // ==========================================
     // MODES & TOGGLES
     // ==========================================
+    function openWorkspaceEvent() {
+      const eventSelect = document.getElementById('eventSelect');
+      if (!eventSelect.value) {
+        if (currentMode !== 'new') setMode('new');
+        return;
+      }
+      if (currentMode !== 'edit') {
+        setMode('edit');
+        return;
+      }
+      loadBoothEventDetails();
+    }
+
     function setMode(mode) {
       // 1. FIX: Cache the active event selection before clearing any fields
       const savedSelectedId = document.getElementById('eventSelect')?.value || "";
@@ -2596,7 +2617,7 @@
 
       if (mode === 'new') {
         document.getElementById('btnModeNew').classList.add('active');
-        document.getElementById('editSelectContainer').style.display = 'none';
+        document.getElementById('editSelectContainer').style.display = 'block';
         document.getElementById('editFormFields').style.display = 'block';
         document.getElementById('viewContainer').style.display = 'none';
         document.getElementById('generateBtn').style.display = 'block';
@@ -2628,7 +2649,7 @@
 
         document.getElementById('editSelectContainer').style.display = 'block';
         document.getElementById('editFormFields').style.display = mode === 'edit' ? 'block' : 'none';
-        document.getElementById('viewContainer').style.display = mode === 'view' ? 'block' : 'none';
+        document.getElementById('viewContainer').style.display = 'block';
 
         document.getElementById('generateBtn').style.display = 'none';
         document.getElementById('saveBtn').style.display = mode === 'edit' ? 'block' : 'none';
@@ -3109,7 +3130,7 @@
         // Only fetch assets if we haven't already loaded them for this event
         if (_lastAssetsEventId !== selectedId) { fetchExistingAssets(true, selectedId); _lastAssetsEventId = selectedId; }
 
-      } else if (currentMode === 'view') {
+      } else if (currentMode === 'view' || currentMode === 'edit') {
         const displayEventTitle = stripInternalBoothSuffix(details.pageTitle || details.eventName) || details.pageTitle || details.eventName || "Unnamed Event";
         document.getElementById('viewEventTitle').innerText = displayEventTitle;
         document.getElementById('viewEventId').innerText = "ID: " + details.id;

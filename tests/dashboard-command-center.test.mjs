@@ -18,3 +18,12 @@ test('includes dashboard accessibility and responsive safeguards', () => {
   assert.match(page, /prefers-reduced-motion: reduce/);
   assert.match(page, /command-center/);
 });
+
+test('uses one event workspace instead of visible setup modes', () => {
+  assert.match(page, />\s*New event\s*</);
+  assert.match(page, />\s*Configure\s*</);
+  assert.match(page, />\s*Share live\s*</);
+  assert.doesNotMatch(page, />\s*New Setup\s*<\/button>/);
+  assert.doesNotMatch(page, />\s*Edit Setup\s*<\/button>/);
+  assert.doesNotMatch(page, />\s*View Setup\s*<\/button>/);
+});
