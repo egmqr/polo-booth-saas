@@ -6,6 +6,9 @@
   <meta name="description" content="PoloPro is a photo booth operations platform for smart template orientation, QR sharing, custom web galleries, camera-connected booths, and virtual booth uploads.">
   <title>PoloPro | Photo Booth Control System</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
   <style>
     :root {
@@ -545,6 +548,107 @@
         flex-direction: column;
       }
     }
+
+    /* Operator control-room refresh */
+    :root {
+      --bg: #0b0f17;
+      --surface: #121a25;
+      --surface-alt: #171f2c;
+      --accent: #8af4c2;
+      --accent-bright: #b3ffd9;
+      --accent-dim: rgba(138, 244, 194, 0.12);
+      --text: #f4f7fb;
+      --muted: #aeb9ca;
+      --line: rgba(202, 215, 235, 0.15);
+      --coral: #ff7e66;
+    }
+
+    body { font-family: Manrope, ui-sans-serif, system-ui, sans-serif; }
+    .site-header { background: rgba(11, 15, 23, 0.78); border-color: rgba(179, 255, 217, 0.1); }
+    .brand { font-family: "Space Grotesk", sans-serif; letter-spacing: -0.04em; font-size: 18px; }
+    .brand-mark { border-radius: 10px; box-shadow: 0 8px 24px rgba(138, 244, 194, 0.23); }
+    .nav-links { font-family: "DM Mono", monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+    .nav-links a { padding: 8px 0; }
+    .nav-links a:hover { color: var(--accent-bright); }
+    .btn {
+      min-height: 46px;
+      border-radius: 999px;
+      padding: 0 19px;
+      background: var(--accent);
+      color: #0a1714;
+      box-shadow: 0 14px 32px rgba(138, 244, 194, 0.17);
+      transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+    }
+    .btn:hover { background: #b3ffd9; transform: translateY(-2px); box-shadow: 0 18px 34px rgba(138, 244, 194, 0.25); }
+    .btn.secondary { background: rgba(244, 247, 251, 0.055); color: var(--text); border-color: rgba(244, 247, 251, 0.15); }
+    .btn.secondary:hover { background: rgba(244, 247, 251, 0.12); }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .menu-toggle { display: none; width: 46px; height: 46px; border: 1px solid var(--line); border-radius: 50%; color: var(--text); background: rgba(244, 247, 251, 0.05); font-size: 21px; }
+
+    .hero {
+      min-height: 92svh;
+      padding: 156px 0 108px;
+      background:
+        linear-gradient(90deg, #0b0f17 0%, rgba(11, 15, 23, 0.97) 27%, rgba(11, 15, 23, 0.5) 62%, rgba(11, 15, 23, 0.18) 100%),
+        url("assets/landing/hero-showcase.jpg") center right / cover no-repeat;
+    }
+    .hero::before { content: ""; position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(rgba(179, 255, 217, 0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(179, 255, 217, 0.045) 1px, transparent 1px); background-size: 52px 52px; mask-image: linear-gradient(90deg, #000 0%, transparent 72%); }
+    .hero-kicker, .tag { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.1em; }
+    .hero-kicker { display: inline-flex; align-items: center; gap: 9px; margin: 0 0 20px; color: var(--accent-bright); text-transform: uppercase; }
+    .signal-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 5px rgba(255, 126, 102, 0.15); }
+    .hero h1, .section-title, .feature-copy h3 { font-family: "Space Grotesk", sans-serif; letter-spacing: -0.065em; }
+    .hero h1 { width: min(760px, 100%); font-size: clamp(54px, 7.8vw, 108px); line-height: 0.9; }
+    .hero h1 em { color: var(--accent); font-style: normal; }
+    .hero-copy { width: min(590px, 100%); color: #d5ddea; font-size: clamp(17px, 1.65vw, 21px); }
+    .hero-proof { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 30px 0 0; padding: 0; list-style: none; color: #c3cedd; font-size: 13px; font-weight: 700; }
+    .hero-proof li { display: inline-flex; align-items: center; gap: 8px; }
+    .hero-proof i { color: var(--accent); }
+    .section { border-color: rgba(179, 255, 217, 0.08); }
+    .section.alt { background: #0e141e; }
+    .section-title { font-size: clamp(36px, 5vw, 64px); }
+    .section-copy, .feature-copy p { color: var(--muted); }
+    .workflow { gap: 1px; border: 1px solid var(--line); background: var(--line); border-radius: 16px; overflow: hidden; }
+    .workflow-step, .feature-card, .download-panel { border: 0; border-radius: 0; box-shadow: none; background: #131b27; }
+    .workflow-step { min-height: 235px; padding: 26px; }
+    .step-index { width: auto; height: auto; display: block; border-radius: 0; background: none; color: var(--coral); font-family: "DM Mono", monospace; font-size: 12px; }
+    .workflow-step h3 { font-family: "Space Grotesk", sans-serif; letter-spacing: -0.04em; }
+    .feature-row { padding: clamp(54px, 7vw, 86px) 0; border-color: var(--line); }
+    .tag { color: var(--accent-bright); }
+    .feature-visual { position: relative; border-radius: 16px; border-color: rgba(179, 255, 217, 0.2); background: #101722; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35); }
+    .feature-visual::before { content: ""; position: absolute; inset: 9px; z-index: 1; border: 1px solid rgba(138, 244, 194, 0.46); border-radius: 10px; pointer-events: none; box-shadow: inset 0 0 18px rgba(138, 244, 194, 0.1); }
+    .feature-list { color: #dde6f1; }
+    .feature-list i, .feature-card i { color: var(--accent); }
+    .feature-grid { gap: 1px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--line); }
+    .feature-card { padding: 30px; }
+    .feature-card i { width: auto; height: auto; display: block; border-radius: 0; background: none; font-size: 24px; }
+    .feature-card h3 { font-family: "Space Grotesk", sans-serif; letter-spacing: -0.04em; }
+    .download-panel { position: relative; overflow: hidden; border: 1px solid rgba(138, 244, 194, 0.22); border-radius: 18px; background: linear-gradient(135deg, #172330, #111821); }
+    .download-panel::after { content: "READY FOR SHOWTIME"; position: absolute; right: -24px; bottom: 26px; color: rgba(138, 244, 194, 0.07); font-family: "Space Grotesk", sans-serif; font-size: clamp(38px, 7vw, 90px); font-weight: 700; letter-spacing: -0.08em; white-space: nowrap; pointer-events: none; }
+    .download-panel > * { position: relative; z-index: 1; }
+    .site-footer { background: #080c12; }
+    .footer-links a:hover { color: var(--accent-bright); }
+
+    @media (max-width: 940px) {
+      .menu-toggle { display: inline-grid; place-items: center; order: 2; }
+      .nav-actions { order: 3; }
+      .nav-links { display: none; position: absolute; top: calc(100% + 8px); left: 16px; right: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #121a25; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); }
+      .nav-links.is-open { display: grid; gap: 4px; }
+      .nav-links a { padding: 12px; }
+    }
+    @media (max-width: 620px) {
+      .nav { width: min(100% - 24px, 1180px); }
+      .nav-actions .secondary { display: none; }
+      .hero { min-height: 88svh; padding: 120px 0 64px; background-position: 62% center; }
+      .hero h1 { font-size: clamp(48px, 15vw, 72px); }
+      .hero-proof { display: grid; gap: 10px; }
+      .hero-actions .btn { flex: 1; }
+      .workflow, .feature-grid { border-radius: 14px; }
+      .download-panel::after { bottom: 6px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
   </style>
 </head>
 <body>
@@ -554,7 +658,10 @@
         <img class="brand-mark" src="assets/landing/polo-logo-192.png" alt="" aria-hidden="true">
         <span>PoloPro</span>
       </a>
-      <div class="nav-links">
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu">
+        <span class="visually-hidden">Open menu</span><i class="bi bi-list"></i>
+      </button>
+      <div class="nav-links" id="site-menu">
         <a href="#overview">Overview</a>
         <a href="#features">Features</a>
         <a href="#apps">Apps</a>
@@ -562,7 +669,7 @@
       </div>
       <div class="nav-actions">
         <a class="btn secondary" href="/dashboard/">Sign in</a>
-        <a class="btn" href="/dashboard/?signup=true">Sign up</a>
+        <a class="btn" href="/dashboard/?signup=true">Start free <i class="bi bi-arrow-up-right"></i></a>
       </div>
     </nav>
   </header>
@@ -570,15 +677,20 @@
   <main id="top">
     <section class="hero" aria-label="PoloPro overview">
       <div class="hero-inner">
-        <div class="eyebrow"><i class="bi bi-stars"></i> Photo booth operations platform</div>
-        <h1>PoloPro</h1>
+        <p class="hero-kicker"><span class="signal-dot"></span> Built for live event operators</p>
+        <h1>Run every event<br><em>without losing control.</em></h1>
         <p class="hero-copy">
-          Manage booth setup, capture, sharing, and guest uploads from one system built for live events.
+          Set up, capture, share, and deliver polished photo experiences from one reliable control room.
         </p>
         <div class="hero-actions">
-          <a class="btn" href="/dashboard/">Open dashboard</a>
+          <a class="btn" href="/dashboard/?signup=true">Start free <i class="bi bi-arrow-up-right"></i></a>
           <a class="btn secondary" href="#apps">Download apps</a>
         </div>
+        <ul class="hero-proof">
+          <li><i class="bi bi-check2"></i> One command center</li>
+          <li><i class="bi bi-check2"></i> Built for event day</li>
+          <li><i class="bi bi-check2"></i> QR delivery included</li>
+        </ul>
       </div>
     </section>
 
@@ -784,6 +896,21 @@
     </div>
   </footer>
   <script>
+    const menuToggle = document.querySelector('.menu-toggle');
+    const siteMenu = document.getElementById('site-menu');
+
+    menuToggle?.addEventListener('click', () => {
+      const isOpen = siteMenu.classList.toggle('is-open');
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    siteMenu?.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        siteMenu.classList.remove('is-open');
+        menuToggle?.setAttribute('aria-expanded', 'false');
+      });
+    });
+
     const APP_VERSION_DEFAULTS = {
       windows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro.exe' },
       android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' }
