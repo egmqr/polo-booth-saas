@@ -3254,7 +3254,7 @@
         if (uploadedBgId) _lastAssetsEventId = null;
 
         const needsViewLoad = document.getElementById('eventSelect').value !== eventId;
-        setMode('view');
+        setMode('edit');
         document.getElementById('eventSelect').value = eventId;
         if (needsViewLoad) loadBoothEventDetails();
       }
