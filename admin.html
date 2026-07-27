@@ -1194,6 +1194,10 @@
                 if (el) el.value = '';
             });
         }
+        // `pageshow` fires on every reload/back-forward-cache restore, unlike `load`
+        // which browsers can skip on certain refreshes — this guarantees the clear
+        // actually runs every time the page is refreshed.
+        window.addEventListener('pageshow', clearGhostSearchFields);
 
         window.onload = async () => {
             clearGhostSearchFields();
