@@ -1485,9 +1485,19 @@
         <button class="action-btn manage-download-all"
           style="background: #0d9488; color: #fff;"
           onclick="downloadAllManagePhotos()">Download All</button>
+        <input type="file" id="managePhotoUploadInput" accept="image/*" multiple style="display:none;" onchange="handleManagePhotoFileInput(event)">
+        <button class="action-btn"
+          style="background: #16a34a; color: #fff;"
+          onclick="document.getElementById('managePhotoUploadInput').click()"><i class="bi bi-cloud-upload"></i> Upload Photos</button>
       </div>
       <div id="manageGrid"
         style="flex-grow: 1; overflow-y: auto; padding: 15px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; align-content: start;">
+      </div>
+      <div id="manageDropOverlay"
+        style="display:none; position:absolute; inset:0; z-index: 10; background: rgba(37,99,235,0.15); border: 3px dashed #2563eb; align-items:center; justify-content:center; pointer-events:none;">
+        <div style="background: var(--bg-container); color: var(--text-main); padding: 16px 24px; border-radius: 10px; font-weight:800; font-size:16px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+          <i class="bi bi-cloud-upload" style="margin-right:8px;"></i>Drop photos to upload
+        </div>
       </div>
     </div>
   </div>
@@ -3439,8 +3449,91 @@
       document.getElementById('manageModal').style.display = 'flex';
       managePhotosData = [];
       updateManageRefreshStatus('Auto-refreshing');
+      initManageDragDrop();
       await refreshManagePhotos({ showLoading: true, preserveSelection: false });
       startManageAutoRefresh();
+    }
+
+    let manageDragCounter = 0;
+
+    function initManageDragDrop() {
+      const modal = document.getElementById('manageModal');
+      if (!modal || modal._dragDropInit) return;
+      modal._dragDropInit = true;
+
+      modal.addEventListener('dragenter', (e) => {
+        if (!e.dataTransfer || ![...(e.dataTransfer.types || [])].includes('Files')) return;
+        e.preventDefault();
+        manageDragCounter++;
+        document.getElementById('manageDropOverlay').style.display = 'flex';
+      });
+      modal.addEventListener('dragover', (e) => {
+        if (!e.dataTransfer || ![...(e.dataTransfer.types || [])].includes('Files')) return;
+        e.preventDefault();
+      });
+      modal.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        manageDragCounter = Math.max(0, manageDragCounter - 1);
+        if (manageDragCounter === 0) document.getElementById('manageDropOverlay').style.display = 'none';
+      });
+      modal.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        manageDragCounter = 0;
+        document.getElementById('manageDropOverlay').style.display = 'none';
+        const files = Array.from(e.dataTransfer?.files || []);
+        if (files.length) await uploadManagePhotoFiles(files);
+      });
+    }
+
+    function handleManagePhotoFileInput(event) {
+      const files = Array.from(event.target.files || []);
+      event.target.value = '';
+      if (files.length) uploadManagePhotoFiles(files);
+    }
+
+    async function uploadPhotoDirect(file, prefix) {
+      const extMatch = /\.([a-z0-9]+)$/i.exec(file.name || '');
+      const ext = (extMatch ? extMatch[1] : 'jpg').toLowerCase();
+      const filename = `upload_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+      const signRes = await fetch(`${WORKER_URL}/api/sign-upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${await getIdTokenCached()}` },
+        body: JSON.stringify({ prefix, filename })
+      });
+      if (!signRes.ok) throw new Error(`HTTP ${signRes.status}: ${await signRes.text()}`);
+      const responseData = await signRes.json();
+      if (responseData.error) throw new Error(responseData.error);
+
+      const { uploadUrl } = responseData;
+      const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'image/jpeg' }, body: file });
+      if (!putRes.ok) throw new Error('R2 upload failed');
+    }
+
+    async function uploadManagePhotoFiles(files) {
+      if (!currentManagePrefix) return;
+      const imageFiles = files.filter(f => f.type.startsWith('image/'));
+      if (imageFiles.length === 0) return showToast('Please choose image files');
+
+      showOverlay(`Uploading 0 of ${imageFiles.length} photo${imageFiles.length === 1 ? '' : 's'}...`);
+      updateOverlayProgress(0, imageFiles.length, 'Uploaded');
+
+      let uploaded = 0, failed = 0;
+      for (const file of imageFiles) {
+        try {
+          await uploadPhotoDirect(file, currentManagePrefix);
+          uploaded++;
+        } catch (e) {
+          console.error('Manage photo upload error:', e);
+          failed++;
+        }
+        document.getElementById('overlay-text').innerText = `Uploading ${uploaded + failed} of ${imageFiles.length} photo${imageFiles.length === 1 ? '' : 's'}...`;
+        updateOverlayProgress(uploaded + failed, imageFiles.length, 'Uploaded');
+      }
+
+      hideOverlay();
+      showToast(failed ? `Uploaded ${uploaded} photo${uploaded === 1 ? '' : 's'}, ${failed} failed` : `Uploaded ${uploaded} photo${uploaded === 1 ? '' : 's'}`);
+      await refreshManagePhotos({ showLoading: false, preserveSelection: true });
     }
 
     function renderManageGrid(selectedKeys = getSelectedManagePhotoKeys()) {
