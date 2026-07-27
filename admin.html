@@ -867,7 +867,7 @@
             <h1>PoloPro Admin</h1>
             <p class="sub">Manage accounts, access, and invite codes.</p>
             <div class="login-form">
-                <input type="text" id="apiBase" placeholder="API Base URL" autocomplete="off">
+                <input type="text" id="apiBase" placeholder="API Base URL">
                 <input type="password" id="adminSecret" placeholder="Admin Secret" onkeydown="if(event.key==='Enter') doLogin()">
                 <button class="btn-primary" onclick="doLogin()" style="width:100%;">Login</button>
             </div>
@@ -1199,7 +1199,7 @@
                 if (age < SESSION_DURATION_MS) {
                     API = storedApi;
                     SECRET = storedSecret;
-                    // Keep the API Base URL field visually empty even though a session is restored in memory.
+                    document.getElementById('apiBase').value = API;
                     document.getElementById('adminSecret').value = SECRET;
                     const ok = await bootstrapApp(false);
                     if (ok) {
