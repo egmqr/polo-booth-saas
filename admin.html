@@ -921,7 +921,7 @@
 
         <section id="viewUsers">
             <div class="filters">
-                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()" autocomplete="off">
+                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other">
                 <select id="tierFilter" onchange="renderUsers()">
                     <option value="">All tiers</option>
                     <option value="paid">Paid</option>
@@ -1002,7 +1002,7 @@
             </div>
 
             <div class="filters" style="grid-template-columns:minmax(220px,1fr) repeat(3,minmax(120px,.35fr));">
-                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()" autocomplete="off">
+                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other">
                 <select id="inviteStateFilter" onchange="renderInvites()">
                     <option value="">All states</option>
                     <option value="usable">Usable</option>
@@ -1189,18 +1189,23 @@
 
         const SESSION_DURATION_MS = 60 * 60 * 1000;
 
-        // Some browsers restore a previously typed value into these fields on reload
-        // (native form-state restoration, separate from autofill/autocomplete). `pageshow`
-        // catches bfcache/reload restores that the `load` event alone can miss, and the
-        // extra timeout catches restorations that happen a beat after both fire.
+        // Some browsers (or password-manager extensions like LastPass/1Password/Bitwarden)
+        // restore/inject a previously typed value into these fields, sometimes well after
+        // load. `pageshow` catches bfcache/reload restores; the URL-pattern guard runs on a
+        // delay schedule to catch late async injections without clobbering real user input.
         function clearGhostSearchFields() {
-            const userSearchEl = document.getElementById('userSearch');
-            const inviteSearchEl = document.getElementById('inviteSearch');
-            if (userSearchEl) userSearchEl.value = '';
-            if (inviteSearchEl) inviteSearchEl.value = '';
+            [document.getElementById('userSearch'), document.getElementById('inviteSearch')].forEach(el => {
+                if (el) el.value = '';
+            });
+        }
+        function clearIfLooksInjected() {
+            [document.getElementById('userSearch'), document.getElementById('inviteSearch')].forEach(el => {
+                if (el && /^https?:\/\//i.test(el.value)) el.value = '';
+            });
         }
         window.addEventListener('pageshow', clearGhostSearchFields);
         setTimeout(clearGhostSearchFields, 0);
+        [100, 300, 600, 1000, 2000].forEach(ms => setTimeout(clearIfLooksInjected, ms));
 
         window.onload = async () => {
             clearGhostSearchFields();
