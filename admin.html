@@ -921,7 +921,7 @@
 
         <section id="viewUsers">
             <div class="filters">
-                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other">
+                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()">
                 <select id="tierFilter" onchange="renderUsers()">
                     <option value="">All tiers</option>
                     <option value="paid">Paid</option>
@@ -1002,7 +1002,7 @@
             </div>
 
             <div class="filters" style="grid-template-columns:minmax(220px,1fr) repeat(3,minmax(120px,.35fr));">
-                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore="true" data-form-type="other">
+                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()">
                 <select id="inviteStateFilter" onchange="renderInvites()">
                     <option value="">All states</option>
                     <option value="usable">Usable</option>
@@ -1189,30 +1189,11 @@
 
         const SESSION_DURATION_MS = 60 * 60 * 1000;
 
-        // A password-manager extension keeps injecting a saved URL into these generic
-        // fields, ignoring autocomplete="off" and the data-*ignore opt-out attributes.
-        // Since there's no fixed timing we can wait out, clear on every input/change
-        // event (catches it the instant it's injected) plus a standing background poll
-        // (catches injections that don't dispatch events) for the life of the page.
         function clearGhostSearchFields() {
             [document.getElementById('userSearch'), document.getElementById('inviteSearch')].forEach(el => {
                 if (el) el.value = '';
             });
         }
-        function clearIfLooksInjected() {
-            [document.getElementById('userSearch'), document.getElementById('inviteSearch')].forEach(el => {
-                if (el && /^https?:\/\//i.test(el.value)) el.value = '';
-            });
-        }
-        window.addEventListener('pageshow', clearGhostSearchFields);
-        setTimeout(clearGhostSearchFields, 0);
-        ['userSearch', 'inviteSearch'].forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.addEventListener('input', () => { if (/^https?:\/\//i.test(el.value)) el.value = ''; });
-            el.addEventListener('change', () => { if (/^https?:\/\//i.test(el.value)) el.value = ''; });
-        });
-        setInterval(clearIfLooksInjected, 500);
 
         window.onload = async () => {
             clearGhostSearchFields();
