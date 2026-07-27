@@ -2123,8 +2123,10 @@
         const data = await res.json();
         userTier = data.tier || 'free';
         systemPin = data.pin || "1234"; // Loads the PIN from your worker
+        photoUploadAllowed = !!data.betaFeatures;
+        updatePhotoUploadAccess();
         updatePinDisplay();
-      } catch { userTier = 'free'; systemPin = "1234"; }
+      } catch { userTier = 'free'; systemPin = "1234"; photoUploadAllowed = false; updatePhotoUploadAccess(); }
     }
 
     function checkLogin() {
@@ -2362,38 +2364,22 @@
       } else {
         currentUser = null;
         userTier = 'free';
+        photoUploadAllowed = false;
+        updatePhotoUploadAccess();
         clearSessionTimer(); // ← cancel any running timer on sign-out
         if (!isProvisioning) {
           checkLogin();
         }
       }
-      updatePhotoUploadAccess();
     });
 
-    // ── Beta feature flags (admin-controlled, e.g. Manage Photos upload) ──
-    let photoUploadEmails = [];
+    // ── Beta feature flag (admin-controlled per user, e.g. Manage Photos upload) ──
     let photoUploadAllowed = false;
 
-    async function loadFeatureFlags() {
-      try {
-        const res = await fetch(`${WORKER_URL}/api/feature-flags`);
-        const data = await res.json();
-        photoUploadEmails = (data && data.featureFlags && data.featureFlags.photoUploadEmails) || [];
-      } catch (e) {
-        console.error('Failed to load feature flags:', e);
-        photoUploadEmails = [];
-      }
-      updatePhotoUploadAccess();
-    }
-
     function updatePhotoUploadAccess() {
-      const email = (currentUser && currentUser.email || '').toLowerCase();
-      photoUploadAllowed = !!email && photoUploadEmails.includes(email);
       const dropzone = document.getElementById('managePhotoDropzone');
       if (dropzone) dropzone.style.display = photoUploadAllowed ? 'flex' : 'none';
     }
-
-    loadFeatureFlags();
 
     function setTheme(dark) {
       if (dark) {

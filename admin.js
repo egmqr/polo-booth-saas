@@ -10,7 +10,6 @@ const DEFAULT_APP_VERSIONS = {
     android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' }
 };
 const WINDOWS_DOWNLOAD_KEY = 'PoloPro.exe';
-const FEATURE_FLAGS_DOC = 'app_settings/feature_flags';
 
 function docId(doc) {
     return decodeURIComponent((doc.name || '').split('/').pop() || '');
@@ -154,7 +153,8 @@ function userFromDoc(doc) {
         accountName: readString(f, 'accountName'),
         inviteCode: readString(f, 'inviteCode'),
         pin: readString(f, 'pin'),
-        seatLimit: readInt(f, 'seatLimit', 1)
+        seatLimit: readInt(f, 'seatLimit', 1),
+        betaFeatures: readBoolean(f, 'betaFeatures', false)
     };
 }
 
@@ -268,6 +268,7 @@ function buildUserFields(body, now) {
     if ('accountName' in body) fields.accountName = { stringValue: String(body.accountName || '').slice(0, 160) };
     if ('pin' in body) fields.pin = { stringValue: String(body.pin || '').slice(0, 32) };
     if ('seatLimit' in body) fields.seatLimit = { integerValue: String(Math.max(parseInt(body.seatLimit, 10) || 1, 1)) };
+    if ('betaFeatures' in body) fields.betaFeatures = { booleanValue: !!body.betaFeatures };
 
     if ('expiresAt' in body) {
         const expiresAt = isoOrEmpty(body.expiresAt);
@@ -284,41 +285,6 @@ function buildUserFields(body, now) {
     if (body.status === 'active' || body.status === 'disabled') fields.suspendedAt = { nullValue: null };
 
     return fields;
-}
-
-function featureFlagsFromDoc(doc) {
-    const f = doc?.fields || {};
-    const raw = readString(f, 'photoUploadEmails', '');
-    const photoUploadEmails = raw
-        ? raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
-        : [];
-    return { photoUploadEmails };
-}
-
-async function readFeatureFlags(fsBase, serviceToken) {
-    const doc = await getFirestoreDoc(fsBase, serviceToken, FEATURE_FLAGS_DOC);
-    return featureFlagsFromDoc(doc);
-}
-
-function featureFlagFields(body = {}) {
-    const emails = Array.isArray(body.photoUploadEmails)
-        ? body.photoUploadEmails
-        : String(body.photoUploadEmails || '').split(',');
-    const cleaned = [...new Set(emails.map(e => String(e || '').trim().toLowerCase()).filter(Boolean))];
-
-    return {
-        photoUploadEmails: { stringValue: cleaned.join(',') },
-        updatedAt: { timestampValue: new Date().toISOString() }
-    };
-}
-
-export async function handleFeatureFlagsPublic(request, env) {
-    if (request.method !== 'GET') return json({ success: false, error: 'Method not allowed' }, 405);
-
-    const serviceToken = await getServiceToken(env);
-    const fsBase = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
-    const featureFlags = await readFeatureFlags(fsBase, serviceToken);
-    return json({ success: true, featureFlags });
 }
 
 export async function handleAppVersionsPublic(request, env) {
@@ -362,18 +328,6 @@ export async function handleAdminRoutes(request, env) {
 
         await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
         return json({ success: true, appVersions: appVersionsFromDoc({ fields }) });
-    }
-
-    if (path === '/api/admin/feature-flags' && request.method === 'GET') {
-        return json({ success: true, featureFlags: await readFeatureFlags(fsBase, serviceToken) });
-    }
-
-    if (path === '/api/admin/feature-flags' && request.method === 'POST') {
-        const body = await request.json();
-        const fields = featureFlagFields(body);
-
-        await patchFirestoreDoc(fsBase, serviceToken, FEATURE_FLAGS_DOC, fields);
-        return json({ success: true, featureFlags: featureFlagsFromDoc({ fields }) });
     }
 
     if (path === '/api/admin/upload-app' && request.method === 'POST') {

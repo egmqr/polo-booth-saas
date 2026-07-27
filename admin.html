@@ -974,6 +974,7 @@
                             <th>Events</th>
                             <th>Joined</th>
                             <th>Note</th>
+                            <th>Beta</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -1089,24 +1090,6 @@
                         <input id="androidApkInput" type="file" accept=".apk,application/vnd.android.package-archive,application/octet-stream">
                         <button class="btn-primary" onclick="uploadAppFile('android')">Upload Android APK</button>
                     </div>
-                </div>
-            </div>
-
-            <div class="settings-panel">
-                <div>
-                    <h2>Beta features</h2>
-                    <p class="sub">Restrict in-progress dashboard features to specific accounts by email. Leave blank to hide from everyone.</p>
-                </div>
-                <div class="settings-form">
-                    <div class="field" style="grid-column: 1 / -1;">
-                        <label>Photo upload (Manage Photos) — allowed emails</label>
-                        <textarea id="photoUploadEmailsInput" rows="3" placeholder="jane@example.com, john@example.com"></textarea>
-                    </div>
-                </div>
-                <div class="settings-actions">
-                    <button class="btn-primary" onclick="saveFeatureFlags()">Save Beta Features</button>
-                    <button class="btn-ghost" onclick="loadFeatureFlags()">Reload</button>
-                    <span class="muted" id="featureFlagsUpdatedAt"></span>
                 </div>
             </div>
         </section>
@@ -1357,7 +1340,7 @@
         }
 
         async function refreshData() {
-            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true), loadAppVersions(), loadFeatureFlags()]);
+            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true), loadAppVersions()]);
             showToast('Data refreshed');
         }
 
@@ -1404,26 +1387,6 @@
             appVersions = data.appVersions || {};
             await loadAppVersions();
             showToast('App versions saved');
-        }
-
-        async function loadFeatureFlags() {
-            const data = await adminFetch('/api/admin/feature-flags');
-            const featureFlags = data.featureFlags || {};
-            document.getElementById('photoUploadEmailsInput').value = (featureFlags.photoUploadEmails || []).join(', ');
-            document.getElementById('featureFlagsUpdatedAt').textContent = featureFlags.updatedAt
-                ? `Last updated ${formatDateTime(featureFlags.updatedAt)}`
-                : 'No accounts have access yet.';
-        }
-
-        async function saveFeatureFlags() {
-            const data = await adminFetch('/api/admin/feature-flags', {
-                method: 'POST',
-                body: JSON.stringify({
-                    photoUploadEmails: document.getElementById('photoUploadEmailsInput').value.split(',')
-                })
-            });
-            await loadFeatureFlags();
-            showToast('Beta features saved');
         }
 
         async function uploadAppFile(appType) {
@@ -1487,6 +1450,9 @@
                     <td class="muted" data-label="Events">${user.eventCount ?? '-'}</td>
                     <td class="muted" data-label="Joined">${formatDate(user.createdAt)}</td>
                     <td class="note-cell" data-label="Note"><input class="compact-input" id="note-${escAttr(user.uid)}" value="${escAttr(user.note || '')}" placeholder="Admin note"></td>
+                    <td data-label="Beta" style="text-align:center;">
+                        <input type="checkbox" title="Enable beta features" ${user.betaFeatures ? 'checked' : ''} onchange="toggleUserBeta('${escAttr(user.uid)}', this.checked)">
+                    </td>
                     <td data-label="Actions">
                         <div class="row-actions">
                             <button class="btn-small" onclick="openUserDrawer('${escAttr(user.uid)}')">Detail</button>
@@ -1570,6 +1536,15 @@
                 note: document.getElementById(`note-${uid}`).value,
                 expiresAt: fromLocalDateTime(document.getElementById(`exp-${uid}`).value)
             });
+        }
+
+        async function toggleUserBeta(uid, checked) {
+            try {
+                await updateUser(uid, { betaFeatures: checked });
+            } catch (err) {
+                showToast(err.message);
+                renderUsers();
+            }
         }
 
         async function updateUser(uid, patch) {

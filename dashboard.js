@@ -257,7 +257,8 @@ export async function handleUserRoutes(request, env) {
             status,
             role: f.role?.stringValue || 'owner',
             note: f.note?.stringValue || '',
-            pin: f.pin?.stringValue || '1234'
+            pin: f.pin?.stringValue || '1234',
+            betaFeatures: f.betaFeatures?.booleanValue || false
         });
     }
 
