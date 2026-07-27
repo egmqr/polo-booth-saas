@@ -1,6 +1,6 @@
 // dashboard.js
 
-import { Storage } from './cloud.js';
+import { Storage, Sessions } from './cloud.js';
 import { json, decodeBase64, safePrefix } from './util.js';
 import { verifyFirebaseToken, getServiceToken } from './auth.js';
 import { putHotfolderTargets } from './hotfolder.js';
@@ -331,7 +331,13 @@ export async function handleDashboardRoutes(request, env) {
     }
     if (path === '/api/dashboard/delete-file') {
         if (!body.key) return json({ success: false, error: 'No key provided' }, 400);
-        try { await Storage.delete(env, body.key); return json({ success: true }); }
+        try {
+            await Storage.delete(env, body.key);
+            // Tombstone the key so a booth's local durable upload queue can't silently
+            // re-upload a photo that was just deleted here (60-day grace period).
+            await Sessions.put(env, `deleted:${body.key}`, '1', { expirationTtl: 60 * 60 * 24 * 60 });
+            return json({ success: true });
+        }
         catch (err) { return json({ success: false, error: err.message }, 500); }
     }
 
@@ -749,6 +755,11 @@ async function handleSignedUpload(env, body, currentUser) {
 
     const filename = (body.filename || '').replace(/[^A-Za-z0-9._-]/g, '_');
     const key = `${prefix}/${filename}`;
+
+    if (await Sessions.get(env, `deleted:${key}`)) {
+        return { error: 'This photo was deleted from the dashboard and will not be re-uploaded automatically.' };
+    }
+
     const uploadUrl = await Storage.presignPut(env, key, 900);
 
     return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };

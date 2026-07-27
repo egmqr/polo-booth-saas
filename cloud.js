@@ -77,7 +77,7 @@ export const Storage = {
 // ── CLOUDFLARE KV (SESSIONS) ────────────────────────────────────────────
 export const Sessions = {
     async get(env, key) { return await env.SESSIONS.get(key); },
-    async put(env, key, val) { return await env.SESSIONS.put(key, val); },
+    async put(env, key, val, options) { return await env.SESSIONS.put(key, val, options); },
     async delete(env, key) { return await env.SESSIONS.delete(key); },
     async list(env, options) { return await env.SESSIONS.list(options); }
 };
