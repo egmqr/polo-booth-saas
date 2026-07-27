@@ -1091,6 +1091,24 @@
                     </div>
                 </div>
             </div>
+
+            <div class="settings-panel">
+                <div>
+                    <h2>Beta features</h2>
+                    <p class="sub">Restrict in-progress dashboard features to specific accounts by email. Leave blank to hide from everyone.</p>
+                </div>
+                <div class="settings-form">
+                    <div class="field" style="grid-column: 1 / -1;">
+                        <label>Photo upload (Manage Photos) — allowed emails</label>
+                        <textarea id="photoUploadEmailsInput" rows="3" placeholder="jane@example.com, john@example.com"></textarea>
+                    </div>
+                </div>
+                <div class="settings-actions">
+                    <button class="btn-primary" onclick="saveFeatureFlags()">Save Beta Features</button>
+                    <button class="btn-ghost" onclick="loadFeatureFlags()">Reload</button>
+                    <span class="muted" id="featureFlagsUpdatedAt"></span>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -1339,7 +1357,7 @@
         }
 
         async function refreshData() {
-            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true), loadAppVersions()]);
+            await Promise.all([loadSummary(), loadUsers(true), loadInvites(true), loadAppVersions(), loadFeatureFlags()]);
             showToast('Data refreshed');
         }
 
@@ -1386,6 +1404,26 @@
             appVersions = data.appVersions || {};
             await loadAppVersions();
             showToast('App versions saved');
+        }
+
+        async function loadFeatureFlags() {
+            const data = await adminFetch('/api/admin/feature-flags');
+            const featureFlags = data.featureFlags || {};
+            document.getElementById('photoUploadEmailsInput').value = (featureFlags.photoUploadEmails || []).join(', ');
+            document.getElementById('featureFlagsUpdatedAt').textContent = featureFlags.updatedAt
+                ? `Last updated ${formatDateTime(featureFlags.updatedAt)}`
+                : 'No accounts have access yet.';
+        }
+
+        async function saveFeatureFlags() {
+            const data = await adminFetch('/api/admin/feature-flags', {
+                method: 'POST',
+                body: JSON.stringify({
+                    photoUploadEmails: document.getElementById('photoUploadEmailsInput').value.split(',')
+                })
+            });
+            await loadFeatureFlags();
+            showToast('Beta features saved');
         }
 
         async function uploadAppFile(appType) {

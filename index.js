@@ -4,7 +4,7 @@ import { handleGalleryRoutes } from './gallery.js';
 import { handleQRRoutes } from './qr.js';
 import { handleDashboardRoutes, handleUserRoutes } from './dashboard.js';
 import { handleHotfolder } from './hotfolder.js';
-import { handleAdminRoutes, handleAppVersionsPublic } from './admin.js';
+import { handleAdminRoutes, handleAppVersionsPublic, handleFeatureFlagsPublic } from './admin.js';
 import { json, cors } from './util.js';
 
 export default {
@@ -30,6 +30,9 @@ export default {
 
             if (path === '/api/app-versions')
                 return cors(await handleAppVersionsPublic(request, env));
+
+            if (path === '/api/feature-flags')
+                return cors(await handleFeatureFlagsPublic(request, env));
 
             // ── User auth routes (provision + profile) ──
             if (path === '/api/auth/provision-user' || path === '/api/user/profile')
