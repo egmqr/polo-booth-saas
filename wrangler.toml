@@ -23,3 +23,11 @@ bucket_name = "probooth-production"
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "aff08eac47d143b7a8a01dae951e04cb"
+
+[[durable_objects.bindings]]
+name = "COUNTERS"
+class_name = "IdCounter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["IdCounter"]

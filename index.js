@@ -7,6 +7,26 @@ import { handleHotfolder } from './hotfolder.js';
 import { handleAdminRoutes, handleAppVersionsPublic } from './admin.js';
 import { json, cors } from './util.js';
 
+// Atomic per-prefix ID counter. Durable Object requests are serialized per object,
+// so read-increment-write here cannot race the way the old KV get-then-put did
+// (two concurrent captures on one booth prefix could mint the same photo id).
+// The seed carries the legacy KV counter value so existing events continue their
+// sequence instead of restarting at 1.
+export class IdCounter {
+    constructor(state) {
+        this.state = state;
+    }
+
+    async fetch(request) {
+        const url = new URL(request.url);
+        const seed = parseInt(url.searchParams.get('seed') || '0', 10) || 0;
+        const stored = (await this.state.storage.get('value')) || 0;
+        const next = Math.max(stored, seed) + 1;
+        await this.state.storage.put('value', next);
+        return new Response(String(next));
+    }
+}
+
 export default {
     async fetch(request, env) {
         if (request.method === 'OPTIONS') {

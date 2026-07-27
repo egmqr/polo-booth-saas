@@ -67,6 +67,26 @@ export async function handleQRRoutes(request, env) {
 // ── INTERNAL HELPERS ──
 async function nextId(env, kind, prefix) {
     const key = `counter:${kind}:${prefix}`;
+
+    // Prefer the Durable Object: its requests serialize per counter, so two booths
+    // capturing at the same instant can never mint the same id. The KV value seeds
+    // the DO (existing events keep their sequence) and is mirrored back afterwards
+    // for the cron cleanup and as the fallback's state.
+    if (env.COUNTERS) {
+        try {
+            const stub = env.COUNTERS.get(env.COUNTERS.idFromName(key));
+            const seed = parseInt((await Sessions.get(env, key)) || '0', 10) || 0;
+            const resp = await stub.fetch(`https://counter/?seed=${seed}`);
+            const next = parseInt(await resp.text(), 10);
+            if (Number.isFinite(next) && next > 0) {
+                await Sessions.put(env, key, String(next));
+                return kind + String(next).padStart(4, '0');
+            }
+        } catch (err) {
+            console.error('IdCounter DO failed, falling back to KV:', err.message);
+        }
+    }
+
     const cur = parseInt((await Sessions.get(env, key)) || '0', 10);
     await Sessions.put(env, key, String(cur + 1));
     return kind + String(cur + 1).padStart(4, '0');
