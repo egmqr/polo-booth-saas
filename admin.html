@@ -921,7 +921,7 @@
 
         <section id="viewUsers">
             <div class="filters">
-                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()">
+                <input type="search" id="userSearch" placeholder="Search email, UID, account, note" oninput="renderUsers()" autocomplete="off">
                 <select id="tierFilter" onchange="renderUsers()">
                     <option value="">All tiers</option>
                     <option value="paid">Paid</option>
@@ -1002,7 +1002,7 @@
             </div>
 
             <div class="filters" style="grid-template-columns:minmax(220px,1fr) repeat(3,minmax(120px,.35fr));">
-                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()">
+                <input type="search" id="inviteSearch" placeholder="Search code, UID, note" oninput="renderInvites()" autocomplete="off">
                 <select id="inviteStateFilter" onchange="renderInvites()">
                     <option value="">All states</option>
                     <option value="usable">Usable</option>
