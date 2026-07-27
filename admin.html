@@ -1189,10 +1189,11 @@
 
         const SESSION_DURATION_MS = 60 * 60 * 1000;
 
-        // Some browsers (or password-manager extensions like LastPass/1Password/Bitwarden)
-        // restore/inject a previously typed value into these fields, sometimes well after
-        // load. `pageshow` catches bfcache/reload restores; the URL-pattern guard runs on a
-        // delay schedule to catch late async injections without clobbering real user input.
+        // A password-manager extension keeps injecting a saved URL into these generic
+        // fields, ignoring autocomplete="off" and the data-*ignore opt-out attributes.
+        // Since there's no fixed timing we can wait out, clear on every input/change
+        // event (catches it the instant it's injected) plus a standing background poll
+        // (catches injections that don't dispatch events) for the life of the page.
         function clearGhostSearchFields() {
             [document.getElementById('userSearch'), document.getElementById('inviteSearch')].forEach(el => {
                 if (el) el.value = '';
@@ -1205,7 +1206,13 @@
         }
         window.addEventListener('pageshow', clearGhostSearchFields);
         setTimeout(clearGhostSearchFields, 0);
-        [100, 300, 600, 1000, 2000].forEach(ms => setTimeout(clearIfLooksInjected, ms));
+        ['userSearch', 'inviteSearch'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', () => { if (/^https?:\/\//i.test(el.value)) el.value = ''; });
+            el.addEventListener('change', () => { if (/^https?:\/\//i.test(el.value)) el.value = ''; });
+        });
+        setInterval(clearIfLooksInjected, 500);
 
         window.onload = async () => {
             clearGhostSearchFields();
