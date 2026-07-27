@@ -93,7 +93,11 @@ export async function getServiceToken(env) {
         body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${signingInput}.${sigB64}`
     });
 
+    // A failed token exchange must surface loudly: silently caching "undefined"
+    // downgrades every paid customer to free tier until the isolate recycles.
+    if (!tokenResp.ok) throw new Error(`Service token request failed (${tokenResp.status})`);
     const tokenData = await tokenResp.json();
+    if (!tokenData.access_token) throw new Error('Service token response missing access_token');
     _serviceToken = tokenData.access_token;
     _serviceTokenExp = now + 3600;
     return _serviceToken;

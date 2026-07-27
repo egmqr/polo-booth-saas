@@ -50,7 +50,8 @@ export async function handleGalleryRoutes(request, env) {
     }
 
     if (path === '/api/upload-community' && request.method === 'POST') {
-        const body = await request.json();
+        let body;
+        try { body = await request.json(); } catch { return json({ success: false, error: 'Invalid JSON body' }, 400); }
         const prefix = safePrefix(body.prefix);
         if (!prefix) return json({ success: false, error: 'Invalid prefix' }, 400);
 
@@ -91,8 +92,12 @@ async function findTemplateConfig(env, prefix) {
 async function streamLiveUpdates(env, prefix, writer, encoder) {
     let lastKnownKeys = new Set();
     let isFirstRun = true;
+    // Cap the stream lifetime: abandoned EventSource connections must not keep an
+    // isolate looping and listing R2 forever. Clients auto-reconnect on close.
+    const startedAt = Date.now();
+    const MAX_STREAM_MS = 10 * 60 * 1000;
     try {
-        while (true) {
+        while (Date.now() - startedAt < MAX_STREAM_MS) {
             const now = Date.now();
             let cache = streamCache.get(prefix);
             let items = [];
@@ -100,6 +105,10 @@ async function streamLiveUpdates(env, prefix, writer, encoder) {
             if (!cache || now - cache.time > 5000) {
                 items = await listAllObjects(env, prefix + '/', 1000);
                 streamCache.set(prefix, { time: now, items });
+                // Evict stale entries so the module-level cache can't grow unbounded.
+                for (const [cachedPrefix, value] of streamCache) {
+                    if (now - value.time > 60000) streamCache.delete(cachedPrefix);
+                }
             } else { items = cache.items; }
 
             const files = items.filter(o => !o.key.slice(prefix.length + 1).includes('/') && /\.(jpe?g|png|webp)$/i.test(o.key));
@@ -120,5 +129,9 @@ async function streamLiveUpdates(env, prefix, writer, encoder) {
             lastKnownKeys = currentKeys; isFirstRun = false;
             await new Promise(resolve => setTimeout(resolve, 5000));
         }
-    } catch (err) { await writer.close().catch(() => { }); }
+    } catch (err) {
+        // Client disconnected or write failed; fall through to close.
+    } finally {
+        await writer.close().catch(() => { });
+    }
 }

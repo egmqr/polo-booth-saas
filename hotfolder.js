@@ -23,14 +23,18 @@ export async function handleHotfolder(request, env) {
 
     // POST /api/hotfolder/push — Dashboard or PoloPro pushes a config JSON
     if (path === '/api/hotfolder/push' && request.method === 'POST') {
-        const { key, content, client: bodyClient } = await request.json();
+        let pushBody;
+        try { pushBody = await request.json(); } catch { return json({ success: false, error: 'Invalid JSON body' }, 400); }
+        const { key, content, client: bodyClient } = pushBody;
         const keys = await putHotfolderTargets(env, currentUser.uid, key, content, hotfolderTargets(bodyClient || url.searchParams.get('target') || 'all'));
         return json({ success: true, key: keys[0], keys });
     }
 
     // DELETE /api/hotfolder/ack — PoloPro acknowledges it has received the config
     if (path === '/api/hotfolder/ack' && request.method === 'DELETE') {
-        const { key } = await request.json();
+        let ackBody;
+        try { ackBody = await request.json(); } catch { return json({ success: false, error: 'Invalid JSON body' }, 400); }
+        const { key } = ackBody;
         const cleanKey = cleanHotfolderKey(key);
         const safeKey = `${userHotfolderPrefix}${cleanKey}`;
         if (!safeKey.startsWith(userHotfolderPrefix)) {

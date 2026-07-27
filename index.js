@@ -56,7 +56,8 @@ export default {
             return cors(json({ error: 'Not found', path }, 404));
         } catch (err) {
             console.error('Worker error:', err.stack || err.message);
-            return cors(json({ success: false, error: err.message }, 500));
+            // Full detail stays in the worker logs; don't leak internals to callers.
+            return cors(json({ success: false, error: 'Internal server error' }, 500));
         }
     },
 

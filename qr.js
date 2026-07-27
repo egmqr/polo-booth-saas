@@ -34,6 +34,7 @@ export async function handleQRRoutes(request, env) {
 
     if (path === '/api/session-gallery' && request.method === 'GET') {
         const session = url.searchParams.get('session');
+        if (!session) return json({ status: 'error', message: 'session parameter required' }, 400);
         const list = await listAll(env, prefix + '/');
         const re = new RegExp(`-${session.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\.[A-Za-z0-9]+)?$`);
         const photos = list.filter(o => !o.key.slice(prefix.length + 1).includes('/') && re.test(o.key))
@@ -43,7 +44,8 @@ export async function handleQRRoutes(request, env) {
     }
 
     if (path === '/api/toggle-session' && request.method === 'POST') {
-        const body = await request.json();
+        let body;
+        try { body = await request.json(); } catch { return json({ error: 'Invalid JSON body' }, 400); }
         if (body.isStarting) {
             const sessionStr = await nextId(env, 's', prefix);
             await Sessions.put(env, `active:${prefix}`, sessionStr);

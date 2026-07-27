@@ -3423,9 +3423,13 @@
             }
           }
           updateManageRefreshStatus(`Auto-refreshing - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
-        } else if (showLoading) {
-          grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
-          updateManageRefreshStatus('Refresh failed');
+        } else {
+          if (showLoading) {
+            grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: #ef4444; padding: 20px;">Failed to load photos.</div>';
+          }
+          // Always surface the failure — otherwise a background refresh error leaves
+          // "Checking for new photos..." on screen while the grid goes stale.
+          updateManageRefreshStatus('Refresh failed - showing last loaded photos');
         }
       } catch (e) {
         console.error('Manage photos refresh error:', e);
@@ -3441,6 +3445,9 @@
     function startManageAutoRefresh() {
       stopManageAutoRefresh();
       manageRefreshTimer = setInterval(() => {
+        // Skip polling while the tab is backgrounded; a fresh refresh fires on the
+        // next tick after the reviewer returns.
+        if (document.hidden) return;
         if (document.getElementById('manageModal').style.display === 'flex') {
           refreshManagePhotos();
         }
@@ -3622,19 +3629,28 @@
 
       showOverlay('Deleting files...');
       updateOverlayProgress(0, checkboxes.length, 'Deleted');
-      let deletedCount = 0;
+      // Only drop a photo from the grid when its delete actually succeeded — a
+      // reviewer must never be told "deleted" while the photos are still in R2.
+      let deletedCount = 0, failedCount = 0;
       for (const cb of checkboxes) {
         const key = cb.getAttribute('data-key');
-        await callWorkerApi('/api/dashboard/delete-file', { key }, true);
-        managePhotosData = managePhotosData.filter(item => item[0] !== key);
-        unmarkDeletedManagePhoto(key);
-        deletedCount++;
-        document.getElementById('overlay-text').innerText = `Deleting ${deletedCount} of ${checkboxes.length} photos...`;
-        updateOverlayProgress(deletedCount, checkboxes.length, 'Deleted');
+        const res = await callWorkerApi('/api/dashboard/delete-file', { key }, true);
+        if (res && res.success) {
+          managePhotosData = managePhotosData.filter(item => item[0] !== key);
+          unmarkDeletedManagePhoto(key);
+          deletedCount++;
+        } else {
+          failedCount++;
+        }
+        const processed = deletedCount + failedCount;
+        document.getElementById('overlay-text').innerText = `Deleting ${processed} of ${checkboxes.length} photos...`;
+        updateOverlayProgress(processed, checkboxes.length, 'Deleted');
       }
       renderManageGrid();
       hideOverlay();
-      showToast('Selected photos deleted');
+      showToast(failedCount
+        ? `Deleted ${deletedCount} photo${deletedCount === 1 ? '' : 's'}, ${failedCount} failed — still in the gallery`
+        : 'Selected photos deleted');
     }
 
     async function fetchManagePhotoBlob(item) {

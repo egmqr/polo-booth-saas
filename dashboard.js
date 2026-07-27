@@ -285,7 +285,8 @@ export async function handleDashboardRoutes(request, env) {
         }, 403);
     }
 
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return json({ success: false, error: 'Invalid JSON body' }, 400); }
 
     if (path === '/api/next-event-id') return json(await mintNextEventId(env));
     if (path === '/api/dashboard/check-event-name') return json(await checkEventNameUnique(env, body, currentUser));
@@ -760,9 +761,11 @@ async function handleSignedUpload(env, body, currentUser) {
         return { error: 'This photo was deleted from the dashboard and will not be re-uploaded automatically.' };
     }
 
-    const uploadUrl = await Storage.presignPut(env, key, 900);
+    // Short expiry closes most of the delete-race window: a tombstone written
+    // after presigning can only be bypassed while an already-issued URL is valid.
+    const uploadUrl = await Storage.presignPut(env, key, 120);
 
-    return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 900 };
+    return { uploadUrl, key, publicUrl: `${(env.PUBLIC_CDN_BASE || 'https://cdn.polo-booth.com').replace(/\/$/, '')}/${key}`, expiresIn: 120 };
 }
 
 // NEW: Consolidated asset fetcher (Supports both Global and Isolated Event folders)
