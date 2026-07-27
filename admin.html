@@ -1189,11 +1189,21 @@
 
         const SESSION_DURATION_MS = 60 * 60 * 1000;
 
+        // Some browsers restore a previously typed value into these fields on reload
+        // (native form-state restoration, separate from autofill/autocomplete). `pageshow`
+        // catches bfcache/reload restores that the `load` event alone can miss, and the
+        // extra timeout catches restorations that happen a beat after both fire.
+        function clearGhostSearchFields() {
+            const userSearchEl = document.getElementById('userSearch');
+            const inviteSearchEl = document.getElementById('inviteSearch');
+            if (userSearchEl) userSearchEl.value = '';
+            if (inviteSearchEl) inviteSearchEl.value = '';
+        }
+        window.addEventListener('pageshow', clearGhostSearchFields);
+        setTimeout(clearGhostSearchFields, 0);
+
         window.onload = async () => {
-            // Belt-and-suspenders: some browsers ignore autocomplete="off" and restore a
-            // previously typed value into these fields on page load regardless.
-            document.getElementById('userSearch').value = '';
-            document.getElementById('inviteSearch').value = '';
+            clearGhostSearchFields();
 
             const storedApi = sessionStorage.getItem('adminApi');
             const storedSecret = sessionStorage.getItem('adminSecret');
