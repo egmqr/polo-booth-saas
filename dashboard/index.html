@@ -168,14 +168,26 @@
     }
 
     /* Layout Reset & Mobile Base */
-    body {
+    body,
+    button,
+    input,
+    select,
+    textarea {
       font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      font-size: 0.9rem;
       background-color: var(--bg-body);
       color: var(--text-main);
       margin: 0;
       padding: 15px;
       /* Removed 60px top padding so it flows naturally */
       transition: background-color 0.3s, color 0.3s;
+    }
+
+    @media (min-width: 768px) {
+      body { font-size: 0.95rem; }
     }
 
     .container {

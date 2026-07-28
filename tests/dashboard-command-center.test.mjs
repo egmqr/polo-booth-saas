@@ -12,7 +12,9 @@ test('preserves critical operator controls', () => {
 
 test('includes dashboard accessibility and responsive safeguards', () => {
   assert.match(page, /family=Inter:wght@400;500;600;700;800/);
-  assert.match(page, /font-family: 'Inter', sans-serif;/);
+  assert.match(page, /body,\s*button,\s*input,\s*select,\s*textarea \{\s*font-family: 'Inter', sans-serif;/);
+  assert.match(page, /body \{\s*font-size: 0\.9rem;/);
+  assert.match(page, /@media \(min-width: 768px\) \{\s*body \{ font-size: 0\.95rem; \}/);
   assert.match(page, /:focus-visible/);
   assert.match(page, /prefers-reduced-motion: reduce/);
   assert.match(page, /command-center/);
