@@ -1317,7 +1317,7 @@
     /* Operator command-center refresh */
     .command-center { max-width: 1180px; margin: 0 auto; }
     .mode-toggle { display: none; }
-    #editFormFields { display: block; }
+    #editFormFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
     .workspace-toolbar { display: grid; gap: 18px; margin-bottom: 24px; padding: 6px 0 0; }
     .event-picker { width: 100%; min-width: 0; max-width: none; margin: 8px 0 0; }
     .event-picker label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -1333,7 +1333,8 @@
     .workspace-actions #deleteBtn:hover:not(:disabled) { background: #fff1f2; color: #c73743; }
     #eventSelect { appearance: none; -webkit-appearance: none; padding-right: 42px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px; }
     .dashboard-segment { margin-top: 0; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); }
-    #editFormFields > .dashboard-segment + .dashboard-segment, #viewContainer { margin-top: 24px; }
+    #eventSegment { grid-column: 1 / -1; }
+    #webGallerySegment, #viewContainer { margin-top: 0; }
     .dashboard-segment h2 { margin: 0 0 18px; color: var(--text-main); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
     #eventSegment .form-group, #webGallerySegment > .form-group { border-bottom: 0 !important; padding-bottom: 0 !important; }
     #eventSegment .color-group { padding: 0; border: 0; border-radius: 0; background: transparent; }
@@ -1344,6 +1345,7 @@
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
+    @media (max-width: 900px) { #editFormFields { grid-template-columns: 1fr; } #eventSegment { grid-column: auto; } }
     @media (max-width: 700px) { .top-navbar { padding: 0; } .workspace-actions > * { flex: 1 1 calc(50% - 4px); width: auto; } .dashboard-segment { padding: 20px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
   </style>
@@ -1773,9 +1775,8 @@
       </div>
 
       </section>
-    </div>
 
-    <div id="viewContainer" class="dashboard-segment" data-dashboard-segment="Manage" style="display: none;">
+      <section id="viewContainer" class="dashboard-segment" data-dashboard-segment="Manage" style="display: none;">
       <h2>Manage</h2>
       <div
         style="padding: 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px;">
@@ -1785,6 +1786,7 @@
       <div id="boothList"></div>
       <button id="downloadAllQRsBtn" class="action-btn" style="display:none;" onclick="downloadAllQRs()">Download All QR
         Codes</button>
+      </section>
     </div>
 
   </main>
@@ -2697,7 +2699,7 @@
       if (mode === 'new') {
         document.getElementById('btnModeNew').classList.add('active');
         document.getElementById('editSelectContainer').style.display = 'block';
-        document.getElementById('editFormFields').style.display = activateWorkspace ? 'block' : 'none';
+        document.getElementById('editFormFields').style.display = activateWorkspace ? 'grid' : 'none';
         document.getElementById('viewContainer').style.display = 'none';
         document.getElementById('generateBtn').style.display = activateWorkspace ? 'block' : 'none';
         document.getElementById('saveBtn').style.display = 'none';
@@ -2728,7 +2730,7 @@
         document.getElementById('existingLogoGalleryContainer').style.display = 'none';
 
         document.getElementById('editSelectContainer').style.display = 'block';
-        document.getElementById('editFormFields').style.display = mode === 'edit' ? 'block' : 'none';
+        document.getElementById('editFormFields').style.display = mode === 'edit' ? 'grid' : 'none';
         document.getElementById('viewContainer').style.display = 'block';
 
         document.getElementById('generateBtn').style.display = 'none';

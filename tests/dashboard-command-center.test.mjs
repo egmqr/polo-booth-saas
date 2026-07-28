@@ -36,13 +36,15 @@ test('places same-size event actions beside each other above the full-width sele
 test('keeps the workspace empty until an event is selected or created', () => {
   assert.match(page, /onclick="setMode\('new', true\)"/);
   assert.match(page, /function setMode\(mode, activateWorkspace = false\)/);
-  assert.match(page, /editFormFields'\)\.style\.display = activateWorkspace \? 'block' : 'none';/);
+  assert.match(page, /editFormFields'\)\.style\.display = activateWorkspace \? 'grid' : 'none';/);
   assert.match(page, /generateBtn'\)\.style\.display = activateWorkspace \? 'block' : 'none';/);
   assert.match(page, /-- Select an event --/);
 });
 
-test('separates each visible workspace container', () => {
-  assert.match(page, /#editFormFields > \.dashboard-segment \+ \.dashboard-segment, #viewContainer \{ margin-top: 24px; \}/);
+test('uses a two-column desktop layout below the full-width Event container', () => {
+  assert.match(page, /#editFormFields \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); gap: 24px; \}/);
+  assert.match(page, /#eventSegment \{ grid-column: 1 \/ -1; \}/);
+  assert.match(page, /@media \(max-width: 900px\) \{ #editFormFields \{ grid-template-columns: 1fr; \}/);
 });
 
 test('groups the workspace into Event, Web Gallery, and Manage', () => {
