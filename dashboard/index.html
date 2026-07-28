@@ -1317,19 +1317,25 @@
     /* Operator command-center refresh */
     .command-center { max-width: 1180px; margin: 0 auto; }
     .mode-toggle { display: none; }
-    #editFormFields { display: grid; gap: 0; }
-    .workspace-toolbar { display: grid; gap: 12px; margin-bottom: 24px; }
-    .event-picker { min-width: 0; max-width: 620px; }
+    #editFormFields { display: grid; gap: 16px; }
+    .workspace-toolbar { display: grid; gap: 16px; margin-bottom: 16px; padding: 6px 0 18px; border-bottom: 1px solid var(--border); }
+    .event-picker { min-width: 0; max-width: 880px; margin: 0; }
+    .event-picker label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .event-picker select { height: 34px; margin: 0; padding: 7px 10px; font-size: 13px; }
     .workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-    .workspace-actions .action-btn, .workspace-actions .file-btn { min-height: 38px; margin: 0; padding: 8px 14px; font-size: 0.8rem; line-height: 1; }
-    .workspace-actions #deleteBtn { margin-top: 0; }
+    .workspace-actions .action-btn, .workspace-actions .file-btn { min-height: 38px; margin: 0; padding: 8px 14px; border-radius: 8px; font-size: 0.8rem; line-height: 1; text-transform: none; }
+    .workspace-actions .file-btn, .workspace-actions #generateBtn { background: #079b93; border-color: #079b93; color: #fff; }
+    .workspace-actions .file-btn:hover, .workspace-actions #generateBtn:hover:not(:disabled) { background: #07827c; border-color: #07827c; }
+    .workspace-actions #saveBtn { background: #ffd47b !important; color: #805b10 !important; border: 1px solid #ffd47b; }
+    .workspace-actions #deleteBtn { margin-top: 0; background: transparent; color: #e25963; border: 1px solid #ee8990; }
+    .workspace-actions #deleteBtn:hover:not(:disabled) { background: #fff1f2; color: #c73743; }
     #eventSelect { appearance: none; -webkit-appearance: none; padding-right: 42px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px; }
-    .dashboard-segment { margin-top: 20px; padding: 26px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
-    .dashboard-segment h2 { margin: 0 0 22px; color: var(--text-main); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .dashboard-segment { margin-top: 0; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); }
+    .dashboard-segment h2 { margin: 0 0 18px; color: var(--text-main); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
     #eventSegment .form-group, #webGallerySegment > .form-group { border-bottom: 0 !important; padding-bottom: 0 !important; }
     #eventSegment .color-group { padding: 0; border: 0; border-radius: 0; background: transparent; }
-    #templatesGroup { margin-top: 18px; }
-    #viewContainer { margin-top: 20px; }
+    #templatesGroup { margin-top: 16px; }
+    #viewContainer { margin-top: 0; }
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
@@ -1579,9 +1585,9 @@
     <div class="workspace-toolbar" id="editSelectContainer">
       <div class="workspace-actions">
         <button type="button" class="file-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
-        <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
-        <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;" onclick="runUpdate()">Save Changes</button>
-        <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
+        <button id="generateBtn" class="action-btn" onclick="runGeneration()"><i class="bi bi-magic"></i> Generate</button>
+        <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;" onclick="runUpdate()"><i class="bi bi-cloud-arrow-up"></i> Save</button>
+        <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()"><i class="bi bi-trash3"></i> Delete</button>
       </div>
       <div class="form-group event-picker">
         <label for="eventSearch" style="display:none;">Search events</label>
