@@ -13,8 +13,8 @@ test('preserves critical operator controls', () => {
 test('includes dashboard accessibility and responsive safeguards', () => {
   assert.match(page, /family=Inter:wght@400;500;600;700;800/);
   assert.match(page, /body,\s*button,\s*input,\s*select,\s*textarea \{\s*font-family: 'Inter', sans-serif;/);
-  assert.match(page, /body \{\s*font-size: 0\.9rem;/);
-  assert.match(page, /@media \(min-width: 768px\) \{\s*body \{ font-size: 0\.95rem; \}/);
+  assert.match(page, /body \{\s*font-size: 1rem;/);
+  assert.match(page, /@media \(min-width: 768px\) \{\s*body \{ font-size: 1rem; \}/);
   assert.match(page, /:focus-visible/);
   assert.match(page, /prefers-reduced-motion: reduce/);
   assert.match(page, /command-center/);
@@ -30,9 +30,9 @@ test('uses boxed segments and context actions', () => {
 
 test('matches EGM compact event actions above the full-width selector', () => {
   assert.match(page, /\.workspace-toolbar \{[^}]*display: grid;/);
-  assert.match(page, /\.event-picker \{[^}]*width: 100%;[^}]*max-width: none;/);
-  assert.match(page, /\.event-picker select \{[^}]*width: 100%;/);
-  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*display: inline-flex;[^}]*flex: 0 0 auto;[^}]*width: auto;[^}]*min-height: 42px;[^}]*font-size: 0\.875rem;/);
+  assert.match(page, /\.event-picker \{[^}]*width: 100%;[^}]*max-width: none;[^}]*margin: 16px 0 0;/);
+  assert.match(page, /\.event-picker select \{[^}]*width: 100%;[^}]*height: 40px;[^}]*font-size: 0\.9375rem;/);
+  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*display: inline-flex;[^}]*flex: 0 0 auto;[^}]*width: auto;[^}]*min-height: 42px;[^}]*font-size: 0\.9375rem;/);
   assert.match(page, /\.workspace-actions #saveBtn \{ background: #f4a946 !important; color: #fff !important;/);
   assert.match(page, /\.workspace-actions #deleteBtn \{[^}]*color: #e57373; border: 1px solid #e57373;/);
   const toolbar = page.slice(page.indexOf('<div class="workspace-toolbar"'), page.indexOf('<div id="editFormFields"'));
