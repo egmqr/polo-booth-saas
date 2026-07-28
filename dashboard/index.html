@@ -956,6 +956,61 @@
       margin: 0;
     }
 
+    /* Web Gallery controls share EGM dashboard's compact grouped switch treatment. */
+    .gallery-control-panel {
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--input-bg);
+    }
+    .gallery-toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 30px;
+    }
+    .gallery-toggle-row + .gallery-toggle-row { margin-top: 8px; }
+    .gallery-toggle-row input[type="checkbox"] {
+      appearance: none;
+      width: 30px;
+      height: 17px;
+      margin: 0;
+      flex: 0 0 auto;
+      border: 1px solid #b8c2cc;
+      border-radius: 999px;
+      background: #d6dce2;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .gallery-toggle-row input[type="checkbox"]::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+      transition: transform 0.15s;
+    }
+    .gallery-toggle-row input[type="checkbox"]:checked { background: #1687f8; border-color: #1687f8; }
+    .gallery-toggle-row input[type="checkbox"]:checked::after { transform: translateX(13px); }
+    .gallery-toggle-row input[type="checkbox"]:disabled { opacity: 0.5; cursor: not-allowed; }
+    .gallery-toggle-row label { margin: 0; color: var(--text-main); font-size: 13px; font-weight: 700; text-transform: none; letter-spacing: 0; cursor: pointer; }
+    .gallery-toggle-row label i { margin-right: 4px; }
+    .gallery-toggle-row label span { color: var(--text-muted); font-weight: 500; font-style: italic; }
+    .gallery-control-divider { height: 1px; margin: 13px 0 10px; background: var(--border); }
+    .gallery-panel-hint { margin: 10px 0 0; color: var(--text-muted); font-size: 12px; }
+    .gallery-custom-term { margin: 0 !important; }
+    .gallery-custom-term label { color: var(--text-muted); font-size: 11px; }
+    .dark-mode .gallery-control-panel { background: #161920; border-color: var(--dm-border); }
+    .dark-mode .gallery-toggle-row input[type="checkbox"] { background: #3a3f4d; border-color: #4a5160; }
+    .dark-mode .gallery-toggle-row input[type="checkbox"]:checked { background: #1687f8; border-color: #1687f8; }
+    .dark-mode .gallery-control-divider { background: var(--dm-border); }
+
     /* Custom Hex + Color Picker UI */
     .color-input-wrapper {
       display: flex;
@@ -1263,10 +1318,10 @@
     .command-center { max-width: 1180px; margin: 0 auto; }
     .mode-toggle { display: none; }
     #editFormFields { display: grid; gap: 0; }
-    .workspace-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-    .event-picker { flex: 1 1 360px; min-width: 0; }
-    .workspace-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-    .workspace-actions .action-btn, .workspace-actions .file-btn { margin: 0; }
+    .workspace-toolbar { display: grid; gap: 12px; margin-bottom: 24px; }
+    .event-picker { min-width: 0; max-width: 620px; }
+    .workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .workspace-actions .action-btn, .workspace-actions .file-btn { min-height: 38px; margin: 0; padding: 8px 14px; font-size: 0.8rem; line-height: 1; }
     .workspace-actions #deleteBtn { margin-top: 0; }
     #eventSelect { appearance: none; -webkit-appearance: none; padding-right: 42px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px; }
     .dashboard-segment { margin-top: 20px; padding: 26px; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
@@ -1278,7 +1333,7 @@
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
-    @media (max-width: 700px) { .top-navbar { padding: 0; } .workspace-toolbar { align-items: stretch; flex-direction: column; } .workspace-actions { justify-content: flex-start; } .workspace-actions > * { flex: 1 1 auto; } .dashboard-segment { padding: 20px; } }
+    @media (max-width: 700px) { .top-navbar { padding: 0; } .workspace-actions > * { flex: 1 1 auto; } .event-picker { max-width: none; } .dashboard-segment { padding: 20px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
   </style>
 </head>
@@ -1522,6 +1577,12 @@
     </div>
 
     <div class="workspace-toolbar" id="editSelectContainer">
+      <div class="workspace-actions">
+        <button type="button" class="file-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
+        <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
+        <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;" onclick="runUpdate()">Save Changes</button>
+        <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
+      </div>
       <div class="form-group event-picker">
         <label for="eventSearch" style="display:none;">Search events</label>
         <input type="text" id="eventSearch" placeholder="Type name or ID..." onkeyup="filterBoothEvents()"
@@ -1530,12 +1591,6 @@
         <select id="eventSelect" onchange="openWorkspaceEvent()">
           <option value="">New event — select an existing event to open it</option>
         </select>
-      </div>
-      <div class="workspace-actions">
-        <button type="button" class="file-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
-        <button id="generateBtn" class="action-btn" onclick="runGeneration()">Generate Booth Setup</button>
-        <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;" onclick="runUpdate()">Save Changes</button>
-        <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()">Delete Booth Setup</button>
       </div>
     </div>
 
@@ -1596,19 +1651,18 @@
           <input type="text" id="pageTitle" placeholder="e.g., Polo's Birthday Celebration 🎉">
         </div>
 
-      <div id="communityGroup" class="form-group">
-        <div class="checkbox-wrapper" id="communityEnableRow">
+      <div id="communityGroup" class="gallery-control-panel">
+        <div class="gallery-toggle-row" id="communityEnableRow">
           <input type="checkbox" id="boothEnableCommunity" onchange="handleCommunityToggle()">
           <label for="boothEnableCommunity"><i class="bi bi-people-fill"></i> Add Virtual Booth</label>
         </div>
-        <div class="checkbox-wrapper" id="communityOnlyRow" style="margin-top: 5px; display:none;">
+        <div class="gallery-toggle-row" id="communityOnlyRow" style="display:none;">
           <input type="checkbox" id="boothCommunityOnly" disabled onchange="handleCommunityOnlyToggle()">
-          <label for="boothCommunityOnly" id="boothCommunityOnlyLabel" style="color: var(--text-muted);">Virtual Booth
-            Only (No Studio)</label>
+          <label for="boothCommunityOnly" id="boothCommunityOnlyLabel">Virtual Booth Only <span>(No Studio Setup)</span></label>
         </div>
-        <div class="checkbox-wrapper" id="userStickersRow" style="margin-top: 5px; display:none;">
+        <div class="gallery-toggle-row" id="userStickersRow" style="display:none;">
           <input type="checkbox" id="boothUserStickers" onchange="handleUserStickersToggle()">
-          <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers</label>
+          <label for="boothUserStickers"><i class="bi bi-stars"></i> Enable User Stickers <span>(R2 Hosted)</span></label>
         </div>
 
         <!-- Prop Stickers — Edit Setup only (needs eventId for R2 path) -->
@@ -1624,20 +1678,21 @@
           <div id="userStickersGrid" class="sticker-manager-grid"></div>
         </div>
 
-        <span class="hint-text" id="communityEditHint" style="display:none; margin-top:10px;">Community settings are
-          locked during edits.</span>
+        <p class="gallery-panel-hint">Generates an extra QR code for guests to upload their own photos.</p>
+        <span class="hint-text" id="communityEditHint" style="display:none; margin-top:10px;">Community settings are locked during edits.</span>
       </div>
 
-      <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-        <div class="checkbox-wrapper">
+      <div class="gallery-control-panel">
+        <div class="gallery-toggle-row">
           <input type="checkbox" id="boothShowSearchBar">
           <label for="boothShowSearchBar"><i class="bi bi-search"></i> Show Search Bar</label>
         </div>
-        <div class="checkbox-wrapper">
+        <div class="gallery-toggle-row">
           <input type="checkbox" id="boothShowTime">
           <label for="boothShowTime"><i class="bi bi-clock"></i> Show Time</label>
         </div>
-        <div class="form-group" style="margin-top: 14px; margin-bottom: 0;">
+        <div class="gallery-control-divider"></div>
+        <div class="form-group gallery-custom-term">
           <label for="boothCustomTerm">Custom Term for "Photobooth"</label>
           <input type="text" id="boothCustomTerm" placeholder='Leave blank to use default: "Photobooth"'>
           <span class="hint-text" style="display:block; margin-top:8px;">Renames the label "Photobooth" across the gallery view.</span>

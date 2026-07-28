@@ -19,9 +19,16 @@ test('includes dashboard accessibility and responsive safeguards', () => {
 test('uses boxed segments and context actions', () => {
   assert.match(page, /\.dashboard-segment \{[^}]*border: 1px solid var\(--border\);/);
   assert.match(page, /\.dashboard-segment h2 \{[^}]*font-size: 18px;/);
-  assert.match(page, /\.workspace-toolbar \{[^}]*display: flex;/);
+  assert.match(page, /\.workspace-toolbar \{[^}]*display: grid;/);
   assert.match(page, /\.top-navbar \{[^}]*max-width: 1180px;/);
   assert.doesNotMatch(page, /\.dashboard-segment \{[^}]*border-top:/);
+});
+
+test('places same-size event actions above the selector', () => {
+  assert.match(page, /\.workspace-toolbar \{[^}]*display: grid;/);
+  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*min-height: 38px;/);
+  const toolbar = page.slice(page.indexOf('<div class="workspace-toolbar"'), page.indexOf('<div id="editFormFields"'));
+  assert.ok(toolbar.indexOf('class="workspace-actions"') < toolbar.indexOf('class="form-group event-picker"'));
 });
 
 test('groups the workspace into Event, Web Gallery, and Manage', () => {
@@ -49,4 +56,11 @@ test('defaults gallery search and time off, then clears Manage after deletion', 
   assert.match(page, /boothShowSearchBar'\)\.checked = false;/);
   assert.match(page, /boothShowTime'\)\.checked = false;/);
   assert.match(page, /viewContainer'\)\.style\.display = 'none';[\s\S]*?setMode\('new'\);/);
+});
+
+test('uses compact grouped gallery switches', () => {
+  assert.match(page, /\.gallery-control-panel \{/);
+  assert.match(page, /\.gallery-toggle-row input\[type="checkbox"\]:checked/);
+  assert.match(page, /class="gallery-control-panel"/);
+  assert.match(page, /class="gallery-toggle-row" id="communityEnableRow"/);
 });
