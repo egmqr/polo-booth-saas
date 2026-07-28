@@ -638,7 +638,8 @@
     }
     @media (max-width: 620px) {
       .nav { width: min(100% - 24px, 1180px); }
-      .nav-actions .secondary { display: none; }
+      .nav-actions .secondary { display: inline-flex; }
+      .nav-actions .btn:not(.secondary) { display: none; }
       .hero { min-height: 88svh; padding: 120px 0 64px; background-position: 62% center; }
       .hero h1 { font-size: clamp(48px, 15vw, 72px); }
       .hero-proof { display: grid; gap: 10px; }

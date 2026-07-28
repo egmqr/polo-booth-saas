@@ -8,6 +8,11 @@ test('keeps signup as primary operator CTA', () => {
   assert.match(page, /href="\/dashboard\/\?signup=true"[^>]*>\s*(?:<[^>]+>[^<]*<\/[^>]+>\s*)*Start free/s);
 });
 
+test('shows Sign in instead of Start free in the mobile header', () => {
+  assert.match(page, /@media \(max-width: 620px\) \{[\s\S]*?\.nav-actions \.secondary \{ display: inline-flex; \}/);
+  assert.match(page, /\.nav-actions \.btn:not\(\.secondary\) \{ display: none; \}/);
+});
+
 test('keeps app downloads as secondary path', () => {
   assert.match(page, /href="#apps"[^>]*>\s*(?:<[^>]+>[^<]*<\/[^>]+>\s*)*Download apps/s);
 });
