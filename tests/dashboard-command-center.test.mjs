@@ -28,11 +28,13 @@ test('uses boxed segments and context actions', () => {
   assert.doesNotMatch(page, /\.dashboard-segment \{[^}]*border-top:/);
 });
 
-test('places same-size event actions beside each other above the full-width selector', () => {
+test('matches EGM compact event actions above the full-width selector', () => {
   assert.match(page, /\.workspace-toolbar \{[^}]*display: grid;/);
   assert.match(page, /\.event-picker \{[^}]*width: 100%;[^}]*max-width: none;/);
   assert.match(page, /\.event-picker select \{[^}]*width: 100%;/);
-  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*flex: 0 0 124px;[^}]*width: 124px;[^}]*min-height: 44px;/);
+  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*display: inline-flex;[^}]*flex: 0 0 auto;[^}]*width: auto;[^}]*min-height: 42px;[^}]*font-size: 0\.875rem;/);
+  assert.match(page, /\.workspace-actions #saveBtn \{ background: #f4a946 !important; color: #fff !important;/);
+  assert.match(page, /\.workspace-actions #deleteBtn \{[^}]*color: #e57373; border: 1px solid #e57373;/);
   const toolbar = page.slice(page.indexOf('<div class="workspace-toolbar"'), page.indexOf('<div id="editFormFields"'));
   assert.ok(toolbar.indexOf('class="workspace-actions"') < toolbar.indexOf('class="form-group event-picker"'));
 });
