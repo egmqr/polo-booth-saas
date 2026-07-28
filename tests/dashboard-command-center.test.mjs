@@ -42,3 +42,11 @@ test('renders Share live when an existing event opens', () => {
   assert.match(page, /if \(currentMode === 'view' \|\| currentMode === 'edit'\)/);
   assert.doesNotMatch(page, /else if \(currentMode === 'view' \|\| currentMode === 'edit'\)/);
 });
+
+test('defaults gallery search and time off, then clears Manage after deletion', () => {
+  assert.match(page, /id="boothShowSearchBar">/);
+  assert.match(page, /id="boothShowTime">/);
+  assert.match(page, /boothShowSearchBar'\)\.checked = false;/);
+  assert.match(page, /boothShowTime'\)\.checked = false;/);
+  assert.match(page, /viewContainer'\)\.style\.display = 'none';[\s\S]*?setMode\('new'\);/);
+});

@@ -1630,11 +1630,11 @@
 
       <div class="form-group" style="border-bottom: 1px solid var(--border); padding-bottom: 15px;">
         <div class="checkbox-wrapper">
-          <input type="checkbox" id="boothShowSearchBar" checked>
+          <input type="checkbox" id="boothShowSearchBar">
           <label for="boothShowSearchBar"><i class="bi bi-search"></i> Show Search Bar</label>
         </div>
         <div class="checkbox-wrapper">
-          <input type="checkbox" id="boothShowTime" checked>
+          <input type="checkbox" id="boothShowTime">
           <label for="boothShowTime"><i class="bi bi-clock"></i> Show Time</label>
         </div>
         <div class="form-group" style="margin-top: 14px; margin-bottom: 0;">
@@ -2609,8 +2609,8 @@
       document.getElementById('boothEnableCommunity').checked = false;
       document.getElementById('boothCommunityOnly').checked = false;
       document.getElementById('boothUserStickers').checked = false;
-      document.getElementById('boothShowSearchBar').checked = true;
-      document.getElementById('boothShowTime').checked = true;
+      document.getElementById('boothShowSearchBar').checked = false;
+      document.getElementById('boothShowTime').checked = false;
       document.getElementById('boothCustomTerm').value = "";
 
       handleCommunityToggle(); handleUserStickersToggle();
@@ -3102,8 +3102,8 @@
         document.getElementById('boothCount').value = details.boothCount || "";
         document.getElementById('logoOnMain').checked = details.logoOnMain === true;
         document.getElementById('boothCommunityOnly').checked = details.communityOnly === true;
-        document.getElementById('boothShowSearchBar').checked = details.showSearchBar !== false;
-        document.getElementById('boothShowTime').checked = details.showTime !== false;
+        document.getElementById('boothShowSearchBar').checked = details.showSearchBar === true;
+        document.getElementById('boothShowTime').checked = details.showTime === true;
         document.getElementById('boothCustomTerm').value = details.customTerm || "";
 
         const stickersEl = document.getElementById('boothUserStickers');
@@ -3289,7 +3289,15 @@
     async function runDelete() {
       const id = document.getElementById('eventSelect').value; if (!id || !confirm("Delete setup forever?")) return;
       const res = await callWorkerApi('/api/dashboard/delete-booth', { eventId: id });
-      if (res && res.success) { delete boothDetailsCache[id]; fetchBoothEvents(true); setMode('edit'); showToast("Deleted."); }
+      if (res && res.success) {
+        delete boothDetailsCache[id];
+        document.getElementById('viewContainer').style.display = 'none';
+        document.getElementById('boothList').innerHTML = '';
+        document.getElementById('downloadAllQRsBtn').style.display = 'none';
+        fetchBoothEvents(true);
+        setMode('new');
+        showToast("Deleted.");
+      }
     }
     // ==========================================
     // URL ROUTING
