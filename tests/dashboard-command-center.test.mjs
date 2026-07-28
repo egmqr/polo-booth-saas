@@ -85,6 +85,8 @@ test('uses compact grouped gallery switches', () => {
   assert.match(page, /class="gallery-control-panel"/);
   assert.match(page, /class="gallery-toggle-row" id="communityEnableRow"/);
   assert.match(page, /class="gallery-toggle-row branding-switch"/);
+  assert.match(page, /\.dark-mode \.gallery-control-panel \{ background: #161920; border-color: var\(--border\); \}/);
+  assert.match(page, /\.dark-mode \.branding-switch \{ background: #161920; border-color: var\(--border\); \}/);
 });
 
 test('hides virtual booth settings for events without a virtual booth', () => {
