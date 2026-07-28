@@ -33,3 +33,7 @@ test('leads three workflows with instant QR sharing and live gallery', () => {
   assert.ok(page.indexOf('Roving photoman') < page.indexOf('On-site studio photography'));
   assert.ok(page.indexOf('On-site studio photography') < page.indexOf('Static booth with countdown'));
 });
+
+test('stacks workflow steps on mobile without clipping', () => {
+  assert.match(page, /@media \(max-width: 620px\) \{[\s\S]*?\.workflow \{ grid-template-columns: 1fr; border-radius: 14px; \}/);
+});
