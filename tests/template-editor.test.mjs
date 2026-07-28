@@ -44,3 +44,10 @@ test('leaves room for the event selector arrow', () => {
   assert.match(dashboard, /#eventSelect \{[^}]*background-position: right 16px center;/);
   assert.match(dashboard, /#eventSelect \{[^}]*padding-right: 42px;/);
 });
+
+test('stacks preview above a scrollable controls deck on mobile', () => {
+  assert.match(editor, /@media \(max-width: 767px\)/);
+  assert.match(editor, /grid-template-rows: minmax\(280px, 44svh\) minmax\(0, 56svh\)/);
+  assert.match(editor, /\.sidebar \{[\s\S]*?width: 100%;[\s\S]*?min-height: 0;/);
+  assert.match(editor, /\.sidebar-content \{[\s\S]*?overscroll-behavior: contain;/);
+});
