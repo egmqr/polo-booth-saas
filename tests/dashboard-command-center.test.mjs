@@ -24,11 +24,17 @@ test('uses boxed segments and context actions', () => {
   assert.doesNotMatch(page, /\.dashboard-segment \{[^}]*border-top:/);
 });
 
-test('places same-size event actions above the selector', () => {
+test('places same-size event actions beside each other above the full-width selector', () => {
   assert.match(page, /\.workspace-toolbar \{[^}]*display: grid;/);
-  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*min-height: 38px;/);
+  assert.match(page, /\.event-picker \{[^}]*width: 100%;[^}]*max-width: none;/);
+  assert.match(page, /\.event-picker select \{[^}]*width: 100%;/);
+  assert.match(page, /\.workspace-actions \.action-btn, \.workspace-actions \.file-btn \{[^}]*flex: 0 0 124px;[^}]*width: 124px;[^}]*min-height: 44px;/);
   const toolbar = page.slice(page.indexOf('<div class="workspace-toolbar"'), page.indexOf('<div id="editFormFields"'));
   assert.ok(toolbar.indexOf('class="workspace-actions"') < toolbar.indexOf('class="form-group event-picker"'));
+});
+
+test('separates each visible workspace container', () => {
+  assert.match(page, /#editFormFields > \.dashboard-segment \+ \.dashboard-segment, #viewContainer \{ margin-top: 24px; \}/);
 });
 
 test('groups the workspace into Event, Web Gallery, and Manage', () => {
