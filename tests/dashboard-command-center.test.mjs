@@ -47,6 +47,11 @@ test('uses a two-column desktop layout below the full-width Event container', ()
   assert.match(page, /@media \(max-width: 900px\) \{ #editFormFields \{ grid-template-columns: 1fr; \}/);
 });
 
+test('uses two setup columns for a new event before Manage becomes available', () => {
+  assert.match(page, /#editFormFields\.new-workspace #eventSegment \{ grid-column: auto; \}/);
+  assert.match(page, /editFormFields'\)\.classList\.toggle\('new-workspace', activateWorkspace\);/);
+});
+
 test('groups the workspace into Event, Web Gallery, and Manage', () => {
   for (const segment of ['Event', 'Web Gallery', 'Manage']) {
     assert.match(page, new RegExp(`data-dashboard-segment="${segment}"`));

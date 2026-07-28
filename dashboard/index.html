@@ -1334,6 +1334,7 @@
     #eventSelect { appearance: none; -webkit-appearance: none; padding-right: 42px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; background-size: 12px 8px; }
     .dashboard-segment { margin-top: 0; padding: 24px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); }
     #eventSegment { grid-column: 1 / -1; }
+    #editFormFields.new-workspace #eventSegment { grid-column: auto; }
     #webGallerySegment, #viewContainer { margin-top: 0; }
     .dashboard-segment h2 { margin: 0 0 18px; color: var(--text-main); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
     #eventSegment .form-group, #webGallerySegment > .form-group { border-bottom: 0 !important; padding-bottom: 0 !important; }
@@ -1345,7 +1346,7 @@
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
     .command-center :focus-visible { outline: 3px solid #5ee4ad; outline-offset: 3px; }
-    @media (max-width: 900px) { #editFormFields { grid-template-columns: 1fr; } #eventSegment { grid-column: auto; } }
+    @media (max-width: 900px) { #editFormFields { grid-template-columns: 1fr; } #eventSegment, #editFormFields.new-workspace #eventSegment { grid-column: auto; } }
     @media (max-width: 700px) { .top-navbar { padding: 0; } .workspace-actions > * { flex: 1 1 calc(50% - 4px); width: auto; } .dashboard-segment { padding: 20px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
   </style>
@@ -2697,6 +2698,7 @@
       document.getElementById('btnModeView').classList.remove('active');
 
       if (mode === 'new') {
+        document.getElementById('editFormFields').classList.toggle('new-workspace', activateWorkspace);
         document.getElementById('btnModeNew').classList.add('active');
         document.getElementById('editSelectContainer').style.display = 'block';
         document.getElementById('editFormFields').style.display = activateWorkspace ? 'grid' : 'none';
@@ -2722,6 +2724,7 @@
         fetchExistingAssets(true);
 
       } else if (mode === 'edit' || mode === 'view') {
+        document.getElementById('editFormFields').classList.remove('new-workspace');
         document.getElementById('btnModeEdit').classList.toggle('active', mode === 'edit');
         document.getElementById('btnModeView').classList.toggle('active', mode === 'view');
 
