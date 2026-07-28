@@ -1318,14 +1318,16 @@
     .command-center { max-width: 1180px; margin: 0 auto; }
     .mode-toggle { display: none; }
     #editFormFields { display: block; }
-    .workspace-toolbar { display: grid; gap: 18px; margin-bottom: 24px; padding: 6px 0 22px; border-bottom: 1px solid var(--border); }
-    .event-picker { width: 100%; min-width: 0; max-width: none; margin: 0; }
+    .workspace-toolbar { display: grid; gap: 18px; margin-bottom: 24px; padding: 6px 0 0; }
+    .event-picker { width: 100%; min-width: 0; max-width: none; margin: 8px 0 0; }
     .event-picker label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
     .event-picker select { width: 100%; height: 38px; margin: 0; padding: 7px 12px; font-size: 13px; }
     .workspace-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     .workspace-actions .action-btn, .workspace-actions .file-btn { flex: 0 0 124px; width: 124px; min-height: 44px; margin: 0; padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; line-height: 1; text-transform: none; }
     .workspace-actions .file-btn, .workspace-actions #generateBtn { background: #079b93; border-color: #079b93; color: #fff; }
     .workspace-actions .file-btn:hover, .workspace-actions #generateBtn:hover:not(:disabled) { background: #07827c; border-color: #07827c; }
+    .workspace-actions .new-event-btn { background: transparent; color: #079b93; border-color: #079b93; }
+    .workspace-actions .new-event-btn:hover:not(:disabled) { background: #e7f7f5; color: #057d76; border-color: #057d76; }
     .workspace-actions #saveBtn { background: #ffd47b !important; color: #805b10 !important; border: 1px solid #ffd47b; }
     .workspace-actions #deleteBtn { margin-top: 0; background: transparent; color: #e25963; border: 1px solid #ee8990; }
     .workspace-actions #deleteBtn:hover:not(:disabled) { background: #fff1f2; color: #c73743; }
@@ -1335,6 +1337,9 @@
     .dashboard-segment h2 { margin: 0 0 18px; color: var(--text-main); font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
     #eventSegment .form-group, #webGallerySegment > .form-group { border-bottom: 0 !important; padding-bottom: 0 !important; }
     #eventSegment .color-group { padding: 0; border: 0; border-radius: 0; background: transparent; }
+    #webGallerySegment .color-group { margin-top: 28px; }
+    .branding-switch { margin-top: 14px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); }
+    .dark-mode .branding-switch { background: #161920; border-color: var(--dm-border); }
     #templatesGroup { margin-top: 16px; }
     #viewContainer #boothList { margin-top: 16px; }
     .command-center .action-btn, .command-center .file-btn { min-height: 44px; }
@@ -1584,7 +1589,7 @@
 
     <div class="workspace-toolbar" id="editSelectContainer">
       <div class="workspace-actions">
-        <button type="button" class="file-btn" onclick="setMode('new')"><i class="bi bi-plus-lg"></i> New event</button>
+        <button type="button" class="file-btn new-event-btn" onclick="setMode('new', true)"><i class="bi bi-plus-lg"></i> New event</button>
         <button id="generateBtn" class="action-btn" onclick="runGeneration()"><i class="bi bi-magic"></i> Generate</button>
         <button id="saveBtn" class="action-btn" style="display: none; background: #eab308; color: #000;" onclick="runUpdate()"><i class="bi bi-cloud-arrow-up"></i> Save</button>
         <button id="deleteBtn" class="action-btn" style="display:none;" onclick="runDelete()"><i class="bi bi-trash3"></i> Delete</button>
@@ -1595,7 +1600,7 @@
           style="display:none;">
         <label for="eventSelect">Current event</label>
         <select id="eventSelect" onchange="openWorkspaceEvent()">
-          <option value="">New event — select an existing event to open it</option>
+          <option value="">-- Select an event --</option>
         </select>
       </div>
     </div>
@@ -1761,7 +1766,7 @@
           <div id="existingLogoGallery" class="logo-gallery"></div>
         </div>
 
-        <div class="checkbox-wrapper">
+        <div class="gallery-toggle-row branding-switch">
           <input type="checkbox" id="logoOnMain">
           <label for="logoOnMain">Show logo as custom branding</label>
         </div>
@@ -2630,7 +2635,7 @@
     function openWorkspaceEvent() {
       const eventSelect = document.getElementById('eventSelect');
       if (!eventSelect.value) {
-        if (currentMode !== 'new') setMode('new');
+        setMode('new');
         return;
       }
       if (currentMode !== 'edit') {
@@ -2640,7 +2645,7 @@
       loadBoothEventDetails();
     }
 
-    function setMode(mode) {
+    function setMode(mode, activateWorkspace = false) {
       // 1. FIX: Cache the active event selection before clearing any fields
       const savedSelectedId = document.getElementById('eventSelect')?.value || "";
 
@@ -2692,9 +2697,9 @@
       if (mode === 'new') {
         document.getElementById('btnModeNew').classList.add('active');
         document.getElementById('editSelectContainer').style.display = 'block';
-        document.getElementById('editFormFields').style.display = 'block';
+        document.getElementById('editFormFields').style.display = activateWorkspace ? 'block' : 'none';
         document.getElementById('viewContainer').style.display = 'none';
-        document.getElementById('generateBtn').style.display = 'block';
+        document.getElementById('generateBtn').style.display = activateWorkspace ? 'block' : 'none';
         document.getElementById('saveBtn').style.display = 'none';
         document.getElementById('deleteBtn').style.display = 'none';
 
@@ -2702,6 +2707,7 @@
         document.getElementById('boothHint').style.display = 'none';
         document.getElementById('boothCount').closest('.form-group').style.display = 'block';
         document.getElementById('templatesGroup').style.display = 'block';
+        document.getElementById('communityGroup').style.display = 'block';
         document.getElementById('communityEnableRow').style.display = 'flex';
         document.getElementById('communityOnlyRow').style.display = 'none';
         document.getElementById('userStickersRow').style.display = 'none';
@@ -2734,6 +2740,7 @@
           document.getElementById('boothHint').style.display = 'block';
           document.getElementById('boothCount').closest('.form-group').style.display = 'block';
           document.getElementById('templatesGroup').style.display = 'none';
+          document.getElementById('communityGroup').style.display = 'none';
           document.getElementById('communityEnableRow').style.display = 'none';
           document.getElementById('communityOnlyRow').style.display = 'none';
           document.getElementById('userStickersRow').style.display = 'none';
@@ -3101,7 +3108,7 @@
     function renderDropdownOptions(eventsArray) {
       const select = document.getElementById('eventSelect');
       const currentVal = select.value;
-      select.innerHTML = '<option value="">-- Select a Booth Project --</option>';
+      select.innerHTML = '<option value="">-- Select an event --</option>';
       eventsArray.forEach(e => {
         let opt = document.createElement('option'); opt.value = e.id; opt.innerText = `${e.displayName || stripInternalBoothSuffix(e.name) || e.name} (${e.id})`;
         if (e.id === currentVal) opt.selected = true; select.appendChild(opt);
@@ -3131,7 +3138,7 @@
 
     async function loadBoothEventDetails() {
       const selectedId = document.getElementById('eventSelect').value;
-      if (!selectedId) { setMode(currentMode); return; }
+      if (!selectedId) { setMode('new'); return; }
 
       // Always fetch fresh from the backend in edit mode so we get the latest
       // templates from R2 (PoloPro may have updated them since last load).
@@ -3154,6 +3161,7 @@
       if (currentMode === 'edit') {
         lockTemplatesForEdit(true);
         document.getElementById('boothEnableCommunity').checked = details.enableCommunity === true;
+        document.getElementById('communityGroup').style.display = details.enableCommunity === true ? 'block' : 'none';
         document.getElementById('eventId').value = selectedId;
         document.getElementById('folderName').value = details.folderName || "";
         const displayEventName = stripInternalBoothSuffix(details.eventName) || details.eventName || "";
