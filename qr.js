@@ -93,9 +93,14 @@ async function nextId(env, kind, prefix) {
     return kind + String(cur + 1).padStart(4, '0');
 }
 async function findPhotoByTagOrName(env, prefix, id) {
-    const list = await listAll(env, prefix + '/', 200);
-    const hit = list.find(o => !o.key.slice(prefix.length + 1).includes('/') && o.key.includes(id));
-    return hit ? { key: hit.key } : null;
+    let cursor;
+    do {
+        const page = await Storage.list(env, { prefix: prefix + '/', limit: 1000, cursor });
+        const hit = page.objects.find(o => !o.key.slice(prefix.length + 1).includes('/') && o.key.includes(id));
+        if (hit) return { key: hit.key };
+        cursor = page.truncated ? page.cursor : null;
+    } while (cursor);
+    return null;
 }
 async function listAll(env, prefix, limit = 1000) {
     const out = []; let cursor;
