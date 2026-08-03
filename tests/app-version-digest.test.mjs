@@ -6,6 +6,7 @@ import { handleAdminRoutes, handleAppVersionsPublic } from '../admin.js';
 
 const WINDOWS_BYTES = new Uint8Array([0x4d, 0x5a, 0x90, 0x00, 0xff, 0x7f]);
 const WINDOWS_SHA256 = createHash('sha256').update(WINDOWS_BYTES).digest('hex');
+const EXISTING_WINDOWS_SHA256 = 'a'.repeat(64);
 const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 const PRIVATE_KEY = privateKey.export({ type: 'pkcs8', format: 'pem' });
 
@@ -72,4 +73,54 @@ test('legacy app-version record returns empty Windows digest', async () => {
     }, () => handleAppVersionsPublic(new Request('https://worker.example/api/app-versions'), environment()));
 
     assert.equal((await response.json()).appVersions.windows.sha256, '');
+});
+
+test('settings save preserves stored Windows digest and ignores payload digest', async () => {
+    let patchedFields;
+    const response = await withFetch(async (url, options = {}) => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (options.method === 'PATCH') {
+            patchedFields = JSON.parse(options.body).fields;
+            return Response.json({ fields: patchedFields });
+        }
+        if (address.includes('/documents/app_settings/downloads')) {
+            return Response.json({ fields: { windowsSha256: { stringValue: EXISTING_WINDOWS_SHA256 } } });
+        }
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes(new Request('https://worker.example/api/admin/app-versions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-secret': 'admin-secret' },
+        body: JSON.stringify({ windowsVersion: '2.5.0', windowsSha256: 'b'.repeat(64) })
+    }), environment()));
+
+    assert.equal((await response.json()).appVersions.windows.sha256, EXISTING_WINDOWS_SHA256);
+    assert.equal(patchedFields.windowsSha256.stringValue, EXISTING_WINDOWS_SHA256);
+});
+
+test('Android upload preserves stored Windows digest', async () => {
+    let patchedFields;
+    const form = new FormData();
+    form.set('appType', 'android');
+    form.set('file', new File([new Uint8Array([1, 2, 3])], 'PoloPro-1.0.4-release.apk'));
+
+    const response = await withFetch(async (url, options = {}) => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (options.method === 'PATCH') {
+            patchedFields = JSON.parse(options.body).fields;
+            return Response.json({ fields: patchedFields });
+        }
+        if (address.includes('/documents/app_settings/downloads')) {
+            return Response.json({ fields: { windowsSha256: { stringValue: EXISTING_WINDOWS_SHA256 } } });
+        }
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes(new Request('https://worker.example/api/admin/upload-app', {
+        method: 'POST',
+        headers: { 'x-admin-secret': 'admin-secret' },
+        body: form
+    }), environment(async () => {})));
+
+    assert.equal((await response.json()).appVersions.windows.sha256, EXISTING_WINDOWS_SHA256);
+    assert.equal(patchedFields.windowsSha256.stringValue, EXISTING_WINDOWS_SHA256);
 });

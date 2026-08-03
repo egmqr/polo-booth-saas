@@ -331,7 +331,8 @@ export async function handleAdminRoutes(request, env) {
 
     if (path === '/api/admin/app-versions' && request.method === 'POST') {
         const body = await request.json();
-        const fields = appVersionFields(env, body);
+        const current = await readAppVersions(fsBase, serviceToken);
+        const fields = appVersionFields(env, { ...body, windowsSha256: current.windows.sha256 });
 
         await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
         return json({ success: true, appVersions: appVersionsFromDoc({ fields }) });
