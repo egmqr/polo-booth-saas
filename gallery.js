@@ -1,4 +1,5 @@
 import { Storage } from './cloud.js';
+import { compareTimeline, timelineForObject } from './timeline.js';
 import { json, decodeBase64, safePrefix } from './util.js';
 
 const streamCache = new Map();
@@ -17,8 +18,8 @@ export async function handleGalleryRoutes(request, env) {
 
         const data = items
             .filter(o => !o.key.slice(prefix.length + 1).includes('/') && /\.(jpe?g|png|webp)$/i.test(o.key))
-            .map(o => [o.key, o.key.split('/').pop(), `${cdn}/${o.key}`, o.uploaded.getTime()])
-            .sort((a, b) => b[3] - a[3]);
+            .sort((a, b) => compareTimeline(b, a))
+            .map(o => [o.key, o.key.split('/').pop(), `${cdn}/${o.key}`, timelineForObject(o).time]);
 
         return json({ status: 'success', data });
     }
@@ -117,7 +118,7 @@ async function streamLiveUpdates(env, prefix, writer, encoder) {
             if (!isFirstRun) {
                 for (const file of files) {
                     if (!lastKnownKeys.has(file.key)) {
-                        const data = { id: file.key, name: file.key.split('/').pop(), baseUrl: `${env.PUBLIC_CDN_BASE.replace(/\/$/, '')}/${file.key}`, time: file.uploaded.getTime() };
+                        const data = { id: file.key, name: file.key.split('/').pop(), baseUrl: `${env.PUBLIC_CDN_BASE.replace(/\/$/, '')}/${file.key}`, time: timelineForObject(file).time };
                         await writer.write(encoder.encode(`event: new_photo\ndata: ${JSON.stringify(data)}\n\n`));
                     }
                 }

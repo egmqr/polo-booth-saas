@@ -1,4 +1,5 @@
 import { Storage, Sessions } from './cloud.js';
+import { compareTimeline, timelineForObject } from './timeline.js';
 import { json, safePrefix } from './util.js';
 
 export async function handleQRRoutes(request, env) {
@@ -15,7 +16,7 @@ export async function handleQRRoutes(request, env) {
             if (numMatch) {
                 const n = parseInt(numMatch[1], 10);
                 const all = await listAll(env, prefix + '/');
-                const sorted = all.filter(o => !o.key.slice(prefix.length + 1).includes('/')).sort((a, b) => a.uploaded - b.uploaded);
+                const sorted = all.filter(o => !o.key.slice(prefix.length + 1).includes('/')).sort(compareTimeline);
                 if (sorted.length >= n && n > 0) return json({ status: 'success', data: [photoUrls(env, prefix, sorted[n - 1].key)] });
             }
             return json({ status: 'error', message: 'Photo not found yet' });
@@ -38,8 +39,8 @@ export async function handleQRRoutes(request, env) {
         const list = await listAll(env, prefix + '/');
         const re = new RegExp(`-${session.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\.[A-Za-z0-9]+)?$`);
         const photos = list.filter(o => !o.key.slice(prefix.length + 1).includes('/') && re.test(o.key))
-            .sort((a, b) => b.uploaded - a.uploaded)
-            .map(o => { const u = photoUrls(env, prefix, o.key); u.displayTime = new Date(o.uploaded).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); return u; });
+            .sort((a, b) => compareTimeline(b, a))
+            .map(o => { const u = photoUrls(env, prefix, o.key); u.displayTime = new Date(timelineForObject(o).time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); return u; });
         return photos.length === 0 ? json({ status: 'error', message: 'No photos in session yet' }) : json({ status: 'success', data: photos });
     }
 
