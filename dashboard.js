@@ -288,6 +288,11 @@ export async function handleDashboardRoutes(request, env) {
     let body;
     try { body = await request.json(); } catch { return json({ success: false, error: 'Invalid JSON body' }, 400); }
 
+    if (path === '/api/verify-upload') {
+        if (!body.key?.startsWith(`users/${currentUser.uid}/`)) return json({ error: 'Forbidden' }, 403);
+        const object = await Storage.get(env, body.key);
+        return json({ exists: Boolean(object) });
+    }
     if (path === '/api/next-event-id') return json(await mintNextEventId(env));
     if (path === '/api/dashboard/check-event-name') return json(await checkEventNameUnique(env, body, currentUser));
     if (path === '/api/dashboard/generate-booth') return json(await generateBoothSetup(env, body, currentUser));

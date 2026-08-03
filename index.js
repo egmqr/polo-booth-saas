@@ -65,7 +65,7 @@ export default {
             if (path.startsWith('/api/hotfolder'))
                 return cors(await handleHotfolder(request, env));
 
-            if (path.startsWith('/api/dashboard/') || path === '/api/next-event-id' || path === '/api/sign-upload')
+            if (path.startsWith('/api/dashboard/') || path === '/api/next-event-id' || path === '/api/sign-upload' || path === '/api/verify-upload')
                 return cors(await handleDashboardRoutes(request, env));
 
             if (path === '/api/cron/daily') {
