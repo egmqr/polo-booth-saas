@@ -7,9 +7,11 @@ const ADMIN_PAGE_LIMIT = 500;
 const APP_VERSION_DOC = 'app_settings/downloads';
 const DEFAULT_APP_VERSIONS = {
     windows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro.exe' },
-    android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' }
+    android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' },
+    proboothWindows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/ProBooth.exe' }
 };
 const WINDOWS_DOWNLOAD_KEY = 'PoloPro.exe';
+const PROBOOTH_WINDOWS_DOWNLOAD_KEY = 'ProBooth.exe';
 
 async function sha256Hex(bytes) {
     const digest = await crypto.subtle.digest('SHA-256', bytes);
@@ -73,6 +75,12 @@ function appVersionsFromDoc(doc) {
             releaseDate: readString(f, 'androidReleaseDate', DEFAULT_APP_VERSIONS.android.releaseDate),
             downloadUrl: readString(f, 'androidDownloadUrl', DEFAULT_APP_VERSIONS.android.downloadUrl)
         },
+        proboothWindows: {
+            version: readString(f, 'proboothWindowsVersion', DEFAULT_APP_VERSIONS.proboothWindows.version),
+            releaseDate: readString(f, 'proboothWindowsReleaseDate', DEFAULT_APP_VERSIONS.proboothWindows.releaseDate),
+            downloadUrl: readString(f, 'proboothWindowsDownloadUrl', DEFAULT_APP_VERSIONS.proboothWindows.downloadUrl),
+            sha256: readString(f, 'proboothWindowsSha256', '')
+        },
         updatedAt: readString(f, 'updatedAt', '')
     };
 }
@@ -85,8 +93,10 @@ async function readAppVersions(fsBase, serviceToken) {
 function appVersionFields(env, values = {}) {
     const windowsVersion = cleanVersion(values.windowsVersion, DEFAULT_APP_VERSIONS.windows.version);
     const androidVersion = cleanVersion(values.androidVersion, DEFAULT_APP_VERSIONS.android.version);
+    const proboothWindowsVersion = cleanVersion(values.proboothWindowsVersion, DEFAULT_APP_VERSIONS.proboothWindows.version);
     const windowsReleaseDate = cleanSetting(values.windowsReleaseDate, DEFAULT_APP_VERSIONS.windows.releaseDate);
     const androidReleaseDate = cleanSetting(values.androidReleaseDate, DEFAULT_APP_VERSIONS.android.releaseDate);
+    const proboothWindowsReleaseDate = cleanSetting(values.proboothWindowsReleaseDate, DEFAULT_APP_VERSIONS.proboothWindows.releaseDate);
     const cdn = publicCdnBase(env);
 
     return {
@@ -97,6 +107,10 @@ function appVersionFields(env, values = {}) {
         androidVersion: { stringValue: androidVersion },
         androidReleaseDate: { stringValue: androidReleaseDate },
         androidDownloadUrl: { stringValue: `${cdn}/${androidDownloadKey(androidVersion)}` },
+        proboothWindowsVersion: { stringValue: proboothWindowsVersion },
+        proboothWindowsReleaseDate: { stringValue: proboothWindowsReleaseDate },
+        proboothWindowsDownloadUrl: { stringValue: `${cdn}/${PROBOOTH_WINDOWS_DOWNLOAD_KEY}` },
+        proboothWindowsSha256: { stringValue: cleanSetting(values.proboothWindowsSha256, '').toLowerCase() },
         updatedAt: { timestampValue: new Date().toISOString() }
     };
 }
@@ -332,7 +346,11 @@ export async function handleAdminRoutes(request, env) {
     if (path === '/api/admin/app-versions' && request.method === 'POST') {
         const body = await request.json();
         const current = await readAppVersions(fsBase, serviceToken);
-        const fields = appVersionFields(env, { ...body, windowsSha256: current.windows.sha256 });
+        const fields = appVersionFields(env, {
+            ...body,
+            windowsSha256: current.windows.sha256,
+            proboothWindowsSha256: current.proboothWindows.sha256
+        });
 
         await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
         return json({ success: true, appVersions: appVersionsFromDoc({ fields }) });
@@ -342,7 +360,7 @@ export async function handleAdminRoutes(request, env) {
         const form = await request.formData();
         const appType = String(form.get('appType') || '').toLowerCase();
         const file = form.get('file');
-        if (!['windows', 'android'].includes(appType)) return json({ success: false, error: 'Choose Windows or Android.' }, 400);
+        if (!['windows', 'android', 'probooth-windows'].includes(appType)) return json({ success: false, error: 'Choose Windows, Android, or ProBooth Windows.' }, 400);
         if (!file || typeof file.arrayBuffer !== 'function') return json({ success: false, error: 'Choose an app file to upload.' }, 400);
 
         const current = await readAppVersions(fsBase, serviceToken);
@@ -351,9 +369,12 @@ export async function handleAdminRoutes(request, env) {
             windowsReleaseDate: form.get('windowsReleaseDate') || current.windows.releaseDate,
             androidVersion: form.get('androidVersion') || current.android.version,
             androidReleaseDate: form.get('androidReleaseDate') || current.android.releaseDate,
-            windowsSha256: current.windows.sha256
+            proboothWindowsVersion: form.get('proboothWindowsVersion') || current.proboothWindows.version,
+            proboothWindowsReleaseDate: form.get('proboothWindowsReleaseDate') || current.proboothWindows.releaseDate,
+            windowsSha256: current.windows.sha256,
+            proboothWindowsSha256: current.proboothWindows.sha256
         };
-        const expectedExt = appType === 'windows' ? '.exe' : '.apk';
+        const expectedExt = appType === 'android' ? '.apk' : '.exe';
         const fileName = String(file.name || '').toLowerCase();
         if (fileName && !fileName.endsWith(expectedExt)) {
             return json({ success: false, error: `Upload a ${expectedExt} file for ${appType}.` }, 400);
@@ -361,12 +382,18 @@ export async function handleAdminRoutes(request, env) {
 
         const fileBytes = await file.arrayBuffer();
         if (appType === 'windows') values.windowsSha256 = await sha256Hex(fileBytes);
+        if (appType === 'probooth-windows') values.proboothWindowsSha256 = await sha256Hex(fileBytes);
         const fields = appVersionFields(env, values);
         const windowsVersion = fields.windowsVersion.stringValue;
         const androidVersion = fields.androidVersion.stringValue;
-        const key = appType === 'windows' ? WINDOWS_DOWNLOAD_KEY : androidDownloadKey(androidVersion);
+        const proboothWindowsVersion = fields.proboothWindowsVersion.stringValue;
+        const key = appType === 'windows'
+            ? WINDOWS_DOWNLOAD_KEY
+            : appType === 'probooth-windows'
+                ? PROBOOTH_WINDOWS_DOWNLOAD_KEY
+                : androidDownloadKey(androidVersion);
 
-        const contentType = appType === 'windows'
+        const contentType = appType !== 'android'
             ? 'application/vnd.microsoft.portable-executable'
             : 'application/vnd.android.package-archive';
         await env.PHOTOS.put(key, fileBytes, {
@@ -376,7 +403,11 @@ export async function handleAdminRoutes(request, env) {
             },
             customMetadata: {
                 appType,
-                version: appType === 'windows' ? windowsVersion : androidVersion,
+                version: appType === 'windows'
+                    ? windowsVersion
+                    : appType === 'probooth-windows'
+                        ? proboothWindowsVersion
+                        : androidVersion,
                 uploadedAt: new Date().toISOString()
             }
         });
