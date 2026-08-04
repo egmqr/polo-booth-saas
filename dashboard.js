@@ -763,11 +763,8 @@ export async function handleSignedUpload(env, body, currentUser) {
     const key = `${prefix}/${filename}`;
 
     const tombstone = `deleted:${key}`;
-    if (await Sessions.get(env, tombstone)) {
-        if (body.restoreDeleted !== true) {
-            return { error: 'This photo was deleted from the dashboard and will not be re-uploaded automatically.' };
-        }
-        await Sessions.delete(env, tombstone);
+    if (await Sessions.get(env, tombstone) && body.restoreDeleted !== true) {
+        return { error: 'This photo was deleted from the dashboard and will not be re-uploaded automatically.' };
     }
 
     // Short expiry closes most of the delete-race window: a tombstone written

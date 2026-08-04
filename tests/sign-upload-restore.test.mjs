@@ -41,7 +41,8 @@ test('signed upload restores tombstoned photo only when explicitly requested', a
     const restored = await handleSignedUpload(env, { ...body, restoreDeleted: true }, { uid: 'user-1' });
 
     assert.equal(restored.key, key);
-    assert.deepEqual(env.deletedTombstones, [`deleted:${key}`]);
+    assert.equal(await env.SESSIONS.get(`deleted:${key}`), '1');
+    assert.deepEqual(env.deletedTombstones, []);
 });
 
 test('signed upload cannot restore another user tombstone', async () => {
