@@ -376,7 +376,7 @@ export async function handleAdminRoutes(request, env) {
         };
         const expectedExt = appType === 'android' ? '.apk' : '.exe';
         const fileName = String(file.name || '').toLowerCase();
-        if (fileName && !fileName.endsWith(expectedExt)) {
+        if (!fileName || !fileName.endsWith(expectedExt)) {
             return json({ success: false, error: `Upload a ${expectedExt} file for ${appType}.` }, 400);
         }
 

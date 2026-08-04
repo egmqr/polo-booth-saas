@@ -185,3 +185,26 @@ test('ProBooth upload preserves PoloPro Windows digest', async () => {
 
     assert.equal(patchedFields.windowsSha256.stringValue, EXISTING_WINDOWS_SHA256);
 });
+
+test('ProBooth Windows upload rejects unnamed executable files', async () => {
+    const form = new Map([
+        ['appType', 'probooth-windows'],
+        ['file', { name: '', arrayBuffer: async () => WINDOWS_BYTES.buffer }]
+    ]);
+
+    const response = await withFetch(async (url, options = {}) => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (options.method === 'PATCH') return Response.json({ fields: {} });
+        if (address.includes('/documents/app_settings/downloads')) return new Response(null, { status: 404 });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes({
+        url: 'https://worker.example/api/admin/upload-app',
+        method: 'POST',
+        headers: new Headers({ 'x-admin-secret': 'admin-secret' }),
+        formData: async () => form
+    }, environment(async () => {})));
+
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, 'Upload a .exe file for probooth-windows.');
+});
