@@ -72,7 +72,42 @@ test('legacy app-version record returns empty Windows digest', async () => {
         throw new Error(`Unexpected fetch: ${address}`);
     }, () => handleAppVersionsPublic(new Request('https://worker.example/api/app-versions'), environment()));
 
-    assert.equal((await response.json()).appVersions.windows.sha256, '');
+    const { appVersions } = await response.json();
+    assert.equal(appVersions.windows.sha256, '');
+    assert.equal(appVersions.proboothWindows.sha256, '');
+    assert.equal(appVersions.proboothWindows.version, '1.0.7.4');
+});
+
+test('ProBooth release version requires four numeric parts', async () => {
+    const response = await withFetch(async url => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (address.includes('/documents/app_settings/downloads')) return new Response(null, { status: 404 });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes(new Request('https://worker.example/api/admin/app-versions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-secret': 'admin-secret' },
+        body: JSON.stringify({ proboothWindowsVersion: '1.0.7' })
+    }), environment()));
+
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, 'Use a four-part ProBooth version, for example 1.0.7.4.');
+});
+
+test('public version response exposes ProBooth without changing PoloPro records', async () => {
+    const response = await withFetch(async url => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (address.includes('/documents/app_settings/downloads')) return Response.json({ fields: {
+            windowsVersion: { stringValue: '2.0.0' },
+            proboothWindowsVersion: { stringValue: '3.2.1.0' },
+            proboothWindowsSha256: { stringValue: WINDOWS_SHA256 }
+        } });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAppVersionsPublic(new Request('https://worker.example/api/app-versions'), environment()));
+    const body = await response.json();
+    assert.equal(body.appVersions.proboothWindows.downloadUrl, 'https://cdn.example.com/ProBooth.exe');
+    assert.equal(body.appVersions.windows.downloadUrl, 'https://cdn.example.com/PoloPro.exe');
 });
 
 test('settings save preserves stored Windows digest and ignores payload digest', async () => {
@@ -123,4 +158,86 @@ test('Android upload preserves stored Windows digest', async () => {
 
     assert.equal((await response.json()).appVersions.windows.sha256, EXISTING_WINDOWS_SHA256);
     assert.equal(patchedFields.windowsSha256.stringValue, EXISTING_WINDOWS_SHA256);
+});
+
+test('ProBooth Windows upload stores its own release and digest', async () => {
+    let patchedFields;
+    let uploadedBytes;
+    const form = new FormData();
+    form.set('appType', 'probooth-windows');
+    form.set('proboothWindowsVersion', '3.2.1.0');
+    form.set('file', new File([WINDOWS_BYTES], 'ProBooth.exe'));
+
+    const response = await withFetch(async (url, options = {}) => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (options.method === 'PATCH') {
+            patchedFields = JSON.parse(options.body).fields;
+            return Response.json({ fields: patchedFields });
+        }
+        if (address.includes('/documents/app_settings/downloads')) return new Response(null, { status: 404 });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes(new Request('https://worker.example/api/admin/upload-app', {
+        method: 'POST',
+        headers: { 'x-admin-secret': 'admin-secret' },
+        body: form
+    }), environment(async (_key, bytes) => {
+        uploadedBytes = new Uint8Array(bytes);
+    })));
+
+    const body = await response.json();
+    assert.equal(body.key, 'ProBooth.exe');
+    assert.equal(body.appVersions.proboothWindows.version, '3.2.1.0');
+    assert.equal(body.appVersions.proboothWindows.sha256, WINDOWS_SHA256);
+    assert.equal(patchedFields.proboothWindowsSha256.stringValue, WINDOWS_SHA256);
+    assert.deepEqual(uploadedBytes, WINDOWS_BYTES);
+});
+
+test('ProBooth upload preserves PoloPro Windows digest', async () => {
+    let patchedFields;
+    const form = new FormData();
+    form.set('appType', 'probooth-windows');
+    form.set('file', new File([WINDOWS_BYTES], 'ProBooth.exe'));
+
+    await withFetch(async (url, options = {}) => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (options.method === 'PATCH') {
+            patchedFields = JSON.parse(options.body).fields;
+            return Response.json({ fields: patchedFields });
+        }
+        if (address.includes('/documents/app_settings/downloads')) {
+            return Response.json({ fields: { windowsSha256: { stringValue: EXISTING_WINDOWS_SHA256 } } });
+        }
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes(new Request('https://worker.example/api/admin/upload-app', {
+        method: 'POST',
+        headers: { 'x-admin-secret': 'admin-secret' },
+        body: form
+    }), environment(async () => {})));
+
+    assert.equal(patchedFields.windowsSha256.stringValue, EXISTING_WINDOWS_SHA256);
+});
+
+test('ProBooth Windows upload rejects unnamed executable files', async () => {
+    const form = new Map([
+        ['appType', 'probooth-windows'],
+        ['file', { name: '', arrayBuffer: async () => WINDOWS_BYTES.buffer }]
+    ]);
+
+    const response = await withFetch(async (url, options = {}) => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (options.method === 'PATCH') return Response.json({ fields: {} });
+        if (address.includes('/documents/app_settings/downloads')) return new Response(null, { status: 404 });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes({
+        url: 'https://worker.example/api/admin/upload-app',
+        method: 'POST',
+        headers: new Headers({ 'x-admin-secret': 'admin-secret' }),
+        formData: async () => form
+    }, environment(async () => {})));
+
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, 'Upload a .exe file for probooth-windows.');
 });
