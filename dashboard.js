@@ -749,7 +749,7 @@ async function deleteBoothEvent(env, eventId, currentUser) {
 
 // ── ASSET HELPERS ─────────────────────────────────────────────────────
 
-async function handleSignedUpload(env, body, currentUser) {
+export async function handleSignedUpload(env, body, currentUser) {
     const prefix = safePrefix(body.prefix);
     if (!prefix) return { error: 'Invalid prefix' };
 
@@ -762,8 +762,12 @@ async function handleSignedUpload(env, body, currentUser) {
     const filename = (body.filename || '').replace(/[^A-Za-z0-9._-]/g, '_');
     const key = `${prefix}/${filename}`;
 
-    if (await Sessions.get(env, `deleted:${key}`)) {
-        return { error: 'This photo was deleted from the dashboard and will not be re-uploaded automatically.' };
+    const tombstone = `deleted:${key}`;
+    if (await Sessions.get(env, tombstone)) {
+        if (body.restoreDeleted !== true) {
+            return { error: 'This photo was deleted from the dashboard and will not be re-uploaded automatically.' };
+        }
+        await Sessions.delete(env, tombstone);
     }
 
     // Short expiry closes most of the delete-race window: a tombstone written
