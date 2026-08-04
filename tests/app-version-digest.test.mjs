@@ -75,6 +75,23 @@ test('legacy app-version record returns empty Windows digest', async () => {
     const { appVersions } = await response.json();
     assert.equal(appVersions.windows.sha256, '');
     assert.equal(appVersions.proboothWindows.sha256, '');
+    assert.equal(appVersions.proboothWindows.version, '1.0.7.4');
+});
+
+test('ProBooth release version requires four numeric parts', async () => {
+    const response = await withFetch(async url => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (address.includes('/documents/app_settings/downloads')) return new Response(null, { status: 404 });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAdminRoutes(new Request('https://worker.example/api/admin/app-versions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-admin-secret': 'admin-secret' },
+        body: JSON.stringify({ proboothWindowsVersion: '1.0.7' })
+    }), environment()));
+
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error, 'Use a four-part ProBooth version, for example 1.0.7.4.');
 });
 
 test('public version response exposes ProBooth without changing PoloPro records', async () => {

@@ -8,7 +8,7 @@ const APP_VERSION_DOC = 'app_settings/downloads';
 const DEFAULT_APP_VERSIONS = {
     windows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro.exe' },
     android: { version: '1.0.3', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/PoloPro-1.0.3-release.apk' },
-    proboothWindows: { version: '1.0.0', releaseDate: '2026-07-06', downloadUrl: 'https://cdn.polo-booth.com/ProBooth.exe' }
+    proboothWindows: { version: '1.0.7.4', releaseDate: '2026-08-05', downloadUrl: 'https://cdn.polo-booth.com/ProBooth.exe' }
 };
 const WINDOWS_DOWNLOAD_KEY = 'PoloPro.exe';
 const PROBOOTH_WINDOWS_DOWNLOAD_KEY = 'ProBooth.exe';
@@ -51,6 +51,10 @@ function cleanSetting(value, fallback = '') {
 
 function cleanVersion(value, fallback) {
     return cleanSetting(value, fallback).replace(/^v/i, '').replace(/[^0-9A-Za-z._-]/g, '').slice(0, 40) || fallback;
+}
+
+function isFourPartVersion(value) {
+    return /^\d+\.\d+\.\d+\.\d+$/.test(String(value || '').trim());
 }
 
 function publicCdnBase(env) {
@@ -348,6 +352,9 @@ export async function handleAdminRoutes(request, env) {
 
     if (path === '/api/admin/app-versions' && request.method === 'POST') {
         const body = await request.json();
+        if (body.proboothWindowsVersion !== undefined && !isFourPartVersion(body.proboothWindowsVersion)) {
+            return json({ success: false, error: 'Use a four-part ProBooth version, for example 1.0.7.4.' }, 400);
+        }
         const current = await readAppVersions(fsBase, serviceToken);
         const fields = appVersionFields(env, {
             ...body,
@@ -377,6 +384,9 @@ export async function handleAdminRoutes(request, env) {
             windowsSha256: current.windows.sha256,
             proboothWindowsSha256: current.proboothWindows.sha256
         };
+        if (appType === 'probooth-windows' && !isFourPartVersion(values.proboothWindowsVersion)) {
+            return json({ success: false, error: 'Use a four-part ProBooth version, for example 1.0.7.4.' }, 400);
+        }
         const expectedExt = appType === 'android' ? '.apk' : '.exe';
         const fileName = String(file.name || '').toLowerCase();
         if (!fileName || !fileName.endsWith(expectedExt)) {
