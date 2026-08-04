@@ -11,6 +11,11 @@ const DEFAULT_APP_VERSIONS = {
 };
 const WINDOWS_DOWNLOAD_KEY = 'PoloPro.exe';
 
+async function sha256Hex(bytes) {
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 function docId(doc) {
     return decodeURIComponent((doc.name || '').split('/').pop() || '');
 }
@@ -60,7 +65,8 @@ function appVersionsFromDoc(doc) {
         windows: {
             version: readString(f, 'windowsVersion', DEFAULT_APP_VERSIONS.windows.version),
             releaseDate: readString(f, 'windowsReleaseDate', DEFAULT_APP_VERSIONS.windows.releaseDate),
-            downloadUrl: readString(f, 'windowsDownloadUrl', DEFAULT_APP_VERSIONS.windows.downloadUrl)
+            downloadUrl: readString(f, 'windowsDownloadUrl', DEFAULT_APP_VERSIONS.windows.downloadUrl),
+            sha256: readString(f, 'windowsSha256', '')
         },
         android: {
             version: readString(f, 'androidVersion', DEFAULT_APP_VERSIONS.android.version),
@@ -87,6 +93,7 @@ function appVersionFields(env, values = {}) {
         windowsVersion: { stringValue: windowsVersion },
         windowsReleaseDate: { stringValue: windowsReleaseDate },
         windowsDownloadUrl: { stringValue: `${cdn}/${WINDOWS_DOWNLOAD_KEY}` },
+        windowsSha256: { stringValue: cleanSetting(values.windowsSha256, '').toLowerCase() },
         androidVersion: { stringValue: androidVersion },
         androidReleaseDate: { stringValue: androidReleaseDate },
         androidDownloadUrl: { stringValue: `${cdn}/${androidDownloadKey(androidVersion)}` },
@@ -324,7 +331,8 @@ export async function handleAdminRoutes(request, env) {
 
     if (path === '/api/admin/app-versions' && request.method === 'POST') {
         const body = await request.json();
-        const fields = appVersionFields(env, body);
+        const current = await readAppVersions(fsBase, serviceToken);
+        const fields = appVersionFields(env, { ...body, windowsSha256: current.windows.sha256 });
 
         await patchFirestoreDoc(fsBase, serviceToken, APP_VERSION_DOC, fields);
         return json({ success: true, appVersions: appVersionsFromDoc({ fields }) });
@@ -342,22 +350,26 @@ export async function handleAdminRoutes(request, env) {
             windowsVersion: form.get('windowsVersion') || current.windows.version,
             windowsReleaseDate: form.get('windowsReleaseDate') || current.windows.releaseDate,
             androidVersion: form.get('androidVersion') || current.android.version,
-            androidReleaseDate: form.get('androidReleaseDate') || current.android.releaseDate
+            androidReleaseDate: form.get('androidReleaseDate') || current.android.releaseDate,
+            windowsSha256: current.windows.sha256
         };
-        const fields = appVersionFields(env, values);
-        const windowsVersion = fields.windowsVersion.stringValue;
-        const androidVersion = fields.androidVersion.stringValue;
-        const key = appType === 'windows' ? WINDOWS_DOWNLOAD_KEY : androidDownloadKey(androidVersion);
         const expectedExt = appType === 'windows' ? '.exe' : '.apk';
         const fileName = String(file.name || '').toLowerCase();
         if (fileName && !fileName.endsWith(expectedExt)) {
             return json({ success: false, error: `Upload a ${expectedExt} file for ${appType}.` }, 400);
         }
 
+        const fileBytes = await file.arrayBuffer();
+        if (appType === 'windows') values.windowsSha256 = await sha256Hex(fileBytes);
+        const fields = appVersionFields(env, values);
+        const windowsVersion = fields.windowsVersion.stringValue;
+        const androidVersion = fields.androidVersion.stringValue;
+        const key = appType === 'windows' ? WINDOWS_DOWNLOAD_KEY : androidDownloadKey(androidVersion);
+
         const contentType = appType === 'windows'
             ? 'application/vnd.microsoft.portable-executable'
             : 'application/vnd.android.package-archive';
-        await env.PHOTOS.put(key, await file.arrayBuffer(), {
+        await env.PHOTOS.put(key, fileBytes, {
             httpMetadata: {
                 contentType,
                 cacheControl: 'public, max-age=60'
