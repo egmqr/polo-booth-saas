@@ -77,6 +77,22 @@ test('legacy app-version record returns empty Windows digest', async () => {
     assert.equal(appVersions.proboothWindows.sha256, '');
 });
 
+test('public version response exposes ProBooth without changing PoloPro records', async () => {
+    const response = await withFetch(async url => {
+        const address = String(url);
+        if (address.includes('oauth2.googleapis.com/token')) return Response.json({ access_token: 'service-token' });
+        if (address.includes('/documents/app_settings/downloads')) return Response.json({ fields: {
+            windowsVersion: { stringValue: '2.0.0' },
+            proboothWindowsVersion: { stringValue: '3.2.1.0' },
+            proboothWindowsSha256: { stringValue: WINDOWS_SHA256 }
+        } });
+        throw new Error(`Unexpected fetch: ${address}`);
+    }, () => handleAppVersionsPublic(new Request('https://worker.example/api/app-versions'), environment()));
+    const body = await response.json();
+    assert.equal(body.appVersions.proboothWindows.downloadUrl, 'https://cdn.example.com/ProBooth.exe');
+    assert.equal(body.appVersions.windows.downloadUrl, 'https://cdn.example.com/PoloPro.exe');
+});
+
 test('settings save preserves stored Windows digest and ignores payload digest', async () => {
     let patchedFields;
     const response = await withFetch(async (url, options = {}) => {

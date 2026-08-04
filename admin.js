@@ -314,6 +314,9 @@ export async function handleAppVersionsPublic(request, env) {
     const serviceToken = await getServiceToken(env);
     const fsBase = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
     const appVersions = await readAppVersions(fsBase, serviceToken);
+    const cdn = publicCdnBase(env);
+    appVersions.windows.downloadUrl = `${cdn}/${WINDOWS_DOWNLOAD_KEY}`;
+    appVersions.proboothWindows.downloadUrl = `${cdn}/${PROBOOTH_WINDOWS_DOWNLOAD_KEY}`;
     return json({ success: true, appVersions });
 }
 

@@ -1067,6 +1067,14 @@
                         <label>Android release date</label>
                         <input id="androidReleaseDateInput" type="date">
                     </div>
+                    <div class="field">
+                        <label>ProBooth Windows latest version</label>
+                        <input id="proboothWindowsVersionInput" placeholder="1.0.0">
+                    </div>
+                    <div class="field">
+                        <label>ProBooth Windows release date</label>
+                        <input id="proboothWindowsReleaseDateInput" type="date">
+                    </div>
                 </div>
                 <div class="settings-actions">
                     <button class="btn-primary" onclick="saveAppVersions()">Save Versions</button>
@@ -1089,6 +1097,14 @@
                         </div>
                         <input id="androidApkInput" type="file" accept=".apk,application/vnd.android.package-archive,application/octet-stream">
                         <button class="btn-primary" onclick="uploadAppFile('android')">Upload Android APK</button>
+                    </div>
+                    <div class="upload-card">
+                        <div>
+                            <h3>ProBooth Windows</h3>
+                            <p class="muted">Uploads overwrite <span class="mono">ProBooth.exe</span> in R2.</p>
+                        </div>
+                        <input id="proboothWindowsExeInput" type="file" accept=".exe,application/x-msdownload,application/octet-stream">
+                        <button class="btn-primary" onclick="uploadAppFile('probooth-windows')">Upload ProBooth EXE</button>
                     </div>
                 </div>
             </div>
@@ -1381,6 +1397,8 @@
             document.getElementById('windowsReleaseDateInput').value = toDateInput(appVersions.windows?.releaseDate);
             document.getElementById('androidVersionInput').value = appVersions.android?.version || '';
             document.getElementById('androidReleaseDateInput').value = toDateInput(appVersions.android?.releaseDate);
+            document.getElementById('proboothWindowsVersionInput').value = appVersions.proboothWindows?.version || '';
+            document.getElementById('proboothWindowsReleaseDateInput').value = toDateInput(appVersions.proboothWindows?.releaseDate);
             document.getElementById('appVersionsUpdatedAt').textContent = appVersions.updatedAt
                 ? `Last updated ${formatDateTime(appVersions.updatedAt)}`
                 : 'Defaults are currently being used.';
@@ -1393,7 +1411,9 @@
                     windowsVersion: document.getElementById('windowsVersionInput').value,
                     windowsReleaseDate: document.getElementById('windowsReleaseDateInput').value,
                     androidVersion: document.getElementById('androidVersionInput').value,
-                    androidReleaseDate: document.getElementById('androidReleaseDateInput').value
+                    androidReleaseDate: document.getElementById('androidReleaseDateInput').value,
+                    proboothWindowsVersion: document.getElementById('proboothWindowsVersionInput').value,
+                    proboothWindowsReleaseDate: document.getElementById('proboothWindowsReleaseDateInput').value
                 })
             });
             appVersions = data.appVersions || {};
@@ -1402,11 +1422,16 @@
         }
 
         async function uploadAppFile(appType) {
-            const inputId = appType === 'windows' ? 'windowsExeInput' : 'androidApkInput';
+            const isProBoothWindows = appType === 'probooth-windows';
+            const inputId = appType === 'windows'
+                ? 'windowsExeInput'
+                : isProBoothWindows
+                    ? 'proboothWindowsExeInput'
+                    : 'androidApkInput';
             const input = document.getElementById(inputId);
             const file = input.files && input.files[0];
             if (!file) {
-                showToast(`Choose a ${appType === 'windows' ? 'Windows EXE' : 'Android APK'} first`);
+                showToast(`Choose a ${appType === 'windows' ? 'Windows EXE' : isProBoothWindows ? 'ProBooth EXE' : 'Android APK'} first`);
                 return;
             }
 
@@ -1417,6 +1442,8 @@
             form.append('windowsReleaseDate', document.getElementById('windowsReleaseDateInput').value);
             form.append('androidVersion', document.getElementById('androidVersionInput').value);
             form.append('androidReleaseDate', document.getElementById('androidReleaseDateInput').value);
+            form.append('proboothWindowsVersion', document.getElementById('proboothWindowsVersionInput').value);
+            form.append('proboothWindowsReleaseDate', document.getElementById('proboothWindowsReleaseDateInput').value);
 
             showToast(`Uploading ${file.name}...`);
             const data = await adminMultipartFetch('/api/admin/upload-app', form);
