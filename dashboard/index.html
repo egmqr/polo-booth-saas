@@ -1555,6 +1555,7 @@
         <button onclick="closeManageModal()"
           style="background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
       </div>
+      <div id="manageTaskQueue" style="padding:10px 20px;background:#eff6ff;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--text-main);"><div id="manageTaskQueueStatus">No photo tasks running</div><div id="manageTaskQueuePending" style="margin-top:3px;color:var(--text-muted);"></div><div style="margin-top:6px;color:#9a3412;">Keep this window open. Closing it interrupts active and queued tasks.</div></div>
       <div class="manage-toolbar">
         <button class="action-btn"
           style="background: var(--btn-outline-bg); color: var(--btn-outline-text); border: 1px solid var(--border);"
@@ -1589,6 +1590,7 @@
       </div>
     </div>
   </div>
+  <script type="module" src="manage-photo-task-queue.mjs"></script>
   <div id="overlay">
     <div class="overlay-spinner"></div>
     <div class="overlay-text" id="overlay-text">Loading...</div>
