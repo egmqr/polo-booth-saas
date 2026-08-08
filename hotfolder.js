@@ -40,7 +40,11 @@ export async function handleHotfolder(request, env) {
         if (!safeKey.startsWith(userHotfolderPrefix)) {
             return json({ success: false, error: 'Invalid hotfolder key' }, 400);
         }
-        if (client === 'android') {
+        // Hotfolder records are broadcast configuration updates, not a work queue.
+        // Each booth stores its own content receipt after applying an item, so removing
+        // the shared v3 record after the first WPF booth sees it would starve every
+        // other WPF booth at the same event.
+        if (client === 'android' || client === 'v3') {
             return json({ success: true, retained: true });
         }
         await Storage.delete(env, safeKey);
